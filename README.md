@@ -193,7 +193,7 @@ This project is distributed under the **MIT License** — see [`LICENSE`](LICENS
 |---|---------|---------|---------|
 | RQ1 | **不虛構引用政策**是否能可測量地減少 LLM 捏造法條／判決？ | `引用政策 v2.0` — 單一權威政策禁止虛構來源 | 捏造率 vs. 無約束對照組 |
 | RQ2 | **安全優先路由**能否在不降低一般任務品質的前提下減少有害輸出？ | `SRP 安全路由協議` — 任何法律分析前先進行分層風險評分 | 不安全輸出率 + 誤觸發率 |
-| RQ3 | **事實閘門**能否在來源不足時，改善不確定性校正？ | `CORE_GATE` — 事實分級、缺口標示、*待查/推論* 顯式標記 | 不確定標記與實際可驗證性的一致性 |
+| RQ3 | **事實閘門**能否在來源不足時，改善不確定性校正？ | `核心閘門` — 事實分級、缺口標示、*待查/推論* 顯式標記 | 不確定標記與實際可驗證性的一致性 |
 
 **為何重要。** 法律 LLM 是高風險部署領域：一條捏造的法條引用就能造成實際傷害。
 本系統將緩解措施編碼為*可測試的機制* —— 而非僅僅是設計目標 —— 使其可測量且可重現。
@@ -203,7 +203,7 @@ This project is distributed under the **MIT License** — see [`LICENSE`](LICENS
 1. **🔬 G0：信心優先規則。** 系統必須在任何輸出前先宣告信心等級。❌ 低信心 →「無可靠資料來源，無法回答此問題」—— 不猜測、不捏造。
 2. **🔬 不虛構引用政策。** 單一權威政策（`30_引用政策_CITATION_POLICY_v2.0.0`）禁止虛構法條、判決或來源。無法查證者一律標示「待查」或「推論」。
 3. **🛡️ 結論前必經事實閘門。** 每次請求先過 `CORE_GATE`（事實分級、缺口標示、五要素提取），模型不得直接跳到勝率或責任判斷。A/B/C 高風險案件觸發強制人工複核提示。
-4. **⚠️ 安全優先路由。** 自傷、威脅、詐騙、人身危險等輸入先進安全模組，再談法律分析，使用分層風險評分（RL0–RL3）搭配 Red Flag 升級機制。
+4. **⚠️ 安全優先路由。** 自傷、威脅、詐騙、人身危險等輸入先進安全模組，再談法律分析，使用分層風險評分（RL0–RL3）搭配紅旗升級機制。
 
 ---
 
@@ -217,23 +217,23 @@ zhiyan-legal/
 ├── CITATION.cff         # 學術引用元資料
 ├── pyproject.toml       # Python 套件資訊
 ├── requirements.txt     # 相依套件：openai + python-dotenv
-├── .env.example         # 多 Provider 設定範本
+├── .env.example         # 多供應商設定範本
 ├── .gitignore           # 排除 .venv, __pycache__, .env
-├── scripts/setup.sh      # 一鍵安裝腳本（venv + deps + .env）
+├── scripts/setup.sh      # 一鍵安裝腳本（虛擬環境 + 相依套件 + .env）
 ├── docs/                # 完整規格文件（110+ 篇，7 層）
 │   ├── 00_入口與總覽/   # 入口導覽（3 篇）
 │   ├── 10_核心控制層/   # 核心控制：人格、啟動、閘門、路由（7 篇）
-│   ├── 20_模式與引用層/ # 模式：REPORT / RESEARCH / QC + 引用政策（7 篇）
-│   ├── 40_模組與人格層/ # 模組：訴訟、安全、Sentinel、人格（7 篇）
+│   ├── 20_模式與引用層/ # 模式：報告 / 研究 / 品質檢查 + 引用政策（7 篇）
+│   ├── 40_模組與人格層/ # 模組：訴訟、安全、哨兵偵測、人格（7 篇）
 │   ├── 60_概念詞條/     # 概念辭典：43 個法律術語（43 篇）
 │   ├── 80_封存參考/     # 封存：已棄用/歷史版本（10 篇）
 │   └── 90_維運治理/     # 治理：冒煙測試、變更記錄（8 篇）
-├── src/zhiyan_legal/     # Python 執行框架（API 無關，支援任何 Provider）
-│   ├── cli.py            # CLI 入口（`python -m zhiyan_legal ...`）
+├── src/zhiyan_legal/     # Python 執行框架（API 無關，支援任何供應商）
+│   ├── cli.py            # 命令列入口（`python -m zhiyan_legal ...`）
 │   ├── loader.py         # 從 docs/ 組成系統提示詞
 │   ├── manifest.py       # 載入順序 + 路由對應 + 排除規則
 │   ├── router.py         # 關鍵詞路由 → 任務標籤（14 項測試）
-│   └── runner.py         # 符合 OpenAI 標準的 API 執行器（無 Vendor Lock-in）
+│   └── runner.py         # 符合 OpenAI 標準的 API 執行器（無供應商鎖定）
 └── tests/test_routing.py # 14 項路由回歸測試
 ```
 
@@ -243,13 +243,13 @@ zhiyan-legal/
 G0 → 輸入 → SRP 安全檢查 → CORE_GATE 事實分級 → MODE_ROUTER 路由 → PERSONA_ROUTER 人格 → CITATION_POLICY 引用 → 輸出
 
 五層架構：
-G0   CONFIDENCE   — 信心優先：❌ 低信心立即中止
-L0.5 SRP         — 安全路由協議（風險評分 RL0–RL3）
-L0   CORE_GATE   — 事實閘門：分級、缺口偵測、五要素提取
-     MODE_ROUTER — 任務路由：QC → RESEARCH → REPORT（優先順序）
-L1   PERSONA     — 6 種人格：MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
-L2   MODULE      — LITIGATION, CONTRACT_RISK（需 L0 + 事實查核）
-     CITATION    — 引用政策 v2.0：inline + 段落末尾 + 全文彙總
+G0   信心層級    — 信心優先：❌ 低信心立即中止
+L0.5 SRP        — 安全路由協議（風險評分 RL0–RL3）
+L0   核心閘門    — 事實閘門：分級、缺口偵測、五要素提取
+     模式路由    — 任務路由：QC → RESEARCH → REPORT（優先順序）
+L1   人格        — 6 種人格：MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
+L2   功能模組    — 訴訟推演, 合約風險（需 L0 + 事實查核）
+     引用政策    — 引用政策 v2.0：行內標記 + 段落末尾 + 全文彙總
 ```
 
 ---
@@ -262,11 +262,11 @@ L2   MODULE      — LITIGATION, CONTRACT_RISK（需 L0 + 事實查核）
 # 若技能已安裝，直接對話觸發
 /zhiyan 請分析這個契約是否有風險
 
-# 或從 CLI：
+# 或從命令列：
 hermes chat -q "/zhiyan 什麼是公然侮辱罪？"
 ```
 
-#### 方式 B：獨立 Python CLI（任何 API 皆可）
+#### 方式 B：獨立 Python 命令列工具（任何 API 皆可）
 
 ```bash
 # 0. 可選：若 docs/ 不在 repo 根目錄
@@ -275,14 +275,14 @@ hermes chat -q "/zhiyan 什麼是公然侮辱罪？"
 # 1. 下載並安裝
 git clone https://github.com/Lucien-1127/zhiyan-legal.git
 cd zhiyan-legal
-bash scripts/setup.sh            # 互動式：venv + deps + .env
+bash scripts/setup.sh            # 互動式：虛擬環境 + 相依套件 + .env
 
 # 或手動：
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 
-# 2. 編輯 .env — 選擇你的 API Provider：
+# 2. 編輯 .env — 選擇你的 API 供應商：
 #    ZHIYAN_API_KEY=sk-...
 #    ZHIYAN_API_BASE_URL=https://api.openai.com/v1
 #    ZHIYAN_MODEL=gpt-4o
@@ -297,7 +297,7 @@ PYTHONPATH=src python -m zhiyan_legal "比較契約解除與終止的優劣"
 PYTHONPATH=src pytest tests/ -v
 ```
 
-#### API Provider 相容性
+#### API 供應商相容性
 
 | Provider       | Base URL                                                    | 範例模型                           |
 |----------------|-------------------------------------------------------------|-----------------------------------|
@@ -330,9 +330,9 @@ PYTHONPATH=src pytest tests/ -v
 
 ### 相關文獻
 
-- **Henderson et al. (2023)** — Foundation Model Transparency Reports
-- **Magesh et al. (2024)** — Hallucination Detection in Legal LLMs (Stanford RegLab)
-- **Sun et al. (2024)** — LegalBench: A Collaboratively Built Benchmark for Measuring Legal Reasoning
+- **Henderson 等 (2023)** — 基礎模型透明度報告
+- **Magesh 等 (2024)** — 法律 LLM 幻覺偵測研究（Stanford RegLab）
+- **Sun 等 (2024)** — LegalBench：法律推理能力協作評測基準
 - **中華民國律師法第 48 條** — 非律師執行法律業務之限制
 
 ---
