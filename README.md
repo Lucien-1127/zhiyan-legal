@@ -3,7 +3,7 @@ title: 智研 AI 法律系統 · Zhiyan AI Legal System
 description: A reproducible research study of citation-grounding and safety-routing for reducing hallucination in Taiwan-law legal assistants.
 license: MIT
 authors:
-  - Lucien (Lucien-1127)
+  - Lucien (Lucien-1127) <Lucien127@proton.me>
 repository: https://github.com/Lucien-1127/zhiyan-legal
 ---
 
@@ -190,7 +190,7 @@ If you use this system in your research:
 
 ```bibtex
 @software{zhiyan_legal_2026,
-  author = {Lucien},
+  author = {Lucien (Lucien127@proton.me)},
   title = {Zhiyan AI Legal System: A Reproducible Study of Citation-Grounding and Safety-Routing for Legal LLMs},
   year = {2026},
   url = {https://github.com/Lucien-1127/zhiyan-legal}
