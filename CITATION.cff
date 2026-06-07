@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it as below."
+authors:
+  - family-names: "Lucien"
+    given-names: ""
+    alias: "Lucien-1127"
+title: "Zhiyan AI Legal System: A Reproducible Study of Citation-Grounding and Safety-Routing for Legal LLMs"
+version: 3.0.1
+date-released: 2026-06-07
+url: "https://github.com/Lucien-1127/zhiyan-legal"
+license: MIT
+type: software
+keywords:
+  - legal-ai
+  - responsible-ai
+  - hallucination-mitigation
+  - taiwan-law
+  - prompt-engineering
+  - safety-routing
+  - citation-grounding
