@@ -227,8 +227,8 @@ under a CC-BY license to enable reproducibility.
 
 ## References / 參考文獻
 
-1. Magesh, V., et al. (2024). *Hallucination Detection in Legal LLMs.* Stanford RegLab.
-2. Henderson, P., et al. (2023). *Foundation Model Transparency Reports.*
-3. Sun, Z., et al. (2024). *LegalBench: A Collaboratively Built Benchmark for Measuring Legal Reasoning in LLMs.*
+1. Dahl, M., Magesh, V., Suzgun, M., & Ho, D. E. (2024). *Hallucinating Law: Legal Mistakes with Large Language Models are Pervasive.* Stanford RegLab & HAI. arXiv:2401.01301.
+2. Lewis, P., et al. (2020). *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.* NeurIPS 2020. arXiv:2005.11401.
+3. Guha, N., Nyarko, J., Ho, D. E., Ré, C., Chilton, A., et al. (2023). *LegalBench: A Collaboratively Built Benchmark for Measuring Legal Reasoning in Large Language Models.* NeurIPS 2023 Datasets and Benchmarks. arXiv:2308.11462.
 4. Bommasani, R., et al. (2022). *On the Opportunities and Risks of Foundation Models.*
 5. Taiwan Attorney Act, Article 48 — Limitations on legal service provision by non-attorneys.
