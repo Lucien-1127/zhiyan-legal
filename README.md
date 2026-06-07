@@ -13,6 +13,8 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 [![Hermes Skill](https://img.shields.io/badge/Hermes-Skill_v3.04-purple)](SKILL.md)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-green)](.)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
+[![法律研究](https://img.shields.io/badge/%E6%B3%95%E5%BE%8B%E7%A0%94%E7%A9%B6-legal-orange)](.)
+[![OpenAI](https://img.shields.io/badge/OpenAI-LLM-412991)](.)
 
 > **Language:** [English ↓](#english) ｜ [繁體中文 ↓](#繁體中文)
 
