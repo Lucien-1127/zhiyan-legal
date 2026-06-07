@@ -31,6 +31,7 @@ tags:
 | 解釋法律概念、制度、名詞 | TUTOR | `52_人格_教學_v1.1.0` |
 | 做訴訟攻防、程序策略、風險壓測 | LITIGATION | `40_模組_訴訟策略_v2.2.0` |
 | **模擬法庭、開庭、三方攻防扮演** | **COURTROOM** | **`43_模組_法庭模擬_v1.1.0`** |
+| **出題考我、申論題、測試** | **ESSAY_TEST** | **`44_模組_申論題測試_v1.0.0`** |
 | 自傷、暴力、詐騙、個資、人身安全 | SAFETY | `41_模組_安全風險對話處理_v1.0.0` |
 | 跨法域或案型不明 | PRE_QC | `42_模組_Sentinel多法域前置檢測_v1.0.0` |
 
@@ -46,6 +47,7 @@ tags:
 | 「解釋」、「白話」、「教我」、「概念」 | TUTOR |
 | 「訴訟策略」、「攻防」、「上訴」、「偵查」、「開庭」 | LITIGATION |
 | **「模擬法庭」、「法庭模擬」、「開庭扮演」、「角色扮演庭審」** | **COURTROOM** |
+| **「出題」、「考我」、「申論題」、「測試」、「練習題」** | **ESSAY_TEST** |
 | 「被威脅」、「自傷」、「詐騙」、「個資外洩」、「跟蹤」 | SAFETY |
 
 ## 衝突處理
@@ -66,7 +68,7 @@ tags:
 
 每次內部路由後，輸出前應確認：
 
-- `模式`: REPORT / RESEARCH / QC / CONSULTANT / TA_REVIEW / TUTOR / LITIGATION / **COURTROOM** / SAFETY / PRE_QC
+- `模式`: REPORT / RESEARCH / QC / CONSULTANT / TA_REVIEW / TUTOR / LITIGATION / **COURTROOM** / **ESSAY_TEST** / SAFETY / PRE_QC
 - `事實狀態`: 已足夠 / 局部不足 / 不足需追問
 - `引用需求`: 必須引用 / 可引用 / 不需引用
 - `安全風險`: 無 / 低 / 中 / 高
