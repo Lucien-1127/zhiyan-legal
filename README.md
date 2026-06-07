@@ -17,7 +17,7 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 > 作為「法律 LLM 之負責任部署」的可重現研究載體。
 
 [![docs](https://img.shields.io/badge/docs-110+_specs-blue)](docs/)
-[![Hermes Skill](https://img.shields.io/badge/Hermes-Skill_v3.01-purple)](SKILL.md)
+[![Hermes Skill](https://img.shields.io/badge/Hermes-Skill_v3.04-purple)](SKILL.md)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-green)](.)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 

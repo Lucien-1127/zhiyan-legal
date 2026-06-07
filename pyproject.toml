@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "zhiyan-legal"
-version = "3.2.0"
+version = "3.4.0"
 description = "智研AI法律工作站 — A reproducible study of citation-grounding and safety-routing for legal LLMs"
 authors = [
     {name = "Lucien", email = "ysga1127@gmail.com"}
