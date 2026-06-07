@@ -38,11 +38,12 @@ testable research platform that investigates three core questions:
 citation can cause real harm. This system encodes three mitigations as *testable mechanisms* —
 not aspirational design goals — making them measurable and reproducible.
 
-### Three Research Properties
+### Four Research Properties
 
-1. **🔬 No-fabrication citation policy.** A single authoritative policy (`30_引用政策_CITATION_POLICY_v2.0.0`) prohibits inventing statutes, judgments, or sources. Unverifiable claims must be marked *待查 (to verify)* or *推論 (inferred)*.
-2. **🛡️ Fact gate before conclusions.** Every request passes a `CORE_GATE` stage (fact tiering, gap flagging, five-element extraction) before any legal conclusion — the model cannot jump directly to win-rate or liability claims.
-3. **⚠️ Safety-first routing.** Inputs signalling self-harm, threats, fraud, privacy leakage, or physical danger are routed to a dedicated safety protocol *before* any legal analysis, using a tiered risk scoring system (RL0–RL3).
+1. **🔬 G0: Confidence-first rule.** System must declare confidence level before any output. ❌ Low confidence → "no reliable sources, cannot answer" — no guessing, no fabrication.
+2. **🔬 No-fabrication citation policy.** A single authoritative policy (`30_引用政策_CITATION_POLICY_v2.0.0`) prohibits inventing statutes, judgments, or sources. Unverifiable claims must be marked *待查 (to verify)* or *推論 (inferred)*.
+3. **🛡️ Fact gate before conclusions.** Every request passes a `CORE_GATE` stage (fact tiering, gap flagging, five-element extraction) before any legal conclusion — the model cannot jump directly to win-rate or liability claims. A/B/C high-risk case classifications trigger mandatory human-review prompts.
+4. **⚠️ Safety-first routing.** Inputs signalling self-harm, threats, fraud, privacy leakage, or physical danger are routed to a dedicated safety protocol *before* any legal analysis, using a tiered risk scoring system (RL0–RL3) with Red Flag escalation.
 
 ---
 
@@ -52,9 +53,13 @@ not aspirational design goals — making them measurable and reproducible.
 zhiyan-legal/
 ├── README.md            # This file — research overview + quickstart
 ├── RESEARCH.md          # Full research framing for grant / Researcher Access applications
-├── SKILL.md             # Hermes Agent skill definition (v3.01, 5-layer architecture)
+├── SKILL.md             # Hermes Agent skill definition (v3.04, 5-layer + G0 hierarchy)
 ├── CITATION.cff         # Citation metadata for academic attribution
-├── docs/                # Full specification (110+ files, 7 layers)
+├── pyproject.toml       # Python package metadata
+├── requirements.txt     # Runtime deps: openai + python-dotenv
+├── .env.example         # Multi-provider config template
+├── .gitignore           # Excludes .venv, __pycache__, .env
+├── scripts/setup.sh      # One-command install script (venv + deps + .env)
 │   ├── 00_入口與總覽/   # Entry guide & overview (3 files)
 │   ├── 10_核心控制層/   # Core control: persona, boot, gate, router (7 files)
 │   ├── 20_模式與引用層/ # Modes: REPORT / RESEARCH / QC + citation policy (7 files)
@@ -75,10 +80,11 @@ zhiyan-legal/
 ### System Architecture / 系統架構
 
 ```
-INTAKE → SRP_SAFETY_CHECK → CORE_GATE_FACT_TIER → MODE_ROUTER → PERSONA_ROUTER → CITATION_POLICY → OUTPUT
+G0 → INTAKE → SRP_SAFETY_CHECK → CORE_GATE_FACT_TIER → MODE_ROUTER → PERSONA_ROUTER → CITATION_POLICY → OUTPUT
 
 5-Layer Architecture:
-L0.5  SRP           — Safety Routing Protocol (risk scoring RL0–RL3)
+G0    CONFIDENCE   — Confidence-first: ❌ Low = stop immediately
+L0.5  SRP         — Safety Routing Protocol (risk scoring RL0–RL3)
 L0    CORE_GATE     — Fact gate: tiering, gap detection, five-element extraction
       MODE_ROUTER   — Task routing: QC → RESEARCH → REPORT (priority order)
 L1    PERSONA       — 6 personas: MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
@@ -104,6 +110,9 @@ hermes chat -q "/zhiyan 什麼是公然侮辱罪?"
 ### Option B: Standalone Python CLI (任何 API 皆可)
 
 ```bash
+# 0. Optional: if docs/ is not at repo root, set the path
+# export ZHIYAN_DOCS_DIR=/path/to/zhiyan-legal/docs
+
 # 1. Clone and install
 git clone https://github.com/Lucien-1127/zhiyan-legal.git
 cd zhiyan-legal
