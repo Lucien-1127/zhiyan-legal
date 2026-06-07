@@ -16,6 +16,8 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 [![法律研究](https://img.shields.io/badge/%E6%B3%95%E5%BE%8B%E7%A0%94%E7%A9%B6-legal-orange)](.)
 [![OpenAI](https://img.shields.io/badge/OpenAI-LLM-412991)](.)
 [![Deep Research](https://img.shields.io/badge/Deep%20Research-9--lens-8B5CF6)](.)
+[![Courtroom](https://img.shields.io/badge/Courtroom-Simulation-1f8f4f)](docs/40_模組與人格層/43_模組_法庭模擬_v1.1.0.md)
+[![Essay Test](https://img.shields.io/badge/Essay-3--Zone_Temp-f97316)](docs/40_模組與人格層/44_模組_申論題測試_v1.0.0.md)
 
 > **Language:** [English ↓](#english) ｜ [繁體中文 ↓](#繁體中文)
 
