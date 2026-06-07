@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "zhiyan-legal"
+version = "3.2.0"
+description = "智研AI法律工作站 — A reproducible study of citation-grounding and safety-routing for legal LLMs"
+authors = [
+    {name = "Lucien", email = "ysga1127@gmail.com"}
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+dependencies = [
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Legal Industry",
+]
+
+[project.urls]
+Repository = "https://github.com/Lucien-1127/zhiyan-legal"
+Documentation = "https://github.com/Lucien-1127/zhiyan-legal#readme"
+
+[tool.setuptools.packages.find]
+where = ["src"]

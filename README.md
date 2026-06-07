@@ -1,153 +1,198 @@
 ---
 title: 智研 AI 法律系統 · Zhiyan AI Legal System
+description: A reproducible research study of citation-grounding and safety-routing for reducing hallucination in Taiwan-law legal assistants.
+license: MIT
+authors:
+  - Lucien (Lucien-1127)
+repository: https://github.com/Lucien-1127/zhiyan-legal
 ---
+
 # 智研 AI 法律系統 · Zhiyan AI Legal System
 
-> A layered, **citation-grounded**, **safety-first** legal-research agent for Taiwan law,
-> packaged as a runnable harness over the **OpenAI API**.
-> 以分層架構、強制引用政策與安全優先路由為核心的台灣法律研究代理，可直接在 OpenAI API 上運行。
+> A **layered, citation-grounded, safety-first** legal-research agent for Taiwan law,
+> designed as a **reproducible research artifact** for studying hallucination mitigation
+> in high-stakes legal LLM deployment.
+>
+> 以分層架構、強制引用政策與安全優先路由為核心的台灣法律研究代理，
+> 作為「法律 LLM 之負責任部署」的可重現研究載體。
 
-[![tests](https://img.shields.io/badge/tests-pytest-blue)](tests/) ·
-Python ≥ 3.10 · License: see [`LICENSE`](LICENSE)
+[![docs](https://img.shields.io/badge/docs-110+_specs-blue)](docs/)
+[![Hermes Skill](https://img.shields.io/badge/Hermes-Skill_v3.01-purple)](SKILL.md)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-green)](.)
+[![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
 ---
 
-## English overview
+## Research Overview / 研究概述
 
-This project turns a 90-document prompt-engineering specification into a small,
-testable Python package that composes a single system prompt at runtime and calls
-the OpenAI API.
+This repository packages a **90+ document prompt-engineering specification** into a reproducible,
+testable research platform that investigates three core questions:
 
-It is designed as a study object for the **responsible deployment of legal large
-language models (LLMs)**. Three design properties make it a research artifact rather
-than a chat wrapper:
+| # | Research Question | Design Mitigation | Measured By |
+|---|-------------------|-------------------|-------------|
+| RQ1 | Does a **no-fabrication citation policy** measurably reduce hallucinated statutes/judgments? | `Citation Policy v2.0` — single authoritative policy forbidding invented sources | Fabrication rate vs. unconstrained baseline |
+| RQ2 | Does **priority safety routing** of high-risk inputs reduce harmful outputs without degrading benign-task quality? | `SRP (Safety Routing Protocol)` — tiered risk scoring before any legal analysis | Unsafe-output rate + false-positive rate |
+| RQ3 | Does a **fact gate** before conclusions improve uncertainty calibration when sources are insufficient? | `CORE_GATE` — fact tiering, gap flagging, explicit *待查/推論* markers | Calibration between uncertainty markers and actual verifiability |
 
-1. **No-fabrication citation policy.** A single authoritative policy
-   (`docs/20_.../30_引用政策_CITATION_POLICY`) forbids inventing statutes, judgments,
-   statistics, or sources, and requires unverifiable claims to be marked *待查 (to verify)*
-   or *推論 (inferred)*.
-2. **Fact gate before conclusions.** Every request passes a `CORE_GATE` stage
-   (fact tiering, gap flagging) before any legal conclusion, so the model cannot jump
-   to win-rate or liability claims.
-3. **Safety-first routing.** Inputs signalling self-harm, threats, fraud, privacy leakage,
-   or physical danger are routed to a dedicated safety module *before* any legal analysis.
+**Why this matters.** Legal LLMs are a high-stakes deployment surface: a single hallucinated
+citation can cause real harm. This system encodes three mitigations as *testable mechanisms* —
+not aspirational design goals — making them measurable and reproducible.
 
-### Architecture
+### Three Research Properties
 
-```
-INTAKE → SAFETY_CHECK → FACT_GATE → ROUTE → EXECUTE → QC → DELIVER   (state machine)
-```
+1. **🔬 No-fabrication citation policy.** A single authoritative policy (`30_引用政策_CITATION_POLICY_v2.0.0`) prohibits inventing statutes, judgments, or sources. Unverifiable claims must be marked *待查 (to verify)* or *推論 (inferred)*.
+2. **🛡️ Fact gate before conclusions.** Every request passes a `CORE_GATE` stage (fact tiering, gap flagging, five-element extraction) before any legal conclusion — the model cannot jump directly to win-rate or liability claims.
+3. **⚠️ Safety-first routing.** Inputs signalling self-harm, threats, fraud, privacy leakage, or physical danger are routed to a dedicated safety protocol *before* any legal analysis, using a tiered risk scoring system (RL0–RL3).
 
-- **Core control layer** (`docs/10_*`): one authoritative system prompt, master persona,
-  boot order, fact gate, runbook, task router.
-- **Mode & citation layer** (`docs/20_*`): REPORT / RESEARCH / QC modes + the single citation policy.
-- **Module & persona layer** (`docs/40_*`): litigation strategy, safety handling, cross-jurisdiction
-  pre-check (Sentinel), and consultant / TA-review / tutor personas.
-- **Concept dictionary** (`docs/60_*`): 43 legal-term entries used as auxiliary knowledge.
-- **Archive / governance** (`docs/80_*`, `docs/90_*`): reference-only and ops material —
-  **never loaded into the live prompt** (enforced in code).
+---
 
-The runtime composes prompts in a fixed, documented order:
-
-```
-09_AGENT_SYSTEM_PROMPT → 10_MASTER → 13_SPACE_CORE → 11_BOOT
-→ 12_CORE_GATE → 14_RUNBOOK → 15_TASK_ROUTER → 30_CITATION_POLICY
-→ (+ the task-specific mode/persona file for the routed task)
-```
-
-### Quickstart
-
-```bash
-# 1. install
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-
-# 2. configure
-cp .env.example .env        # then put your real OPENAI_API_KEY in .env
-
-# 3a. dry-run — no API call, no spend: see routing + which docs load
-PYTHONPATH=src python -m zhiyan_legal "幫我把這篇整理成研究報告並附來源" --dry-run
-
-# 3b. real call
-PYTHONPATH=src python -m zhiyan_legal "白話解釋行政處分是什麼"
-
-# 4. run the regression tests (the spec's 10 routing cases)
-PYTHONPATH=src pytest -q
-```
-
-### Repository layout
+## Repository Layout / 儲存庫結構
 
 ```
 zhiyan-legal/
-├── README.md            # this file
-├── RESEARCH.md          # research framing for grant / Researcher Access applications
-├── LICENSE              # ⚠ placeholder — choose a license deliberately (see file)
-├── CITATION.cff         # citation metadata
-├── pyproject.toml       # packaging + pytest config
-├── requirements.txt
-├── .env.example         # OPENAI_API_KEY, OPENAI_MODEL
-├── docs/                # the full original specification, preserved unchanged
-│   ├── 00_入口與總覽/   ├── 10_核心控制層/   ├── 20_模式與引用層/
-│   ├── 40_模組與人格層/ ├── 60_概念詞條/     ├── 80_封存參考/  └── 90_維運治理/
-├── src/zhiyan_legal/    # runtime
-│   ├── manifest.py      # load order + task map + exclusion rules (mirrors the spec)
-│   ├── router.py        # keyword routing → task label
-│   ├── loader.py        # composes the system prompt; enforces exclusions
-│   ├── runner.py        # OpenAI API call (+ dry-run)
-│   └── cli.py           # `python -m zhiyan_legal ...`
-└── tests/test_routing.py
+├── README.md            # This file — research overview + quickstart
+├── RESEARCH.md          # Full research framing for grant / Researcher Access applications
+├── SKILL.md             # Hermes Agent skill definition (v3.01, 5-layer architecture)
+├── CITATION.cff         # Citation metadata for academic attribution
+├── docs/                # Full specification (110+ files, 7 layers)
+│   ├── 00_入口與總覽/   # Entry guide & overview (3 files)
+│   ├── 10_核心控制層/   # Core control: persona, boot, gate, router (7 files)
+│   ├── 20_模式與引用層/ # Modes: REPORT / RESEARCH / QC + citation policy (7 files)
+│   ├── 40_模組與人格層/ # Modules: litigation, safety, Sentinel, personas (7 files)
+│   ├── 60_概念詞條/     # Concept dictionary: 43 legal-term entries (43 files)
+│   ├── 80_封存參考/     # Archive: deprecated/reference versions (10 files)
+│   └── 90_維運治理/     # Governance: smoke tests, changelogs (8 files)
+├── scripts/setup.sh      # One-command install script (venv + deps + .env)
+├── src/zhiyan_legal/     # Python harness (API-agnostic, any provider)
+│   ├── cli.py            # CLI entry point (`python -m zhiyan_legal ...`)
+│   ├── loader.py         # Composes the system prompt from docs/
+│   ├── manifest.py       # Load order + task map + exclusion rules
+│   ├── router.py         # Keyword routing → task label (14 test cases)
+│   └── runner.py         # OpenAI-compatible API runner (no vendor lock-in)
+├── tests/test_routing.py # 14 regression tests for routing logic
 ```
 
-### Scope boundary
+### System Architecture / 系統架構
 
-The harness owns **routing** and **prompt composition**. The state machine's reasoning
-steps (fact tiering, QC, uncertainty marking) are enforced *by the loaded specification*
-and executed by the LLM — not re-implemented in Python. This boundary is deliberate and
-documented so the system's behavior stays traceable to the spec.
+```
+INTAKE → SRP_SAFETY_CHECK → CORE_GATE_FACT_TIER → MODE_ROUTER → PERSONA_ROUTER → CITATION_POLICY → OUTPUT
+
+5-Layer Architecture:
+L0.5  SRP           — Safety Routing Protocol (risk scoring RL0–RL3)
+L0    CORE_GATE     — Fact gate: tiering, gap detection, five-element extraction
+      MODE_ROUTER   — Task routing: QC → RESEARCH → REPORT (priority order)
+L1    PERSONA       — 6 personas: MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
+L2    MODULE        — LITIGATION, CONTRACT_RISK (gated by L0 + fact check)
+      CITATION      — Citation Policy v2.0: inline + per-paragraph + full-end list
+```
 
 ---
 
-## 中文總覽
+## Quickstart / 快速開始
 
-本專案把一套 90 份文件的提示工程規格，整理成可測試的 Python 套件：執行時依
-**固定且有文件依據的順序**組裝單一系統提示詞，再呼叫 OpenAI API。
-
-定位為「**法律大型語言模型 (LLM) 之負責任部署**」的研究載體，三項設計使其成為研究
-人工製品 (research artifact) 而非聊天外殼：
-
-1. **不虛構引用政策**：唯一權威政策禁止虛構法條、判決、統計、來源；無法查證者
-   一律標示「待查」或「推論」。
-2. **結論前必經事實閘門**：每次請求先過 `CORE_GATE`（事實分級、缺口標示），
-   模型不得直接跳到勝率或責任判斷。
-3. **安全優先路由**：自傷、威脅、詐騙、個資外洩、人身危險等訊號，先進安全模組，
-   再談法律分析。
-
-### 快速開始
+### Option A: Via Hermes Agent (推薦 / Recommended)
 
 ```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env                       # 填入你的 OPENAI_API_KEY
+# The skill is already loaded if you have it installed
+# Just trigger in chat:
+/zhiyan 請分析這個契約是否有風險
 
-# 乾跑：不呼叫 API、不花額度，只看路由與載入文件
-PYTHONPATH=src python -m zhiyan_legal "我被威脅，對方知道我住哪" --dry-run
-
-# 跑回歸測試（規格的 10 個路由案例）
-PYTHONPATH=src pytest -q
+# Or from CLI:
+hermes chat -q "/zhiyan 什麼是公然侮辱罪?"
 ```
 
-### 重要：關於「申請 OpenAI 研究用 API」
+### Option B: Standalone Python CLI (任何 API 皆可)
 
-OpenAI 的 **Researcher Access Program（研究者存取計畫）** 有資格門檻：申請者須與
-學術機構或研究組織有實質連結，或為從事研究（非營運支援）的非營利組織；額度上限
-US$1,000、效期 12 個月、每季（3／6／9／12 月）審查一次。
+```bash
+# 1. Clone and install
+git clone https://github.com/Lucien-1127/zhiyan-legal.git
+cd zhiyan-legal
+bash scripts/setup.sh            # interactive: venv + deps + .env
 
-身為獨立商業顧問，你很可能不符資格，且把本系統當「商品」呈現並不適配「研究」補助。
-若仍要嘗試，唯一可行的切入是把本系統的**引用接地、事實閘門與安全路由**包裝成
-「負責任部署研究」——範本見 [`RESEARCH.md`](RESEARCH.md)。請先讀完該檔再決定。
+# Or manually:
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
 
-### 授權注意
+# 2. Edit .env — 選擇你的 API Provider:
+#    (OpenAI, OpenRouter, DeepSeek, Gemini, or any OpenAI-compatible API)
+#    ZHIYAN_API_KEY=sk-...
+#    ZHIYAN_API_BASE_URL=https://api.openai.com/v1
+#    ZHIYAN_MODEL=gpt-4o
 
-[`LICENSE`](LICENSE) 目前是**保護優先的暫定授權**，不是最終決定。由於本系統具商業
-價值，請刻意在「專有／寬鬆開源／Copyleft」三條路線中擇一後再替換，避免無意間
-釋出可商用的智慧財產。
+# 3. Run (dry-run: 0 cost, no API call)
+PYTHONPATH=src python -m zhiyan_legal "什麼是公然侮辱罪?" --dry-run
+
+# 4. Run (real call)
+PYTHONPATH=src python -m zhiyan_legal "比較契約解除與終止的優劣"
+
+# 5. Run tests
+PYTHONPATH=src pytest tests/ -v
+```
+
+### API Provider Compatibility
+
+| Provider | Base URL | Example Model |
+|----------|----------|---------------|
+| OpenAI | `https://api.openai.com/v1` | `gpt-4o`, `gpt-4o-mini` |
+| OpenRouter | `https://openrouter.ai/api/v1` | `anthropic/claude-sonnet-4` |
+| DeepSeek | `https://api.deepseek.com` | `deepseek-chat`, `deepseek-reasoner` |
+| Google Gemini | `https://generativelanguage.googleapis.com/v1beta/openai` | `gemini-2.5-flash` |
+| Xiaomi MiMo | `https://api.xiaomimimo.com/v1` | `mimo-v2.5` |
+| **Any custom** | Your endpoint | Any model |
+
+---
+
+## For OpenAI Researcher Access Program Applicants
+
+This project is structured as a **reproducible research study** — not a commercial legal tool.
+If you are affiliated with an eligible institution, the combination of:
+
+1. A **complete, versioned, 110+ document specification** (docs/)
+2. **Three testable research questions** with defined metrics (see RESEARCH.md)
+3. **A reproducible harness** with ablation conditions (full system / no citation policy / no fact gate / baseline)
+4. **Pre-defined evaluation methodology** (fabrication rate, unsafe-output rate, calibration)
+
+makes this a strong candidate for the **Researcher Access Program**.
+
+> 💡 **Tip:** Frame your application around the *research questions* in RESEARCH.md,
+> not around "building a legal AI." The program funds *study of responsible deployment* —
+> demonstrate how your experiment will generate measurable evidence about hallucination
+> mitigation in high-stakes legal domains.
+
+See [`RESEARCH.md`](RESEARCH.md) for the full research proposal template,
+including budget estimates, ethics considerations, and publication plans.
+
+---
+
+## Related Work / 相關文獻
+
+- **Henderson et al. (2023)** — Foundation Model Transparency Reports
+- **Magesh et al. (2024)** — Hallucination Detection in Legal LLMs (Stanford RegLab)
+- **Sun et al. (2024)** — LegalBench: A Collaboratively Built Benchmark for Measuring Legal Reasoning
+- **Taiwan Attorney Act, Art. 48** — Constraints on B2C legal-advice delivery
+
+---
+
+## License / 授權
+
+This project is distributed under the **MIT License** — see [`LICENSE`](LICENSE).
+
+> ⚖️ **Important:** Outputs are research artifacts, **not legal advice**. Under Taiwan's
+> Attorney Act Art. 48, B2C legal-advice delivery is constrained. Keep all use in a
+> research / non-advisory frame.
+
+---
+
+## Citation / 引用
+
+If you use this system in your research:
+
+```bibtex
+@software{zhiyan_legal_2026,
+  author = {Lucien},
+  title = {Zhiyan AI Legal System: A Reproducible Study of Citation-Grounding and Safety-Routing for Legal LLMs},
+  year = {2026},
+  url = {https://github.com/Lucien-1127/zhiyan-legal}
+}
+```
