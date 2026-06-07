@@ -1,3 +1,6 @@
+---
+title: 智研 AI 法律系統 · Zhiyan AI Legal System
+---
 # 智研 AI 法律系統 · Zhiyan AI Legal System
 
 > A layered, **citation-grounded**, **safety-first** legal-research agent for Taiwan law,
