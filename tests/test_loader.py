@@ -86,8 +86,8 @@ def test_compose_truncation(tmp_dir):
     result = compose([str(f)], max_chars=10)
     # 內容被截斷後應出現 truncation 標記
     assert "truncated" in result
-    # 總長度應接近 max_chars + 截斷標記
-    assert len(result) < 60
+    # 總長度 = max_chars + truncation 附加文字
+    assert len(result) == 10 + len("\n\n… [truncated to fit context window]")
 
 
 def test_compose_empty_file_skipped(tmp_dir):
