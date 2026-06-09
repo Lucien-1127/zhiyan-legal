@@ -18,6 +18,8 @@ from typing import Optional
 
 from openai import OpenAI
 
+from .loader import count_tokens
+
 MODEL_DEFAULT = "gpt-4o"
 
 
@@ -76,7 +78,7 @@ def run_llm(
         print("=" * 60)
         print(f"\n📋 Model:      {model}")
         print(f"📋 Base URL:   {os.getenv('ZHIYAN_API_BASE_URL', 'https://api.openai.com/v1')}")
-        print(f"📋 System PMT: {len(system_prompt):,} chars ({len(system_prompt.split()):,} tokens approx)")
+        print(f"📋 System PMT: {len(system_prompt):,} chars ({count_tokens(system_prompt):,} tokens approx)")
         print(f"📋 User MSG:   {len(user_message):,} chars")
         print("\n" + "=" * 60)
         print("📄 COMPOSED SYSTEM PROMPT")
