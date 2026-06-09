@@ -128,7 +128,7 @@ bash scripts/setup.sh            # interactive: venv + deps + .env
 # 2. Edit .env — choose your API provider:
 #    ZHIYAN_API_KEY=sk-...
 #    ZHIYAN_API_BASE_URL=https://api.openai.com/v1
-#    ZHIYAN_MODEL=gpt-4o
+#    ZHIYAN_MODEL=gpt-5.1
 
 # 3. Dry-run (0 cost)
 PYTHONPATH=src python -m zhiyan_legal "What is public insult?" --dry-run
@@ -144,11 +144,12 @@ PYTHONPATH=src pytest tests/ -v
 
 | Provider       | Base URL                                                    | Example Model                      |
 |----------------|-------------------------------------------------------------|------------------------------------|
-| OpenAI         | `https://api.openai.com/v1`                                  | `gpt-4o`, `gpt-4o-mini`           |
-| OpenRouter     | `https://openrouter.ai/api/v1`                               | `anthropic/claude-sonnet-4`        |
-| DeepSeek       | `https://api.deepseek.com`                                   | `deepseek-chat`, `deepseek-reasoner` |
-| Google Gemini  | `https://generativelanguage.googleapis.com/v1beta/openai`    | `gemini-2.5-flash`                 |
-| Xiaomi MiMo    | `https://api.xiaomimimo.com/v1`                              | `mimo-v2.5`                        |
+| OpenAI         | `https://api.openai.com/v1`                                  | `gpt-5.1`                          |
+| OpenRouter     | `https://openrouter.ai/api/v1`                               | `anthropic/claude-sonnet-4.6`      |
+| DeepSeek       | `https://api.deepseek.com`                                   | `deepseek/deepseek-v4-flash`       |
+| Google Gemini  | `https://generativelanguage.googleapis.com/v1beta/openai`    | `gemini-3-flash-preview`           |
+| MiniMax        | `https://api.minimax.chat/v1`                                | `minimax-m3`                       |
+| NVIDIA         | `https://api.nvidia.com/v1`                                  | `nvidia/nemotron-3-super` (free)   |
 | **Any custom** | Your endpoint                                                | Any model                          |
 
 ---
@@ -290,7 +291,7 @@ cp .env.example .env
 # 2. 編輯 .env — 選擇你的 API 供應商：
 #    ZHIYAN_API_KEY=sk-...
 #    ZHIYAN_API_BASE_URL=https://api.openai.com/v1
-#    ZHIYAN_MODEL=gpt-4o
+#    ZHIYAN_MODEL=gpt-5.1
 
 # 3. 乾跑（0 成本）
 PYTHONPATH=src python -m zhiyan_legal "什麼是公然侮辱罪？" --dry-run
@@ -306,11 +307,12 @@ PYTHONPATH=src pytest tests/ -v
 
 | Provider       | Base URL                                                    | 範例模型                           |
 |----------------|-------------------------------------------------------------|-----------------------------------|
-| OpenAI         | `https://api.openai.com/v1`                                  | `gpt-4o`, `gpt-4o-mini`           |
-| OpenRouter     | `https://openrouter.ai/api/v1`                               | `anthropic/claude-sonnet-4`        |
-| DeepSeek       | `https://api.deepseek.com`                                   | `deepseek-chat`, `deepseek-reasoner` |
-| Google Gemini  | `https://generativelanguage.googleapis.com/v1beta/openai`    | `gemini-2.5-flash`                 |
-| Xiaomi MiMo    | `https://api.xiaomimimo.com/v1`                              | `mimo-v2.5`                        |
+| OpenAI         | `https://api.openai.com/v1`                                  | `gpt-5.1`                          |
+| OpenRouter     | `https://openrouter.ai/api/v1`                               | `anthropic/claude-sonnet-4.6`      |
+| DeepSeek       | `https://api.deepseek.com`                                   | `deepseek/deepseek-v4-flash`       |
+| Google Gemini  | `https://generativelanguage.googleapis.com/v1beta/openai`    | `gemini-3-flash-preview`           |
+| MiniMax        | `https://api.minimax.chat/v1`                                | `minimax-m3`                       |
+| NVIDIA         | `https://api.nvidia.com/v1`                                  | `nvidia/nemotron-3-super` (free)   |
 | **任何自訂**   | 你的端點                                                      | 任何模型                           |
 
 ---

@@ -6,6 +6,8 @@ Supports any OpenAI-compatible API provider:
 - OpenRouter (openrouter.ai/api/v1)
 - DeepSeek (api.deepseek.com)
 - Google Gemini (generativelanguage.googleapis.com/v1beta/openai)
+- MiniMax (api.minimax.chat/v1)
+- NVIDIA (api.nvidia.com/v1 — free tier available)
 - Any custom endpoint
 """
 
