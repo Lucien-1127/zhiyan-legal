@@ -105,3 +105,36 @@ def test_legal_writer_doc():
 def test_qc_verification():
     """核對比對 → QC（避免與 RESEARCH 的「比對」衝突）"""
     assert route("幫我核對比對這兩份條款") == "QC"
+
+
+# ── Boundary protection edge cases ──────────────────────────────────
+
+def test_boundary_ga_not_in_report():
+    """"告" 在「報告」中不應觸發 LITIGATION"""
+    assert route("幫我寫一份報告") != "LITIGATION"
+
+
+def test_boundary_ga_standalone():
+    """"告" 獨立出現時應觸發 LITIGATION"""
+    assert route("我要告他") == "LITIGATION"
+
+
+def test_boundary_ga_in_beigao():
+    """"告" 在「被告」中應觸發 LITIGATION（法律術語）"""
+    assert route("被告主張無過失") == "LITIGATION"
+
+
+def test_boundary_sha_not_in_mosha():
+    """"殺" 在「抹殺」中不應觸發 SAFETY"""
+    result = route("對方完全抹殺我的貢獻")
+    assert result != "SAFETY", f"抹殺 should not route to SAFETY, got {result}"
+
+
+def test_boundary_sha_standalone():
+    """"殺" 獨立出現時應觸發 SAFETY"""
+    assert route("他威脅要殺我全家") == "SAFETY"
+
+
+def test_boundary_cha_in_diaocha():
+    """"查" 在「調查」中仍應為 RESEARCH（無邊界保護）"""
+    assert route("調查最近的法規變動") == "RESEARCH"
