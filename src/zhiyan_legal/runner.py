@@ -14,11 +14,14 @@ from __future__ import annotations
 import os
 import json
 import sys
+import logging
 from typing import Optional
 
 from openai import OpenAI
 
 from .loader import count_tokens
+
+logger = logging.getLogger("zhiyan_legal")
 
 MODEL_DEFAULT = "gpt-4o"
 
@@ -37,6 +40,7 @@ def get_client() -> OpenAI:
                 break
 
     if not api_key:
+        logger.error("No API key found")
         print("❌ No API key found. Set ZHIYAN_API_KEY or one of:")
         print("   OPENAI_API_KEY, OPENROUTER_API_KEY, GEMINI_API_KEY")
         sys.exit(1)
@@ -94,14 +98,27 @@ def run_llm(
 
     client = get_client()
 
-    response = client.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
-        ],
-        temperature=temperature,
-        max_tokens=max_tokens,
-    )
-
-    return response.choices[0].message.content or ""
+    try:
+        logger.info(
+            "Calling %s (%s, temp=%.1f, max=%d)",
+            model, os.getenv("ZHIYAN_API_BASE_URL", "https://api.openai.com/v1"),
+            temperature, max_tokens,
+        )
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        content = response.choices[0].message.content or ""
+        logger.info("API call succeeded (%d chars returned)", len(content))
+        return content
+    except Exception as e:
+        logger.error("API call failed: %s", e, exc_info=True)
+        print(f"\n❌ API 呼叫失敗：{e}")
+        print("   請檢查 API Key 與端點設定是否正確。")
+        print("   可執行 python -m zhiyan_legal \"你的問題\" --dry-run 先行測試。")
+        return ""
