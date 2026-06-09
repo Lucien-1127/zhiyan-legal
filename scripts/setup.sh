@@ -8,7 +8,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
 
 echo "═══════════════════════════════════════════════════"
 echo "  智研AI法律工作站 — 安裝腳本"
