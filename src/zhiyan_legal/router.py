@@ -80,7 +80,7 @@ def route(text: str) -> str:
                 return p
 
     # 5. Default
-    return "QC"
+    return "CONSULTANT"
 
 
 def describe_route(task: str) -> str:

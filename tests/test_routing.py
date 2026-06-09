@@ -68,8 +68,8 @@ def test_litigation():
 
 
 def test_default_qc():
-    """無匹配關鍵詞 → 預設 QC"""
-    assert route("我朋友欠我錢不還，怎麼辦") == "QC"
+    """無匹配關鍵詞 → 預設 CONSULTANT"""
+    assert route("我朋友欠我錢不還，怎麼辦") == "CONSULTANT"
 
 
 def test_safety_overrides_legal():
@@ -78,5 +78,30 @@ def test_safety_overrides_legal():
 
 
 def test_mixed_qc_research():
-    """混合模式：檢查 > 研究 — 但「查合約」intent 仍是 RESEARCH"""
+    """混合模式：含「查」字優先於合約語境 → RESEARCH"""
     assert route("幫我查這份合約有沒有漏洞") == "RESEARCH"
+
+
+def test_legal_writer_contract():
+    """起草合約 → LEGAL_WRITER"""
+    assert route("幫我起草一份租賃合約") == "LEGAL_WRITER"
+
+
+def test_legal_writer_letter():
+    """律師函 → LEGAL_WRITER"""
+    assert route("幫我寫律師函給房東") == "LEGAL_WRITER"
+
+
+def test_legal_writer_lawsuit():
+    """訴狀 → LEGAL_WRITER（避免與 LITIGATION 的「起訴」衝突）"""
+    assert route("幫我寫一份訴狀") == "LEGAL_WRITER"
+
+
+def test_legal_writer_doc():
+    """法律文書 → LEGAL_WRITER"""
+    assert route("這個法律文書需要修改") == "LEGAL_WRITER"
+
+
+def test_qc_verification():
+    """核對比對 → QC（避免與 RESEARCH 的「比對」衝突）"""
+    assert route("幫我核對比對這兩份條款") == "QC"
