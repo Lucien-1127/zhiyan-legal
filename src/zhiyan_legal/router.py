@@ -13,7 +13,7 @@ KEYWORD_MAP: Dict[str, str] = {
     # QC
     "檢查": "QC", "抓錯": "QC", "對齊": "QC",
     "找矛盾": "QC", "稽核": "QC", "審驗": "QC",
-    "審計": "QC", "核對": "QC", "比對": "QC",
+    "審計": "QC", "核對": "QC", "核對比對": "QC",
     # RESEARCH
     "查資料": "RESEARCH", "研究": "RESEARCH", "比對": "RESEARCH",
     "整理多來源": "RESEARCH", "更新資訊": "RESEARCH",
@@ -33,6 +33,10 @@ KEYWORD_MAP: Dict[str, str] = {
     # LITIGATION
     "訴訟": "LITIGATION", "攻防": "LITIGATION",
     "起訴": "LITIGATION", "告": "LITIGATION",
+    # LEGAL_WRITER
+    "起草": "LEGAL_WRITER", "合約": "LEGAL_WRITER",
+    "律師函": "LEGAL_WRITER", "訴狀": "LEGAL_WRITER",
+    "法律文書": "LEGAL_WRITER", "契約": "LEGAL_WRITER",
     # SAFETY
     "自殺": "SAFETY", "不想活": "SAFETY", "想死": "SAFETY",
     "殺": "SAFETY", "綁架": "SAFETY", "跟蹤": "SAFETY",
