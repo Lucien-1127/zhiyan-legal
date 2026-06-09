@@ -8,13 +8,19 @@ which files to compose per task type.
 from __future__ import annotations
 
 import os
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List
+
+logger = logging.getLogger("zhiyan_legal")
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 DOCS_DIR = os.path.join(ROOT, "docs")
-SKILL_DIR = os.path.join(ROOT, ".hermes", "skills", "openclaw-imports", "zhiyan-legal")
+SKILL_DIR = os.getenv(
+    "ZHIYAN_SKILL_DIR",
+    os.path.join(ROOT, ".hermes", "skills", "openclaw-imports", "zhiyan-legal"),
+)
 
 
 @dataclass
