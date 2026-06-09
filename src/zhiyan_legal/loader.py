@@ -5,6 +5,7 @@ Prompt loader — composes a single system prompt from ordered document files.
 from __future__ import annotations
 
 import os
+import warnings
 from typing import List, Optional
 
 
@@ -51,6 +52,11 @@ def compose(
                 sections.append(f"### <{basename}>\n\n{content}")
         else:
             missing.append(fp)
+
+    if missing:
+        warnings.warn(
+            "⚠️ 以下文件遺失，已跳過：\n" + "\n".join(missing)
+        )
 
     composed = separator.join(sections)
 
