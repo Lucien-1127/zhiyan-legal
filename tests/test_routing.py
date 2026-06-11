@@ -136,5 +136,20 @@ def test_boundary_sha_standalone():
 
 
 def test_boundary_cha_in_diaocha():
-    """"查" 在「調查」中仍應為 RESEARCH（無邊界保護）"""
+    """"查" 在「調查」中由複合詞「調查」匹配 RESEARCH"""
     assert route("調查最近的法規變動") == "RESEARCH"
+
+
+def test_review_routes_to_qc():
+    """"審查"（長度 2）優先於「查」（長度 1）→ QC 正確路由"""
+    assert route("審查這個專案內的所有程式碼") == "QC"
+
+
+def test_review_contract():
+    """"審查合約" → QC（「合約」雖是 LEGAL_WRITER 但 QC 路由優先）"""
+    assert route("審查這份合約") == "QC"
+
+
+def test_cha_standalone():
+    """"查" 獨立使用時（無複合詞匹配）仍為 RESEARCH"""
+    assert route("幫我查一個法條") == "RESEARCH"
