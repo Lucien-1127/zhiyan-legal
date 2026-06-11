@@ -8,7 +8,7 @@ Usage:
     # Standalone Python CLI (any API provider)
     python -m zhiyan_legal <query>
     python -m zhiyan_legal <query> --dry-run
-    python -m zhiyan_legal <query> --model gpt-4o-mini
+    python -m zhiyan_legal <query> --model gpt-5.1
     python -m zhiyan_legal --list-tasks
 """
 
@@ -70,7 +70,7 @@ Examples:
     )
     parser.add_argument("query", nargs="*", help="你的法律問題或案件事實")
     parser.add_argument("--dry-run", action="store_true", help="模擬執行，不呼叫 API（免費）")
-    parser.add_argument("--model", "-m", default=None, help="指定模型 (預設: ZHIYAN_MODEL 或 gpt-4o)")
+    parser.add_argument("--model", "-m", default=None, help="指定模型 (預設: ZHIYAN_MODEL 或 gpt-5.1)")
     parser.add_argument("--task", "-t", default=None,
                         help="強制指定任務類別 (預設: 自動路由)")
     parser.add_argument("--list-tasks", action="store_true",

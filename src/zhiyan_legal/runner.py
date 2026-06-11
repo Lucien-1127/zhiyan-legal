@@ -25,7 +25,7 @@ from .loader import count_tokens
 
 logger = logging.getLogger("zhiyan_legal")
 
-MODEL_DEFAULT = "gpt-4o"
+MODEL_DEFAULT = "gpt-5.1"
 
 
 def get_client() -> OpenAI:
@@ -68,7 +68,7 @@ def run_llm(
     user_message : str
         The user's input query.
     model : str, optional
-        Model name override. Defaults to ZHIYAN_MODEL env or gpt-4o.
+        Model name override. Defaults to ZHIYAN_MODEL env or gpt-5.1.
     temperature : float
         LLM temperature (default 0.3 for legal precision).
     max_tokens : int
