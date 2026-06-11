@@ -13,7 +13,7 @@ KEYWORD_MAP: Dict[str, str] = {
     # QC
     "檢查": "QC", "抓錯": "QC", "對齊": "QC",
     "找矛盾": "QC", "稽核": "QC", "審驗": "QC",
-    "審計": "QC", "核對": "QC", "核對比對": "QC",
+    "審計": "QC", "審查": "QC", "核對": "QC", "核對比對": "QC",
     # RESEARCH
     "查資料": "RESEARCH", "研究": "RESEARCH", "比對": "RESEARCH",
     "整理多來源": "RESEARCH", "更新資訊": "RESEARCH",
@@ -60,7 +60,7 @@ _HIGH_RISK_SINGLE_CHARS = {"殺"}
 def _keyword_in_text(kw: str, text: str) -> bool:
     """Match keyword with boundary protection for high-risk single chars.
 
-    Currently protects: '告' (false match in '報告'), '殺' (false match in '抹殺').
+    Currently protects: '殺' (false match in '抹殺').
     For these, we check the character is not fully embedded between
     two CJK characters.
     """
