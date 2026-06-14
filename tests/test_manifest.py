@@ -243,3 +243,24 @@ class TestDocsDir:
     def test_docs_dir_points_to_project_docs(self):
         """DOCS_DIR 應指向專案中的 docs/ 目錄"""
         assert DOCS_DIR.endswith("docs"), f"DOCS_DIR looks wrong: {DOCS_DIR}"
+
+    def test_core_layer_files_exist(self):
+        """CORE_LAYERS 中所有參考的檔案在 docs/ 下應存在"""
+        missing = []
+        for layer in CORE_LAYERS:
+            for fname in layer.files:
+                path = os.path.join(DOCS_DIR, layer.path, fname)
+                if not os.path.exists(path):
+                    missing.append(f"{layer.path}/{fname}")
+        assert not missing, f"以下 CORE_LAYERS 檔案不存在：\n" + "\n".join(missing)
+
+    def test_task_layer_files_exist(self):
+        """TASK_LAYERS 中所有參考的檔案在 docs/ 下應存在"""
+        missing = []
+        for task, layers in TASK_LAYERS.items():
+            for layer in layers:
+                for fname in layer.files:
+                    path = os.path.join(DOCS_DIR, layer.path, fname)
+                    if not os.path.exists(path):
+                        missing.append(f"{task}/{layer.path}/{fname}")
+        assert not missing, f"以下 TASK_LAYERS 檔案不存在：\n" + "\n".join(missing)

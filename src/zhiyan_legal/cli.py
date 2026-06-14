@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
 
@@ -80,6 +81,8 @@ Examples:
                         help="顯示除錯日誌")
     parser.add_argument("--simulate", action="store_true",
                         help="啟用模擬模式（接受假設前提推演）")
+    parser.add_argument("--output", choices=["text", "json"], default="text",
+                        help="輸出格式（預設 text，json 輸出結構化資料）")
 
     args = parser.parse_args()
 
@@ -101,19 +104,42 @@ Examples:
     # ── 1. Route ──
     task = args.task or route(query)
     sim_mode = args.simulate or (task == "SIMULATION")
+
+    # ── 2. Load documents ──
+    file_paths = get_load_order(task)
+    system_prompt = compose(file_paths, simulation_mode=sim_mode)
+    token_estimate = count_tokens(system_prompt)
+
+    # ── 3. Display or output ──
+    if args.output == "json":
+        result_data = {
+            "query": query,
+            "task": task,
+            "task_description": describe_route(task),
+            "simulation_mode": sim_mode,
+            "documents_loaded": len(file_paths),
+            "token_estimate": token_estimate,
+        }
+        # Only run LLM if not dry_run
+        if not args.dry_run:
+            llm_result = run_llm(
+                system_prompt=system_prompt,
+                user_message=query,
+                model=args.model,
+                dry_run=args.dry_run,
+                task=task,
+            )
+            result_data["response"] = llm_result
+        print(json.dumps(result_data, ensure_ascii=False, indent=2))
+        return
+
+    # ── Text output ──
     if sim_mode:
         print(f"🔀 Routed as: {describe_route(task)}")
         print("🧪 模擬模式已啟用 — 接受假設前提推演")
     else:
         print(f"🔀 Routed as: {describe_route(task)}")
-
-    # ── 2. Load documents ──
-    file_paths = get_load_order(task)
     print(f"📄 Loading {len(file_paths)} document(s)...")
-
-    system_prompt = compose(file_paths, simulation_mode=sim_mode)
-
-    token_estimate = count_tokens(system_prompt)
     print(f"📊 System prompt: ~{token_estimate:,} tokens")
 
     # ── 3. Run ──
