@@ -122,6 +122,7 @@ Examples:
         user_message=query,
         model=args.model,
         dry_run=args.dry_run,
+        task=task,
     )
 
     if result:
