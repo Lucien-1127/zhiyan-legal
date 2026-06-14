@@ -45,7 +45,7 @@ def print_task_list() -> None:
             task_keywords[task].append(kw)
 
     # Ordered display: SAFETY first, then route order, then personas, then litigation
-    order = ["SAFETY", "QC", "RESEARCH", "REPORT",
+    order = ["SAFETY", "SIMULATION", "QC", "RESEARCH", "REPORT",
              "CONSULTANT", "TA", "TUTOR", "LEGAL_WRITER", "LITIGATION"]
     for task in order:
         desc = describe_route(task)
@@ -66,6 +66,7 @@ Examples:
   python -m zhiyan_legal "幫我把這些資料整理成報告" --dry-run    # REPORT (no API call)
   python -m zhiyan_legal "我不想活了"                            # SAFETY (override)
   python -m zhiyan_legal --list-tasks                            # 列出所有任務類型
+  python -m zhiyan_legal "假設某判決已作廢" --simulate            # 模擬模式
         """,
     )
     parser.add_argument("query", nargs="*", help="你的法律問題或案件事實")
@@ -77,6 +78,8 @@ Examples:
                         help="列出所有支援的任務類型與範例關鍵字")
     parser.add_argument("--verbose", "-v", action="store_true",
                         help="顯示除錯日誌")
+    parser.add_argument("--simulate", action="store_true",
+                        help="啟用模擬模式（接受假設前提推演）")
 
     args = parser.parse_args()
 
@@ -97,13 +100,18 @@ Examples:
 
     # ── 1. Route ──
     task = args.task or route(query)
-    print(f"🔀 Routed as: {describe_route(task)}")
+    sim_mode = args.simulate or (task == "SIMULATION")
+    if sim_mode:
+        print(f"🔀 Routed as: {describe_route(task)}")
+        print("🧪 模擬模式已啟用 — 接受假設前提推演")
+    else:
+        print(f"🔀 Routed as: {describe_route(task)}")
 
     # ── 2. Load documents ──
     file_paths = get_load_order(task)
     print(f"📄 Loading {len(file_paths)} document(s)...")
 
-    system_prompt = compose(file_paths)
+    system_prompt = compose(file_paths, simulation_mode=sim_mode)
 
     token_estimate = count_tokens(system_prompt)
     print(f"📊 System prompt: ~{token_estimate:,} tokens")
