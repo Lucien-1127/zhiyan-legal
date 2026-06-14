@@ -153,3 +153,29 @@ def test_review_contract():
 def test_cha_standalone():
     """"查" 獨立使用時（無複合詞匹配）仍為 RESEARCH"""
     assert route("幫我查一個法條") == "RESEARCH"
+
+
+# ── SIMULATION mode ────────────────────────────────────────────────
+
+def test_simulation_hypothesis():
+    """"假設" → SIMULATION"""
+    assert route("假設某判決已作廢") == "SIMULATION"
+
+
+def test_simulation_scenario():
+    """"模擬" 被「攻防」LITIGATION 覆蓋（LITIGATION > SIMULATION）"""
+    assert route("模擬原告的攻防策略") == "LITIGATION"
+
+def test_simulation_reasoning():
+    """"推演" → SIMULATION（無 LITIGATION 關鍵字衝突）"""
+    assert route("推演本案的後續走向") == "SIMULATION"
+
+
+def test_simulation_safety_overrides():
+    """SAFETY 應優先於 SIMULATION"""
+    assert route("假設我不想活了") == "SAFETY"
+
+
+def test_simulation_litigation_overrides():
+    """LITIGATION 應優先於 SIMULATION"""
+    assert route("假設我要提告") == "LITIGATION"

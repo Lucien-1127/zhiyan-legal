@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from zhiyan_legal.loader import compose, load_file, count_tokens
+from zhiyan_legal.loader import compose, load_file, count_tokens, parse_frontmatter
 
 
 # ── Fixtures ────────────────────────────────────────────────────────
@@ -105,3 +105,65 @@ def test_count_tokens_estimate():
     """count_tokens 使用 len//4 估算"""
     assert count_tokens("A" * 40) == 10
     assert count_tokens("") == 0
+
+
+# ── parse_frontmatter() ────────────────────────────────────────────
+
+def test_parse_frontmatter_returns_meta():
+    """frontmatter 應解析 status / as_of_date / version"""
+    text = "---\nstatus: active\nas_of_date: 2026-06-09\nversion: 2.0.0\n---\n\n內容"
+    body, meta = parse_frontmatter(text)
+    assert body == "內容"
+    assert meta["status"] == "active"
+    assert meta["as_of_date"] == "2026-06-09"
+    assert meta["version"] == "2.0.0"
+
+
+def test_parse_frontmatter_no_meta():
+    """無 frontmatter 時回傳空 dict"""
+    body, meta = parse_frontmatter("純內容")
+    assert body == "純內容"
+    assert meta == {}
+
+
+def test_parse_frontmatter_title():
+    """frontmatter 的 title 欄位應被解析"""
+    text = "---\ntitle: 測試文件\nstatus: draft\n---\n\n內文"
+    body, meta = parse_frontmatter(text)
+    assert meta["title"] == "測試文件"
+    assert meta["status"] == "draft"
+
+
+# ── compose() with frontmatter metadata ────────────────────────────
+
+def test_compose_with_frontmatter_status(tmp_dir):
+    """文件含 status frontmatter 時應產生時態標頭"""
+    f = tmp_dir / "doc.md"
+    f.write_text("---\nstatus: active\nas_of_date: 2026-06-01\n---\n\n文件內容")
+    result = compose([str(f)])
+    assert "✅ status: active" in result
+    assert "as of 2026-06-01" in result
+    assert "文件內容" in result
+
+
+def test_compose_deprecated_status(tmp_dir):
+    """deprecated 文件應標示 ⚠️"""
+    f = tmp_dir / "doc.md"
+    f.write_text("---\nstatus: deprecated\n---\n\n舊文件")
+    result = compose([str(f)])
+    assert "⚠️ status: deprecated" in result
+
+
+def test_compose_simulation_mode(tmp_dir):
+    """simulation_mode=True 時應加入模擬模式前言"""
+    f = tmp_dir / "doc.md"
+    f.write_text("內容")
+    result = compose([str(f)], simulation_mode=True)
+    assert "模擬模式已啟用" in result
+    assert "內容" in result
+
+
+def test_compose_simulation_mode_no_file(tmp_dir):
+    """simulation_mode=True 但無文件時仍應有前言"""
+    result = compose([], simulation_mode=True)
+    assert "模擬模式已啟用" in result
