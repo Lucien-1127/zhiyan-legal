@@ -45,6 +45,10 @@ KEYWORD_MAP: Dict[str, str] = {
     "綁架": "SAFETY", "跟蹤": "SAFETY",
     "詐騙": "SAFETY", "威脅": "SAFETY",
     "殺": "SAFETY",
+    # SIMULATION (模擬模式豁免 — 覆蓋 QC/RESEARCH/REPORT)
+    "假設": "SIMULATION", "模擬": "SIMULATION",
+    "推演": "SIMULATION", "假定": "SIMULATION",
+    "如果": "SIMULATION",
 }
 
 ROUTE_ORDER = ["QC", "RESEARCH", "REPORT"]
@@ -97,19 +101,24 @@ def route(text: str) -> str:
         if task == "LITIGATION" and _keyword_in_text(kw, text):
             return "LITIGATION"
 
-    # 3. Check mode routing (QC > RESEARCH > REPORT)
+    # 3. Check SIMULATION (模擬模式 — 覆蓋一般任務路由)
+    for kw, task in sorted_kw:
+        if task == "SIMULATION" and _keyword_in_text(kw, text):
+            return "SIMULATION"
+
+    # 4. Check mode routing (QC > RESEARCH > REPORT)
     for route_name in ROUTE_ORDER:
         for kw, task in sorted_kw:
             if task == route_name and _keyword_in_text(kw, text):
                 return route_name
 
-    # 4. Check personas
+    # 5. Check personas
     for p in PERSONA_ORDER:
         for kw, task in sorted_kw:
             if task == p and _keyword_in_text(kw, text):
                 return p
 
-    # 5. Default
+    # 6. Default
     return "CONSULTANT"
 
 
@@ -125,5 +134,6 @@ def describe_route(task: str) -> str:
         "LEGAL_WRITER": "合約起草 (Legal Writing)",
         "LITIGATION": "訴訟模擬 (Litigation Simulation)",
         "SAFETY": "⚠️ 安全優先路由 (Safety Protocol)",
+        "SIMULATION": "🧪 模擬模式 (Simulation Mode)",
     }
     return descriptions.get(task, task)
