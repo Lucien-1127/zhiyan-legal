@@ -64,7 +64,7 @@ _TASK_VALIDATION = {
         "hint": "報告應包含摘要、分析、結論三層結構",
     },
     "RESEARCH": {
-        "patterns": ["依據", "見解", "實務", "判決", "見解"],
+        "patterns": ["依據", "見解", "實務", "判決"],
         "hint": "研究應附法規或判決依據",
     },
     "CONSULTANT": {
