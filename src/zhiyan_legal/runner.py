@@ -50,6 +50,75 @@ def get_client() -> OpenAI:
     return OpenAI(base_url=base_url, api_key=api_key)
 
 
+_TASK_VALIDATION = {
+    "QC": {
+        "patterns": ["條款", "條文", "第.", "違反", "缺失", "風險"],
+        "hint": "QC 輸出應指出具體條款與風險點",
+    },
+    "LITIGATION": {
+        "patterns": ["原告", "被告", "主張", "抗辯", "攻防", "策略"],
+        "hint": "訴訟分析應涵蓋雙方立場與攻防策略",
+    },
+    "REPORT": {
+        "patterns": ["摘要", "結論", "建議", "分析"],
+        "hint": "報告應包含摘要、分析、結論三層結構",
+    },
+    "RESEARCH": {
+        "patterns": ["依據", "見解", "實務", "判決", "見解"],
+        "hint": "研究應附法規或判決依據",
+    },
+    "CONSULTANT": {
+        "patterns": ["方案", "選項", "比較", "利弊", "風險"],
+        "hint": "顧問分析應比較不同選項的優劣",
+    },
+    "SAFETY": {
+        "patterns": ["協助", "資源", "專線", "求助", "諮詢"],
+        "hint": "安全相關回應應提供求助資源",
+    },
+    "SIMULATION": {
+        "patterns": ["假設", "模擬", "推演", "⚠"],
+        "hint": "模擬模式應標示免責聲明",
+    },
+}
+
+
+def validate_output(result: str, task: str = "QC") -> str:
+    """Post-LLM output validation — simplified DeepThink.
+
+    Checks the output for task-essential keywords.
+    If core patterns are missing, appends a structured advisory
+    rather than modifying the original content.
+    """
+    if not result:
+        return result
+
+    checks = _TASK_VALIDATION.get(task)
+    if not checks:
+        return result
+
+    matched = sum(1 for p in checks["patterns"] if p in result)
+    threshold = max(1, len(checks["patterns"]) // 3)
+
+    if matched < threshold:
+        advisory = (
+            f"\n\n---\n"
+            f"⚠️ 【輸出校驗警示】此 {task} 輸出未偵測到關鍵要素\n"
+            f"建議補充：{checks['hint']}\n"
+            f"請確認上述分析是否完整，必要時補充論述。"
+        )
+        logger.warning(
+            "Output validation: task=%s, matched=%d/%d patterns, threshold=%d",
+            task, matched, len(checks["patterns"]), threshold,
+        )
+        return result + advisory
+
+    logger.info(
+        "Output validation passed: task=%s, matched=%d/%d patterns",
+        task, matched, len(checks["patterns"]),
+    )
+    return result
+
+
 def run_llm(
     system_prompt: str,
     user_message: str,
@@ -57,6 +126,7 @@ def run_llm(
     temperature: float = 0.3,
     max_tokens: int = 4096,
     dry_run: bool = False,
+    task: str = "QC",
 ) -> str:
     """
     Run the composed system prompt against an LLM.
@@ -117,7 +187,7 @@ def run_llm(
         )
         content = response.choices[0].message.content or ""
         logger.info("API call succeeded (%d chars returned)", len(content))
-        return content
+        return validate_output(content, task)
     except Exception as e:
         logger.error("API call failed: %s", e, exc_info=True)
         print(f"\n❌ API 呼叫失敗：{e}")
