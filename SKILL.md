@@ -1,6 +1,6 @@
 ---
 name: zhiyan-legal
-description: 智研AI法律工作站 v3.05 — 法律分析、查核與研究系統。六層架構：SRP→L0→L0.7 白話RAG（47,001條本地檢索）→MODE_ROUTER→功能模組→Citation v2.1 RAG整合版。
+description: 智研AI法律工作站 v3.05 — 多層式法律分析系統，整合本地法條白話檢索。
 user-invocable: true
 ---
 
