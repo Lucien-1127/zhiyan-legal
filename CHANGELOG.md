@@ -6,6 +6,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased] — 2026-06-21
+
+### 🟢 Features — P3 (Enhancement)
+
+#### SKILL.md
+- **v3.05 升級**：新增 L0.7 白話 RAG 優先檢索層（47,001 條法條白話翻譯，SQLite FTS5 本地檢索，零套件依賴）。
+- **Citation v2.1**：新增 RAG 引用編號體系 `[T1][T2]…`，與聯網 `[1][2]…` 區分。
+- **引用優先順序**：白話 RAG [T1] ＞ 聯網官方條文 [1] ＞ 判決書 [2] ＞ 學術 [3]。
+- **每日自動 sync**：Google Sheets 資料庫每日凌晨 3:00 自動同步重建索引。
+
+#### docs/
+- 系統架構新增 L0.7 層：SRP → L0 → L0.7 RAG → MODE_ROUTER → 功能模組 → Citation v2.1。
+
+### 完整 Commit Index
+
+| SHA | 說明 |
+|:----|------|
+| `e8aed3d` | sk: feat: 智研RAG整合 v3.05 (hermes-skills) |
+
+---
+
 ## [Unreleased] — 2026-06-09
 
 This session covers a single intensive code-review sprint.

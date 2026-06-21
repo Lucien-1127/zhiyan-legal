@@ -10,7 +10,7 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 # 智研 AI 法律系統 · Zhiyan AI Legal System
 
 [![docs](https://img.shields.io/badge/docs-110+_specs-blue)](docs/)
-[![Hermes Skill](https://img.shields.io/badge/Hermes-Skill_v3.04-purple)](SKILL.md)
+[![Hermes Skill](https://img.shields.io/badge/Hermes-Skill_v3.05-purple)](SKILL.md)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-green)](.)
 [![License](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 [![法律研究](https://img.shields.io/badge/%E6%B3%95%E5%BE%8B%E7%A0%94%E7%A9%B6-legal-orange)](.)
@@ -61,7 +61,7 @@ aspirational design goals — making them measurable and reproducible.
 zhiyan-legal/
 ├── README.md            # This file — research overview + quickstart
 ├── RESEARCH.md          # Full research framing for grant / Researcher Access applications
-├── SKILL.md             # Hermes Agent skill definition (v3.04, 5-layer + G0 hierarchy)
+├── SKILL.md             # Hermes Agent skill definition (v3.05, 6-layer: SRP→L0→L0.7 RAG→MODE→PERSONA→CITATION)
 ├── CITATION.cff         # Citation metadata for academic attribution
 ├── pyproject.toml       # Python package metadata
 ├── requirements.txt     # Runtime deps: openai + python-dotenv
@@ -89,15 +89,15 @@ zhiyan-legal/
 
 ```
 G0 → INTAKE → SRP_SAFETY_CHECK → CORE_GATE_FACT_TIER → MODE_ROUTER → PERSONA_ROUTER → CITATION_POLICY → OUTPUT
+G0 → INTAKE → SRP_SAFETY_CHECK → CORE_GATE_FACT_TIER → L0.7_RAG → MODE_ROUTER → PERSONA_ROUTER → CITATION_POLICY → OUTPUT
 
-5-Layer Architecture:
-G0    CONFIDENCE   — Confidence-first: ❌ Low = stop immediately
-L0.5  SRP         — Safety Routing Protocol (risk scoring RL0–RL3)
-L0    CORE_GATE     — Fact gate: tiering, gap detection, five-element extraction
-      MODE_ROUTER   — Task routing: QC → RESEARCH → REPORT (priority order)
-L1    PERSONA       — 6 personas: MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
-L2    MODULE        — LITIGATION, CONTRACT_RISK (gated by L0 + fact check)
-      CITATION      — Citation Policy v2.0: inline + per-paragraph + full-end list
+- **G0**: Confidence-first — ❌ Low = stop immediately
+- **L0.5**: SRP — Safety Routing Protocol (risk scoring RL0–RL3)
+- **L0**: CORE_GATE — Fact tiering, gap detection, five-element extraction
+- **L0.7**: LOCAL_RAG — 47,001 statute plain-language entries in SQLite FTS5; auto-synced daily from Google Sheets; cited as [T1][T2]…
+- **MODE_ROUTER**: Task routing — QC → RESEARCH → REPORT (priority order)
+- **L1**: PERSONA — 6 personas: MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
+- **L2**: MODULE — LITIGATION, CONTRACT_RISK (gated by L0 + fact check); CITATION — Policy v2.1: RAG [T] + web [1] + judgment [2] + academic [3]
 ```
 
 ---
@@ -219,7 +219,7 @@ This project is distributed under the **MIT License** — see [`LICENSE`](LICENS
 zhiyan-legal/
 ├── README.md            # 本文件 — 研究概述 + 快速開始
 ├── RESEARCH.md          # 完整研究框架（供科研補助申請用）
-├── SKILL.md             # Hermes Agent 技能定義 (v3.04, 5層 + G0 層級)
+├── SKILL.md             # Hermes Agent 技能定義 (v3.05, 6層: SRP→L0→L0.7 RAG→MODE→PERSONA→CITATION)
 ├── CITATION.cff         # 學術引用元資料
 ├── pyproject.toml       # Python 套件資訊
 ├── requirements.txt     # 相依套件：openai + python-dotenv
