@@ -66,6 +66,7 @@ TASK_LAYERS: Dict[str, List[Layer]] = {
         Layer("Tutor Persona",     "40_模組與人格層", ["52_人格_教學_v1.1.0.md"]),
     ],
     "LEGAL_WRITER": [
+        # FIXME: 目前無獨立書狀起草模組文件，暫時指向訴訟策略
         Layer("Legal Writer",      "40_模組與人格層", ["40_模組_訴訟策略_v2.2.0.md"]),
     ],
     "LITIGATION": [
