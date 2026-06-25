@@ -6,6 +6,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased] — 2026-06-25
+
+### 🔴 Bug Fixes — P1 (Critical)
+
+#### 架構文件一致性
+- **RESEARCH.md §3.1**：「Five-Layer Architecture」→「Seven-Layer Architecture」，補入 L0.7 LOCAL_RAG 及 L0.8 CASE_VERIFY 兩層。
+- **Citation Policy v2.0 → v2.1**：`30_引用政策_CITATION_POLICY_v2.0.0.md` 新增 [T1][T2] RAG 來源引用格式，與 SKILL.md 的 Citation v2.1 對齊。
+- **manifest.py**：LEGAL_WRITER 層標註 FIXME，說明目前無獨立書狀起草文件，暫時指向訴訟策略模組。
+
+### 🟡 Improvements — P2 (High)
+
+- **runner.py**：`MODEL_DEFAULT` 由 `"gpt-5.1"` 改為 `"deepseek-v4-flash"`，與目前主要測試模型一致。
+- **router.py**：RESEARCH 關鍵字新增「查詢」。
+
+### 🟢 Features — P3 (Enhancement)
+
+- **Citation Policy**：尾部新增「來源引用引用對照」表，排除引用來源混亂。
+
+### 完整 Commit Index
+
+| SHA | 說明 |
+|:----|------|
+| `05510d8` | v3.06.1: fix: 架構審查 6 項修正 |
+| `9ae2e86` | v3.06: feat: 新增 L0.8 實務案例驗證層 (previous) |
+
+---
+
 ## [Unreleased] — 2026-06-21
 
 ### 🟢 Features — P3 (Enhancement)
