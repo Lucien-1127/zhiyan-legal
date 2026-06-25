@@ -38,7 +38,7 @@ testable research platform investigating three core research questions.
 
 | # | Research Question | Design Mitigation | Measured By |
 |---|-------------------|-------------------|-------------|
-| RQ1 | Does a **no-fabrication citation policy** measurably reduce hallucinated statutes/judgments? | `Citation Policy v2.0` — single authoritative policy forbidding invented sources | Fabrication rate vs. unconstrained baseline |
+| RQ1 | Does a **no-fabrication citation policy** measurably reduce hallucinated statutes/judgments? | `Citation Policy v2.1` — single authoritative policy forbidding invented sources | Fabrication rate vs. unconstrained baseline |
 | RQ2 | Does **priority safety routing** of high-risk inputs reduce harmful outputs without degrading benign-task quality? | `SRP (Safety Routing Protocol)` — tiered risk scoring before any legal analysis | Unsafe-output rate + false-positive rate |
 | RQ3 | Does a **fact gate** before conclusions improve uncertainty calibration when sources are insufficient? | `CORE_GATE` — fact tiering, gap flagging, explicit *待查/推論* markers | Calibration between uncertainty markers and actual verifiability |
 
@@ -88,13 +88,13 @@ zhiyan-legal/
 ### System Architecture
 
 ```
-G0 → INTAKE → SRP_SAFETY_CHECK → CORE_GATE_FACT_TIER → MODE_ROUTER → PERSONA_ROUTER → CITATION_POLICY → OUTPUT
-G0 → INTAKE → SRP_SAFETY_CHECK → CORE_GATE_FACT_TIER → L0.7_RAG → MODE_ROUTER → PERSONA_ROUTER → CITATION_POLICY → OUTPUT
+G0 → INTAKE → SRP_SAFETY_CHECK → CORE_GATE_FACT_TIER → L0.7_RAG → L0.8_CASE_VERIFY → MODE_ROUTER → PERSONA_ROUTER → CITATION_POLICY → OUTPUT
 
 - **G0**: Confidence-first — ❌ Low = stop immediately
 - **L0.5**: SRP — Safety Routing Protocol (risk scoring RL0–RL3)
 - **L0**: CORE_GATE — Fact tiering, gap detection, five-element extraction
-- **L0.7**: LOCAL_RAG — 47,001 statute plain-language entries in SQLite FTS5; auto-synced daily from Google Sheets; cited as [T1][T2]…
+- **L0.7**: LOCAL_RAG — 47,001 statute plain-language entries in SQLite FTS5; auto-synced daily; cited as [T1][T2]…
+- **L0.8**: CASE_VERIFY — Real-case verification via judgment.judicial.gov.tw + law firm practice articles
 - **MODE_ROUTER**: Task routing — QC → RESEARCH → REPORT (priority order)
 - **L1**: PERSONA — 6 personas: MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
 - **L2**: MODULE — LITIGATION, CONTRACT_RISK (gated by L0 + fact check); CITATION — Policy v2.1: RAG [T] + web [1] + judgment [2] + academic [3]
@@ -246,16 +246,18 @@ zhiyan-legal/
 ### 系統架構
 
 ```
-G0 → 輸入 → SRP 安全檢查 → CORE_GATE 事實分級 → MODE_ROUTER 路由 → PERSONA_ROUTER 人格 → CITATION_POLICY 引用 → 輸出
+G0 → 輸入 → SRP → CORE_GATE → L0.7 本地RAG → L0.8 案例驗證 → 模式路由 → 人格 → 引用 → 輸出
 
-五層架構：
+七層架構：
 G0   信心層級    — 信心優先：❌ 低信心立即中止
 L0.5 SRP        — 安全路由協議（風險評分 RL0–RL3）
 L0   核心閘門    — 事實閘門：分級、缺口偵測、五要素提取
+L0.7 本地 RAG   — 47,001 條法條白話摘要，SQLite FTS5，每日自動同步
+L0.8 案例驗證    — 司法院判決書查詢＋律師事務所實務見解
      模式路由    — 任務路由：QC → RESEARCH → REPORT（優先順序）
 L1   人格        — 6 種人格：MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
 L2   功能模組    — 訴訟推演, 合約風險（需 L0 + 事實查核）
-     引用政策    — 引用政策 v2.0：行內標記 + 段落末尾 + 全文彙總
+     引用政策    — 引用政策 v2.1：RAG [T] + 官方 [1] + 判決 [2] + 學術 [3]
 ```
 
 ---
