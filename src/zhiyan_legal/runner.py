@@ -25,7 +25,7 @@ from .loader import count_tokens
 
 logger = logging.getLogger("zhiyan_legal")
 
-MODEL_DEFAULT = "gpt-5.1"
+MODEL_DEFAULT = "deepseek-v4-flash"
 
 
 def get_client() -> OpenAI:

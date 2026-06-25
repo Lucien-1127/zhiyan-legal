@@ -17,7 +17,7 @@ KEYWORD_MAP: Dict[str, str] = {
     # RESEARCH
     "查資料": "RESEARCH", "研究": "RESEARCH", "比對": "RESEARCH",
     "整理多來源": "RESEARCH", "更新資訊": "RESEARCH",
-    "調查": "RESEARCH", "查": "RESEARCH", "搜尋": "RESEARCH",
+    "調查": "RESEARCH", "查": "RESEARCH", "搜尋": "RESEARCH", "查詢": "RESEARCH",
     # REPORT
     "產出報告": "REPORT", "報告": "REPORT", "摘要": "REPORT",
     "主管版本": "REPORT", "交付文件": "REPORT",

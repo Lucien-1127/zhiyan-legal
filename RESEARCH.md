@@ -74,17 +74,22 @@ Taiwan's civil-law system presents a unique research opportunity:
 
 ## §3. System Design / 系統設計
 
-### 3.1 Five-Layer Architecture
+### 3.1 Seven-Layer Architecture
 
 ```
 LAYER  NAME              FUNCTION                                    STATUS
 ────── ────────────────  ─────────────────────────────────────────── ──────
 L0.5   SRP               Safety Routing Protocol (RL0–RL3 risk tier) ✅ Complete
 L0     CORE_GATE         Fact gate: tiering, gaps, 5-element extract ✅ Complete
+L0.7   LOCAL_RAG         Statute plain-language RAG (47K entries,    ✅ v3.05
+                          SQLite FTS5, auto-synced daily)
+L0.8   CASE_VERIFY       Real-case verification (judgment search +   ✅ v3.06
+                          law firm practice articles)
        MODE_ROUTER       Task routing: QC → RESEARCH → REPORT        ✅ Complete
 L1     PERSONA_ROUTER    6 personas (consultant, tutor, TA, etc.)    ✅ Complete
 L2     MODULE_ROUTER     LITIGATION, CONTRACT_RISK (gated)           ✅ Complete
-       CITATION_POLICY   Citation v2.0 (inline + per-paragraph + full-end) ✅ Complete
+       CITATION_POLICY   Citation v2.1 (RAG [T] + web [1] + judge   ✅ v3.05
+                          [2] + academic [3])
 ```
 
 ### 3.2 Specification Scale
