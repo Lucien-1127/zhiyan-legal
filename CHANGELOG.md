@@ -26,6 +26,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 | SHA | 說明 |
 |:----|------|
 | `0d9ce16` | feat: 子代理並行策略 v1.0 — sub_agent.py + 設計文件 |
+| `8983569` | test: 子代理並行策略測試 25 個（總測試 106） |
+
+### 🟢 Features — P3 (Enhancement)
+
+#### 書狀格式規範與產生器
+- **新增 `src/zhiyan_legal/doc_generator.py`**：法院合規書狀產生器，符合民事訴訟書狀規則 §3（114/08/29 修正）：
+  - A4 紙張 / 2.5cm 邊界 / 標楷體 14pt / 固定行高 28pt / 頁碼置中
+  - `add_title()` / `add_section_title()` / `add_body()` / `add_indent_body()` / `add_reference()`
+- **新增 `docs/60_概念詞條/書狀格式規範.md`**：完整格式規範文件，含三來源聯網驗證（law.moj.gov.tw, judicial.gov.tw, cons.judicial.gov.tw）
+- **下載司法院官方範本**：`templates/民事書狀範本.docx`
+- **安裝 python-docx 1.2.0**：至 zhiyan-legal venv
 
 ### 🧪 Testing
 
