@@ -21,17 +21,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 # ── Gemini API 設定 ──
-GEMINI_API_KEY = os.getenv('GOOGLE_API_KEY') or ""
+# 優先順序：GOOGLE_API_KEY 環境變數 > ZHIYAN_API_KEY 環境變數 > .env
+GEMINI_API_KEY = os.getenv('GOOGLE_API_KEY') or os.getenv('ZHIYAN_API_KEY') or ""
 if not GEMINI_API_KEY:
-    # 嘗試從 .env 載入
+    # 嘗試從 .env 載入（支援 GOOGLE_API_KEY 或 ZHIYAN_API_KEY）
     env_path = Path(__file__).parent.parent / ".env"
     if env_path.exists():
         for line in env_path.read_text().splitlines():
-            if line.startswith("GOOGLE_API_KEY="):
+            line = line.strip()
+            if line.startswith("GOOGLE_API_KEY=") or line.startswith("ZHIYAN_API_KEY="):
                 GEMINI_API_KEY = line.split("=", 1)[1].strip()
                 break
 if not GEMINI_API_KEY:
-    sys.exit("❌ 請設定 GOOGLE_API_KEY 環境變數，或寫入 .env")
+    sys.exit("❌ 請設定 GOOGLE_API_KEY 或 ZHIYAN_API_KEY 環境變數，或寫入 .env")
 GEMINI_MODEL = "gemini-3.1-flash-lite"  # 最省錢
 GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
 
