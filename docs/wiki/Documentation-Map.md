@@ -14,7 +14,7 @@
 
 ## 建議閱讀順序
 
-1. **[入口導覽](00_入口與總覽/00_開始閱讀_入口導覽_v2.1.0.md)** — 從這裡開始
-2. **[總綱](40_模組與人格層/53_人格_總綱_v2.0.0.md)** — 了解整體架構
-3. **[引用政策](20_模式與引用層/30_引用政策_CITATION_POLICY_v2.0.0.md)** — 理解核心機制
+| [`/zhiyan-legal/tree/main/docs/00_入口與總覽`](https://github.com/Lucien-1127/zhiyan-legal/tree/main/docs/00_入口與總覽) | — 從這裡開始
+| **[總綱](https://github.com/Lucien-1127/zhiyan-legal/blob/main/docs/40_模組與人格層/53_人格_總綱_v2.0.0.md)** — 了解整體架構
+| **[引用政策](https://github.com/Lucien-1127/zhiyan-legal/blob/main/docs/20_模式與引用層/30_引用政策_CITATION_POLICY_v2.0.0.md)** — 理解核心機制
 4. 根據需求選擇人格或模式
