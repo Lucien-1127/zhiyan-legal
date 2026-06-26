@@ -23,3 +23,7 @@ site/
 # Environment
 .env
 *.token
+
+# Data artifacts
+data/regulation_tracker.db
+data/exports/
