@@ -8,13 +8,19 @@ which files to compose per task type.
 from __future__ import annotations
 
 import os
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List
+
+logger = logging.getLogger("zhiyan_legal")
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 DOCS_DIR = os.path.join(ROOT, "docs")
-SKILL_DIR = os.path.join(ROOT, ".hermes", "skills", "openclaw-imports", "zhiyan-legal")
+SKILL_DIR = os.getenv(
+    "ZHIYAN_SKILL_DIR",
+    os.path.join(ROOT, ".hermes", "skills", "openclaw-imports", "zhiyan-legal"),
+)
 
 
 @dataclass
@@ -60,6 +66,7 @@ TASK_LAYERS: Dict[str, List[Layer]] = {
         Layer("Tutor Persona",     "40_模組與人格層", ["52_人格_教學_v1.1.0.md"]),
     ],
     "LEGAL_WRITER": [
+        # FIXME: 目前無獨立書狀起草模組文件，暫時指向訴訟策略
         Layer("Legal Writer",      "40_模組與人格層", ["40_模組_訴訟策略_v2.2.0.md"]),
     ],
     "LITIGATION": [

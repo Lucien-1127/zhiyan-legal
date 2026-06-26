@@ -3,13 +3,11 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 dist/
-build/
+*.egg
 
-# Virtual environment
+# Virtual env
+venv/
 .venv/
-
-# Environment
-.env
 
 # IDE
 .vscode/
@@ -18,3 +16,14 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# MkDocs build output
+site/
+
+# Environment
+.env
+*.token
+
+# Data artifacts
+data/regulation_tracker.db
+data/exports/
