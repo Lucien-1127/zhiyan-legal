@@ -1,15 +1,25 @@
-.venv/
+# Python
 __pycache__/
 *.py[cod]
-.env
-.venv/
 *.egg-info/
 dist/
-build/
+*.egg
+
+# Virtual env
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
 .DS_Store
-# 執行期產出（不入版控）
-data/
-# 實驗原始數據（使用 Git LFS 或另行管理）
-results/
-# 部署設定（含內網路由，不入版控）
-Caddyfile
+Thumbs.db
+
+# MkDocs build output
+site/
+
+# Environment
+.env
+*.token
