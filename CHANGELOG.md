@@ -6,34 +6,36 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased]
+## [3.07.1] — 2026-06-26
 
 ### 🔴 Bug Fixes — P1 (Critical)
 
 - **LICENSE 補上**：根目錄新增標準 MIT License（2026, Lucien），與 README badge / CITATION.cff 聲明一致。
 - **律師法條號修正**：RESEARCH.md §8 原引 Art. 48（事務所型態定義）改為 Art. 127（非律師訴訟業務刑責），經全國法規資料庫查證確認。
-- **judicial_api parser bug**：`parse_case_number` regex `(\w+)\s*字` 在空格式（如「100 年度訴字第 1552 號」）會吞入「年度」作字別，改為 `(?:年度)?(\w+)\s*字`。
-- **test_judicial_api.py**：`test_parse_full_case` assertion 期待「臺灣彰化地方法院」但 parser 回傳無前綴「彰化地方法院」，配合 COURT_CODES 鍵值修正 assertion。
+- **judicial_api parser 重構**：`parse_case_number` 改為「剝 court name → 剝年度 → parse 字別號次」三步驟，解決連續格式（無空格案號）下 regex 貪婪吞食法院名和年度的問題。
+- **test_judicial_api.py**：`test_parse_full_case` assertion 配合 COURT_CODES 鍵值修正 + 新增 6 個 edge case（連續格式、複合字別、分院連續、空白輸入等）。
 
 ### 🟡 Improvements — P2 (High)
 
-- **文件數與版本號統一**：README「110+」→「90+」、RESEARCH「85+」→「90+」；CITATION.cff v3.05→v3.06.1，RESEARCH 表格 v3.05/v3.06 一併更新。
-- **測試 badge 更新**：81→116（實際 pytest 收集結果）。
+- **文件數與版本號統一**：README「110+」→「90+」、RESEARCH「85+」→「90+」；CITATION.cff v3.05→v3.07.1，RESEARCH 表格 v3.05/v3.06 一併更新。三方錨點收斂：CHANGELOG = CITATION.cff = git tag v3.07.1。
+- **測試 badge 更新**：81→122。
 - **README layout 更新**：src 從 5 檔補到 11 檔，tests 從 1 檔補到 6 檔。
-- **CHANGELOG 規範化**：三個 [Unreleased] 改為版本標題 + 修正錯字「來源引用引用對照」→「來源引用對照」。
+- **CHANGELOG 規範化**：三個 [Unreleased] 改為版本標題 + 修正錯字 + 保留完整 commit index URL 表格。
 - **Citation Policy 檔名**：保留 v2.0.0（26 處跨文件參考），CHANGELOG 加註原因。
-- **RESEARCH.md §127 措辭精準化**：「B2C legal-advice delivery is constrained」→「unlicensed persons practicing litigation for profit are criminally liable (Art. 127)」，反映該條限於訴訟事件，不含一般法律諮詢。
+- **RESEARCH.md §127 措辭精準化**：明確區分 litigation services（撰狀、出庭）vs. general legal information（不落入 §127）。
+- **git tag v3.06.1 重映射**：刪除指向 HEAD 的錯誤 tag，重新收斂至 v3.07.1。
 
 ### 🧪 Testing
 
-- 測試總數：56 → 81 → 106 → **116**（6/9 審查 56 → 6/26 維護 81 → 子代理 106 → TYPE-S audit 116）
-- **116/116 全數通過**（含 judicial_api parser bug 修復後驗證）
+- 測試總數：56 → 81 → 106 → **122**（6/9 審查 56 → 6/26 維護 81 → 子代理 106 → TYPE-S audit 116 → edge cases +6）
+- **122/122 全數通過**
 
 ### 完整 Commit Index
 
 | SHA | 說明 |
 |:----|------|
-| `d742244` | v3.06.1: TYPE-S audit — 10 fixes applied |
+| `ae536a5` | Round 2: CHANGELOG 忠於git史、§127措辭、judicial_api 6 edge cases |
+| `d742244` | TYPE-S audit — 10 fixes applied |
 
 ---
 
