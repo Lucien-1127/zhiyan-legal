@@ -19,6 +19,10 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 
 > 以分層架構、強制引用政策與安全路由為核心的台灣法律 AI 研究平台。
 
+<p align="center">
+  <img src="docs/banner.png" alt="智研AI法律工作站" width="100%">
+</p>
+
 ---
 
 <details open>
