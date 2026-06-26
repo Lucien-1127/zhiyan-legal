@@ -21,9 +21,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### 完整 Commit Index
 
+### CHANGELOG 更新（v3.07 entry）
+
 | SHA | 說明 |
 |:----|------|
-| `459fc1a` | feat: 子代理並行策略 v1.0 — sub_agent.py + 設計文件 |
+| `0d9ce16` | feat: 子代理並行策略 v1.0 — sub_agent.py + 設計文件 |
+
+### 🧪 Testing
+
+- **新增 `tests/test_sub_agent.py`**（25 個測試）：5 種平行化模式的 task 結構驗證、edge case（空條號/空法域/空白草稿）、mock hermes_tools.delegate_task 的呼叫慣例。**全覆蓋 25/25 通過。**
+- 測試總數：56 → **81 → 106**（6/9 code review sprint 56 → 6/26 維護 sprint 81 → 6/26 子代理策略 106）
 
 ---
 
