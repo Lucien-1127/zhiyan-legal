@@ -183,7 +183,7 @@ class JudicialAPIClient:
         year = m.group(1) if m else ""
 
         # 字別 + 號次
-        m = re.search(r'(\w+)\s*字\s*第\s*(\d+)', case_str)
+        m = re.search(r'(?:年度)?(\w+)\s*字\s*第\s*(\d+)', case_str)
         if m:
             case_word = m.group(1)
             case_no = m.group(2)

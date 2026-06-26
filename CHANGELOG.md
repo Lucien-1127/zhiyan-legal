@@ -6,7 +6,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] — 2026-06-26
+## [Unreleased]
+
+...
+
+---
+
+## [3.06.1] — 2026-06-26
 
 ### 🟢 Features — P3 (Enhancement)
 
@@ -46,17 +52,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ### 🧪 Testing
 
 - **新增 `tests/test_sub_agent.py`**（25 個測試）：5 種平行化模式的 task 結構驗證、edge case（空條號/空法域/空白草稿）、mock hermes_tools.delegate_task 的呼叫慣例。**全覆蓋 25/25 通過。**
-- 測試總數：56 → **81 → 106**（6/9 code review sprint 56 → 6/26 維護 sprint 81 → 6/26 子代理策略 106）
+- 測試總數：56 → 81 → 106 → **116**（6/9 審查 56 → 6/26 維護 81 → 子代理 106 → 今天 116）
 
 ---
 
-## [Unreleased] — 2026-06-25
+## [3.06] — 2026-06-25
 
 ### 🔴 Bug Fixes — P1 (Critical)
 
 #### 架構文件一致性
 - **RESEARCH.md §3.1**：「Five-Layer Architecture」→「Seven-Layer Architecture」，補入 L0.7 LOCAL_RAG 及 L0.8 CASE_VERIFY 兩層。
-- **Citation Policy v2.0 → v2.1**：`30_引用政策_CITATION_POLICY_v2.0.0.md` 新增 [T1][T2] RAG 來源引用格式，與 SKILL.md 的 Citation v2.1 對齊。
+- **Citation Policy v2.0 → v2.1**：`30_引用政策_CITATION_POLICY_v2.0.0.md` 新增 [T1][T2] RAG 來源引用格式，與 SKILL.md 的 Citation v2.1 對齊。（檔名保留 v2.0.0 因 26 處跨文件引用，避免破壞既有連結）
 - **manifest.py**：LEGAL_WRITER 層標註 FIXME，說明目前無獨立書狀起草文件，暫時指向訴訟策略模組。
 
 ### 🟡 Improvements — P2 (High)
@@ -66,7 +72,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### 🟢 Features — P3 (Enhancement)
 
-- **Citation Policy**：尾部新增「來源引用引用對照」表，排除引用來源混亂。
+- **Citation Policy**：尾部新增「來源引用對照」表，排除引用來源混亂。
 
 ### 完整 Commit Index
 
@@ -77,7 +83,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] — 2026-06-21
+## [3.05] — 2026-06-21
 
 ### 🟢 Features — P3 (Enhancement)
 
@@ -98,7 +104,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [Unreleased] — 2026-06-09
+## [3.04] — 2026-06-09
 
 This session covers a single intensive code-review sprint.
 All changes were reviewed, implemented, and verified on the `main` branch.
@@ -177,15 +183,8 @@ Covered modules: `router`, `loader`, `manifest`.
 
 ### Commit Index
 
-| SHA | Description |
-|-----|-------------|
-| [`557ff08`](https://github.com/Lucien-1127/zhiyan-legal/commit/557ff08) | merge: 架構改進全部到位 |
-| [`a1b27ae`](https://github.com/Lucien-1127/zhiyan-legal/commit/a1b27ae) | 架構改進：邊界保護、logging、API 錯誤處理、--list-tasks |
-| [`7d41faa`](https://github.com/Lucien-1127/zhiyan-legal/commit/7d41faa) | test: 新增 test_manifest.py（22 個測試） |
-| [`1cbab97`](https://github.com/Lucien-1127/zhiyan-legal/commit/1cbab97) | fix: test_compose_truncation 斷言改為精確長度檢驗 |
-| [`670735d`](https://github.com/Lucien-1127/zhiyan-legal/commit/670735d) | test: 補上 LEGAL_WRITER/loader 測試 + default 改為 CONSULTANT |
-| [`1d9132e`](https://github.com/Lucien-1127/zhiyan-legal/commit/1d9132e) | merge: 程式碼審查 7 項問題修正 |
-
 ---
 
-*Generated on 2026-06-09 · zhiyan-legal code review sprint*
+## [3.03] — 2026-05-27
+
+Initial public release with core architecture, routing, and documentation framework.
