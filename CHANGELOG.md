@@ -6,6 +6,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased] — 2026-06-26
+
+### 🟢 Features — P3 (Enhancement)
+
+#### 子代理並行策略（sub_agent.py）
+- **新增 `src/zhiyan_legal/sub_agent.py`**：Hermes delegate_task 子代理排程模組，支援五種平行化模式：
+  - `parallel_citation_verify()`：條文 + 判決 + 實務文章三路並行查詢
+  - `courtroom_parallel()`：法官/檢察官/辯護人三方獨立準備
+  - `type_s_review()`：獨立 QA 子代理進行 TYPE-S 審查
+  - `parallel_legal_research()`：按法域拆給專門子代理
+  - `parallel_rag_online()`：本地 RAG + 聯網平行查詢
+- **新增 `docs/10_核心控制層/17_子代理並行策略.md`**：策略設計文件，含五個並行機會分析與加速比計算
+
+### 完整 Commit Index
+
+| SHA | 說明 |
+|:----|------|
+| `459fc1a` | feat: 子代理並行策略 v1.0 — sub_agent.py + 設計文件 |
+
+---
+
 ## [Unreleased] — 2026-06-25
 
 ### 🔴 Bug Fixes — P1 (Critical)
