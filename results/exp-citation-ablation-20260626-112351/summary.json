@@ -1,0 +1,27 @@
+{
+  "experiment": "Citation Policy Ablation — zhiyan-legal",
+  "model": "gemini-2.5-flash-lite",
+  "timestamp": "2026-06-26T11:38:41.298785+00:00",
+  "total_queries": 50,
+  "total_calls": 100,
+  "total_cost_est": 0.07852,
+  "total_tokens_in": 637467,
+  "total_chars_out": 409524,
+  "errors": 0,
+  "condition_A_full": {
+    "n": 50,
+    "with_citation": "32/50 (64%)",
+    "with_confidence": "0/50 (0%)",
+    "any_issues": "0/50 (0%)",
+    "avg_article_refs": 1.4,
+    "avg_prompt_tok": 6960
+  },
+  "condition_B_no_citation": {
+    "n": 50,
+    "with_citation": "33/50 (66%)",
+    "with_confidence": "0/50 (0%)",
+    "any_issues": "0/50 (0%)",
+    "avg_article_refs": 1.3,
+    "avg_prompt_tok": 5790
+  }
+}
