@@ -66,7 +66,7 @@ Taiwan's civil-law system presents a unique research opportunity:
 
 | ID | Question | Hypothesis | Test Method |
 |----|----------|------------|-------------|
-| **RQ1** | Does enforcing a no-fabrication citation policy + fact-gate measurably reduce fabricated statutes/judgments vs. an unconstrained baseline? | Citation-grounded prompts will reduce fabrication rate by ≥60% | Compare fabrication rate across 4 conditions (full / no-citation / no-gate / baseline) |
+| **RQ1** | Does enforcing a no-fabrication citation policy + fact-gate measurably reduce fabricated statutes/judgments vs. an unconstrained baseline? | Citation-grounded prompts will reduce fabrication rate by ≥60% | Measure content authenticity via statute existence verification (law.moj.gov.tw cross-reference); compare across 4 conditions (full / no-citation / no-gate / baseline) |
 | **RQ2** | Does priority routing of high-risk inputs to a dedicated safety path reduce unsafe outputs without degrading task quality on benign queries? | Tiered safety routing reduces unsafe-output rate without significant false-positive cost | Measure unsafe-output rate + false-positive rate + task-quality rubrics |
 | **RQ3** | When sources are insufficient, does the system reliably emit *待查/推論* markers instead of confident-but-wrong conclusions? | Explicit uncertainty markers improve calibration vs. unconstrained outputs | Agreement between markers and actual verifiability |
 
@@ -159,7 +159,20 @@ so fabrication can be systematically detected.
 1. For each condition × query pair, run 3 replicates (to account for LLM output variance)
 2. Capture raw output + composed system prompt + routing trace (`--dry-run` for reproducibility)
 3. Human evaluation on a 20% sample (40 queries) for inter-rater reliability
-4. Automated metrics on full sample (citation existence check, marker detection)
+4. Automated statute existence verification: extract cited statutes from each output, cross-reference against a ground-truth lookup (law.moj.gov.tw or offline statute DB), compute fabrication rate per condition
+5. Marker detection for uncertainty markers (*待查/推論*) and citation format compliance
+
+### 4.5 Pilot Findings: Ablation Experiment (2026-06)
+
+A pilot ablation (gemini-3.1-flash-lite, 50 queries × 2 conditions) revealed three critical methodological lessons incorporated into the design above:
+
+1. **Citation format ≠ content authenticity.** The Citation Policy v2.1 mandated a specific `[T1] RAG citation` format, but Gemini models uniformly ignored it — 0/88 cited responses used the prescribed format. However, manual verification against law.moj.gov.tw confirmed that every referenced statute was genuine. A format-presence metric would have reported "citation rate = 88% regardless of condition" and completely missed the actual fabrication rate (≈0%). **→ All cited statutes must be cross-referenced against ground-truth databases, not just detected for format.**
+
+2. **Citation Policy redundancy under capable models.** With vs. without policy produced identical citation behavior (88% citation rate, same format patterns), suggesting the model's native training already inclines toward citing sources. The policy's marginal effect is near-zero on gemini-3.1-flash-lite. **→ Ablation's discriminating power depends on model choice; less capable models (GPT-4o-mini, o1-mini) may show larger effect sizes.**
+
+3. **G0 confidence markers never triggered (0/100).** No query reached CORE_GATE's uncertainty threshold under gemini-3.1-flash-lite. This may reflect high model confidence rather than gate failure. **→ Future experiments must include deliberately ambiguous/edge-case queries (e.g., non-existent statutes, underspecified case citations) to test gate activation.**
+
+These findings informed the addition of automated statute existence verification (step 5 in §4.4) and the edge-case query subset in §4.2.
 
 ---
 
@@ -167,7 +180,7 @@ so fabrication can be systematically detected.
 
 | Metric | Definition | Measurement Method |
 |--------|-----------|-------------------|
-| **Fabrication Rate** | % of cited statutes/judgments that do not exist or misrepresent content | Human verification on sampled outputs; regex-based statute ID extraction for scale |
+| **Fabrication Rate** | % of cited statutes/judgments that do not exist or misrepresent content | Automated statute ID extraction → cross-reference against ground-truth DB (law.moj.gov.tw index or offline statute table); human verification on 20% sample. ⚠️ Format-based citation detection alone is insufficient — must verify content existence.|
 | **Unsafe-Output Rate** | % of safety inputs that receive content that could enable harm | Labeled safety test set + rubric |
 | **False-Safety-Trigger Rate** | % of benign inputs incorrectly routed to safety protocol | Classification vs. ground-truth route label |
 | **Calibration** | Agreement between *待查/推論* markers and actual verifiability | Manual check: does the marker match the source situation? |
