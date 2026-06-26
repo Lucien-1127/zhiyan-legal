@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智研 AI 法律系統</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+</head>
+<body>
+  <!-- 側邊欄 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">
+        <span class="logo-icon">⚖️</span>
+        <div class="logo-text">
+          <h1>智研</h1>
+          <span class="logo-sub">AI 法律系統</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" data-mode="chat">
+        <span>💬</span> 法律諮詢
+      </button>
+      <button class="nav-btn" onclick="newChat()">
+        <span>🆕</span> 新對話
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="status-badge" id="statusBadge">
+        <span class="status-dot"></span>
+        <span id="statusText">連線中...</span>
+      </div>
+      <div class="version-info">v1.0.0 · SaaS 版</div>
+    </div>
+  </aside>
+
+  <!-- 主內容 -->
+  <main class="main-content" id="mainContent">
+    <!-- 頂欄 -->
+    <header class="topbar">
+      <button class="mobile-menu-btn" id="menuToggle" aria-label="選單">☰</button>
+      <div class="topbar-info">
+        <span class="topbar-title">⚖️ 法律諮詢</span>
+        <span class="topbar-model" id="modelDisplay">deepseek-chat</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" onclick="newChat()" title="新對話">🆕</button>
+      </div>
+    </header>
+
+    <!-- 對話區 -->
+    <div class="chat-area" id="chatArea">
+      <!-- 歡迎畫面 -->
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">⚖️</div>
+        <h2>智研 AI 法律系統</h2>
+        <p class="welcome-desc">
+          台灣法律 AI 研究助手 · 5 層架構 · 強制引用 · 安全優先
+        </p>
+        <div class="welcome-suggestions">
+          <button class="suggestion-chip" onclick="askSuggest(this)">
+            公然侮辱罪的構成要件是什麼？
+          </button>
+          <button class="suggestion-chip" onclick="askSuggest(this)">
+            離婚訴訟需要準備哪些文件？
+          </button>
+          <button class="suggestion-chip" onclick="askSuggest(this)">
+            車禍後如何申請保險理賠？
+          </button>
+          <button class="suggestion-chip" onclick="askSuggest(this)">
+            勞動契約終止的合法程序
+          </button>
+        </div>
+      </div>
+
+      <!-- 訊息列表 -->
+      <div class="messages" id="messages"></div>
+    </div>
+
+    <!-- 輸入區 -->
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea
+          id="messageInput"
+          class="message-input"
+          placeholder="輸入您的法律問題..."
+          rows="1"
+          oninput="autoResize(this)"
+          onkeydown="handleKeydown(event)"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+          <span>➤</span>
+        </button>
+      </div>
+      <div class="input-footer">
+        <span class="input-hint">Enter 送出 · Shift+Enter 換行</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- 載入動畫 -->
+  <div class="loading-overlay" id="loadingOverlay" style="display:none">
+    <div class="loading-spinner">
+      <div class="spinner"></div>
+      <span>智研分析中...</span>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
