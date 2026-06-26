@@ -38,6 +38,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **下載司法院官方範本**：`templates/民事書狀範本.docx`
 - **安裝 python-docx 1.2.0**：至 zhiyan-legal venv
 
+#### 司法院裁判書開放 API 整合
+- **新增 `src/zhiyan_legal/judicial_api.py`**：司法院資料開放平臺裁判書 API 客戶端，支援 Auth / JList / JDoc 三個端點，含法院代碼 37 個、案號解析、JID 組裝、錯誤處理
+- **新增 `docs/60_概念詞條/司法院裁判書API整合.md`**：API 規格文件、使用說明、尚未完成項目
+- **新增 `tests/test_judicial_api.py`**（10 個測試）：案號解析（4 cases）、JID 組裝（3 cases）、代碼完整性（2 cases）、非法輸入（1 case）
+
 ### 🧪 Testing
 
 - **新增 `tests/test_sub_agent.py`**（25 個測試）：5 種平行化模式的 task 結構驗證、edge case（空條號/空法域/空白草稿）、mock hermes_tools.delegate_task 的呼叫慣例。**全覆蓋 25/25 通過。**
