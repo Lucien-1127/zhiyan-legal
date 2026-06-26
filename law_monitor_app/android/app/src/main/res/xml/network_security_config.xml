@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Tailscale Tailnet IP (內網，不需 HTTPS) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">100.68.234.34</domain>
+    </domain-config>
+</network-security-config>
