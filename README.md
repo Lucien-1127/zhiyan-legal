@@ -10,13 +10,15 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 # 智研 AI 法律系統 · Zhiyan AI Legal System
 
 [![Hermes Skill](https://img.shields.io/badge/Hermes-v3.06.1-8B5CF6)](SKILL.md)
-[![Docs](https://img.shields.io/badge/docs-90+_specs-blue)](docs/)
+[![Docs](https://img.shields.io/badge/docs-98_specs-blue)](docs/)
+[![MkDocs](https://img.shields.io/badge/MkDocs-Material-0094F5)](https://lucien-1127.github.io/zhiyan-legal/)
+[![Wiki](https://img.shields.io/badge/wiki-6_pages-2E8B57)](docs/wiki/)
 [![Python](https://img.shields.io/badge/python-3.10+-376F9B)](.)
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-116_passed-3DA639)](tests/)
+[![Tests](https://img.shields.io/badge/tests-122_passed-3DA639)](tests/)
+[![CI](https://img.shields.io/badge/GitHub%20Actions-pages-2088FF)](.github/workflows/)
 
 > **A citation-grounded, safety-first legal AI research platform for Taiwan law.**
-
 > 以分層架構、強制引用政策與安全路由為核心的台灣法律 AI 研究平台。
 
 <p align="center">
@@ -30,7 +32,7 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 
 ## Overview
 
-This repository packages a **90+ document prompt-engineering specification** into a reproducible
+This repository packages a **98+ document prompt-engineering specification** into a reproducible
 research platform investigating three core questions:
 
 | # | Research Question | Mitigation | Measured By |
@@ -61,46 +63,33 @@ research platform investigating three core questions:
 ```
 G0 → INTAKE → SRP → CORE_GATE → L0.7 RAG → L0.8 CASE_VERIFY → MODE → PERSONA → CITATION → OUTPUT
 
-G0     Confidence-first     ❌ Low = stop
-L0.5   SRP                  Safety Routing Protocol (RL0–RL3)
-L0     CORE_GATE            Fact tiering, gap detection, 5-element extraction
-L0.7   LOCAL_RAG            47,001 statute plain-language entries (SQLite FTS5, daily sync)
-L0.8   CASE_VERIFY          Real-case check via judgment.judicial.gov.tw + law firm articles
-       MODE_ROUTER          Task routing: QC → RESEARCH → REPORT
-L1     PERSONA              6 personas: MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
-L2     MODULE               LITIGATION, CONTRACT_RISK; CITATION v2.1: [T] + [1] + [2] + [3]
+G0              Confidence-first           ❌ Low = stop
+L0.5            SRP                        Safety Routing Protocol (RL0–RL3)
+L0              CORE_GATE                  Fact tiering, gap detection, 5-element extraction
+L0.7            LOCAL_RAG                  47,001 statute plain-language entries (SQLite FTS5, daily sync)
+L0.8            CASE_VERIFY                Real-case check via judgment.judicial.gov.tw + law firm articles
+                MODE_ROUTER                Task routing: QC → RESEARCH → REPORT
+L1              PERSONA                    6 personas: MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER
+L2              MODULE                     LITIGATION, CONTRACT_RISK; CITATION v2.1: [T] + [1] + [2] + [3]
 ```
 
 ## Repository Layout
 
 ```
 zhiyan-legal/
-├── README.md                 This file
-├── RESEARCH.md               Full research proposal (grant applications)
-├── SKILL.md                  Hermes Agent skill definition (v3.06)
-├── CITATION.cff              Academic citation metadata
-├── pyproject.toml             Package metadata
-├── requirements.txt           Deps: openai + python-dotenv
-├── scripts/setup.sh            One-command install
-├── docs/                     90+ specification documents, 7 layers
-├── src/zhiyan_legal/          Python harness (API-agnostic)
-│   ├── __init__.py            Package init
-│   ├── __main__.py            `python -m zhiyan_legal` entry point
-│   ├── cli.py                 CLI entry point
-│   ├── doc_generator.py       Court-compliant legal document generator
-│   ├── judicial_api.py        Judicial Yuan open-data API client
-│   ├── loader.py              System prompt composer
-│   ├── manifest.py            Load order + task map
-│   ├── router.py              Keyword routing
-│   ├── runner.py              OpenAI-compatible API runner
-│   └── sub_agent.py           Hermes delegate_task parallel scheduling
-└── tests/                     Test suite
-    ├── test_judicial_api.py
-    ├── test_loader.py
-    ├── test_manifest.py
-    ├── test_routing.py
-    ├── test_runner.py
-    └── test_sub_agent.py
+├── .github/                  Issue/PR templates + CI/CD (GitHub Pages, Tests)
+├── prompts/                  Prompt system (personas, workflows, modes)
+├── agents/                   Agent integration configs
+├── workflows/                Automated workflow definitions
+├── knowledge/                Knowledge base (statutes, case law, glossary)
+├── docker/                   Container deployment configs
+├── docs/                     98 specification documents, 7 layers + wiki/
+├── src/zhiyan_legal/         Python harness (API-agnostic)
+├── tests/                    Test suite (122 tests)
+├── mkdocs.yml                GitHub Pages config (MkDocs Material)
+├── scripts/setup.sh          One-command install
+├── RESEARCH.md               Full research proposal
+└── SKILL.md                  Hermes Agent skill definition (v3.06)
 ```
 
 ## Quickstart
@@ -128,6 +117,17 @@ PYTHONPATH=src python -m zhiyan_legal "Compare termination vs. rescission"
 PYTHONPATH=src pytest tests/ -v
 ```
 
+## Documentation
+
+| Resource | Description |
+|:---------|:------------|
+| 📖 [MkDocs Site](https://lucien-1127.github.io/zhiyan-legal/) | Full browsable documentation (GitHub Pages) |
+| 📘 [Wiki](docs/wiki/) | Quickstart, architecture, citation policy, stress tests |
+| 🎯 [Vision](docs/vision.md) | From AI tool to AI legal operating system |
+| 🗺️ [Roadmap](docs/roadmap.md) | Phase 1–4 development plan |
+| 🏗️ [Architecture](docs/architecture.md) | 7-layer system specification |
+| 📋 [Issues](https://github.com/Lucien-1127/zhiyan-legal/issues) | Bug reports & feature requests |
+
 ## API Provider Compatibility
 
 | Provider | Base URL | Example Model |
@@ -141,7 +141,7 @@ PYTHONPATH=src pytest tests/ -v
 ## For RAP Applicants
 
 This project is a **reproducible research study** — not a commercial tool. Includes:
-1. Complete 90+ document specification
+1. Complete 98+ document specification
 2. Three testable research questions with metrics
 3. Ablation-ready harness (`--dry-run` mode for zero-cost experiments)
 4. Pre-defined evaluation methodology
@@ -170,7 +170,7 @@ MIT — see [`LICENSE`](LICENSE). Outputs are research artifacts, **not legal ad
 
 ## 概述
 
-本專案將 **90 份以上的提示工程規格文件**封裝為可重現的研究平台，探討三個核心問題：
+本專案將 **98 份以上的提示工程規格文件**封裝為可重現的研究平台，探討三個核心問題：
 
 | # | 研究問題 | 對策 | 測量方式 |
 |:--|:---------|:-----|:---------|
@@ -178,8 +178,7 @@ MIT — see [`LICENSE`](LICENSE). Outputs are research artifacts, **not legal ad
 | RQ2 | **安全優先路由**能否減少有害輸出？ | SRP 分層風險評分 | 不安全輸出率 + 誤觸發率 |
 | RQ3 | **事實閘門**能否改善不確定性校正？ | 核心閘門 — 分級 + 缺口標示 | 標記準確性 |
 
-> **為何重要。** 一條捏造的法律引用就能造成實際傷害。本系統將每項緩解措施
-> 編碼為*可測試的機制*——可測量、可重現、可供消融實驗。
+> **為何重要。** 一條捏造的法律引用就能造成實際傷害。本系統將每項緩解措施編碼為*可測試的機制*——可測量、可重現、可供消融實驗。
 
 ---
 
@@ -213,21 +212,19 @@ L2     功能模組        訴訟推演、合約風險；引用 v2.1：[T] + [1]
 
 ```
 zhiyan-legal/
-├── README.md                 本文件
-├── RESEARCH.md               完整研究提案（科研補助申請）
-├── SKILL.md                  Hermes Agent 技能定義（v3.06）
-├── CITATION.cff              學術引用元資料
-├── pyproject.toml             套件資訊
-├── requirements.txt           相依：openai + python-dotenv
-├── scripts/setup.sh            一鍵安裝
-├── docs/                      110+ 規格文件，7 層
-├── src/zhiyan_legal/           Python 框架（API 無關）
-│   ├── cli.py                  命令列入口
-│   ├── loader.py               系統提示詞組成
-│   ├── manifest.py             載入順序＋路由對應
-│   ├── router.py               關鍵詞路由（81 項測試）
-│   └── runner.py               OpenAI 相容 API 執行器
-└── tests/test_routing.py       81 項回歸測試
+├── .github/                  Issue/PR 模板 + CI/CD（GitHub Pages, 測試）
+├── prompts/                  提示詞系統（人格、工作流、模式）
+├── agents/                   代理整合設定
+├── workflows/                自動化工作流程定義
+├── knowledge/                知識庫（法條、判決、詞彙）
+├── docker/                   容器化部署設定
+├── docs/                     98 份規格文件，7 層 + wiki/
+├── src/zhiyan_legal/         Python 框架（API 無關）
+├── tests/                    測試套件（122 項）
+├── mkdocs.yml                GitHub Pages 設定（MkDocs Material）
+├── scripts/setup.sh          一鍵安裝
+├── RESEARCH.md               完整研究提案
+└── SKILL.md                  Hermes Agent 技能定義（v3.06）
 ```
 
 ## 快速開始
@@ -255,6 +252,17 @@ PYTHONPATH=src python -m zhiyan_legal "比較契約解除與終止"
 PYTHONPATH=src pytest tests/ -v
 ```
 
+## 文件導覽
+
+| 資源 | 說明 |
+|:-----|:------|
+| 📖 [MkDocs 站台](https://lucien-1127.github.io/zhiyan-legal/) | 完整線上文件（GitHub Pages） |
+| 📘 [Wiki](docs/wiki/) | 快速開始、架構、引用政策、壓力測試 |
+| 🎯 [願景](docs/vision.md) | 從 AI 工具到 AI 法律作業系統 |
+| 🗺️ [路線圖](docs/roadmap.md) | Phase 1–4 開發規劃 |
+| 🏗️ [架構](docs/architecture.md) | 七層系統完整規格 |
+| 📋 [Issues](https://github.com/Lucien-1127/zhiyan-legal/issues) | Bug 回報與功能建議 |
+
 ## API 供應商相容性
 
 | 供應商 | Base URL | 範例模型 |
@@ -268,7 +276,7 @@ PYTHONPATH=src pytest tests/ -v
 ## 給 RAP 申請者
 
 本專案為**可重現研究**——非商業工具。提供：
-1. 完整 110+ 文件規格
+1. 完整 98+ 文件規格
 2. 三個附指標的研究問題
 3. 消融實驗框架（`--dry-run` 模式零成本測試）
 4. 預定義評估方法

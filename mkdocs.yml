@@ -1,0 +1,138 @@
+site_name: 智研 AI 法律系統 · Zhiyan AI Legal
+site_description: 以分層架構、強制引用政策與安全路由為核心的台灣法律 AI 研究平台
+site_author: Lucien
+site_url: https://lucien-1127.github.io/zhiyan-legal/
+repo_url: https://github.com/Lucien-1127/zhiyan-legal
+repo_name: Lucien-1127/zhiyan-legal
+edit_uri: blob/main/docs/
+
+theme:
+  name: material
+  language: zh-TW
+  features:
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.expand
+    - navigation.indexes
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotate
+    - content.code.copy
+  palette:
+    primary: indigo
+    accent: deep orange
+  font:
+    text: Noto Sans TC
+    code: JetBrains Mono
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Lucien-1127
+    - icon: fontawesome/solid/envelope
+      link: mailto:Lucien127@proton.me
+  generator: false
+  consent:
+    title: 隱私說明
+    description: 本網站使用 cookies 進行流量分析，不收集個人資料。
+
+copyright: >
+  Copyright &copy; 2026 Lucien —
+  <a href="#__consent">管理 Cookie</a>
+
+plugins:
+  - search
+  - git-revision-date-localized:
+      enable_creation_date: true
+  - minify:
+      minify_html: true
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.keys
+  - footnotes
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+nav:
+  - 首頁: index.md
+  - 總覽:
+    - 入口導覽: 00_入口與總覽/00_開始閱讀_入口導覽_v2.1.0.md
+    - README 總覽: 00_入口與總覽/01_README_總覽_v3.0.3.md
+    - 上線部署清單: 00_入口與總覽/02_上線部署清單_DEPLOYMENT_CHECKLIST_v1.0.0.md
+  - 核心控制層:
+    - 主人格 MASTER: 10_核心控制層/10_主人格_MASTER_v2.0.0.md
+    - 啟動流程 BOOT: 10_核心控制層/11_啟動流程_BOOT_v2.40.0.md
+    - 核心閘門 CORE_GATE: 10_核心控制層/12_核心閘門_CORE_GATE_v1.1.0.md
+    - 空間核心規格: 10_核心控制層/13_空間核心規格_PPL_SPACE_CORE_v3.0.0.md
+    - 運行流程 RUNBOOK: 10_核心控制層/14_智研AI代理運行流程_RUNBOOK_v1.0.0.md
+    - 任務路由表: 10_核心控制層/15_任務路由表_TASK_ROUTER_v1.0.0.md
+    - 系統提示詞: 10_核心控制層/09_AGENT_SYSTEM_PROMPT_v1.0.0.md
+    - 子代理並行策略: 10_核心控制層/17_子代理並行策略.md
+  - 模式與引用:
+    - 報告模式 REPORT: 20_模式與引用層/20_模式_REPORT_報告_v2.0.0.md
+    - 研究模式 RESEARCH: 20_模式與引用層/21_模式_RESEARCH_研究_v2.0.0.md
+    - 查核模式 QC: 20_模式與引用層/22_模式_QC_查核_v2.0.1.md
+    - 引用政策 CITATION: 20_模式與引用層/30_引用政策_CITATION_POLICY_v2.0.0.md
+    - 引用升級手冊: 20_模式與引用層/31_引用升級手冊_v2.0.0.md
+    - 引用優化手冊: 20_模式與引用層/32_引用政策優化完成手冊_v2.0.0.md
+  - 模組與人格:
+    - 訴訟策略: 40_模組與人格層/40_模組_訴訟策略_v2.2.0.md
+    - 安全對話處理: 40_模組與人格層/41_模組_安全風險對話處理_v1.0.0.md
+    - Sentinel 多法域檢測: 40_模組與人格層/42_模組_Sentinel多法域前置檢測_v1.0.0.md
+    - 法庭模擬: 40_模組與人格層/43_模組_法庭模擬_v1.1.0.md
+    - 申論題測試: 40_模組與人格層/44_模組_申論題測試_v1.0.0.md
+    - 申論題範例: 40_模組與人格層/44_範例_申論題作答_v1.0.0.md
+    - 模型測試記錄: 40_模組與人格層/45_模組_模型測試記錄_v1.0.0.md
+    - 顧問人格: 40_模組與人格層/50_人格_顧問_v1.1.0.md
+    - 助教批改人格: 40_模組與人格層/51_人格_助教批改_v1.1.0.md
+    - 助教批改 v1.2.0: 40_模組與人格層/51_人格_助教批改_v1.2.0.md
+    - 教學人格: 40_模組與人格層/52_人格_教學_v1.1.0.md
+    - 總綱: 40_模組與人格層/53_人格_總綱_v2.0.0.md
+  - 概念詞條:
+    - 索引: 60_概念詞條/60_概念詞條_INDEX_v1.0.0.md
+    - 法規現狀: 60_概念詞條/法規現狀參考表.md
+    - 四法要件: 60_概念詞條/四法要件表格評估.md
+    - 事實閘門: 60_概念詞條/事實閘門.md
+    - 安全/風險: 60_概念詞條/安全.md
+    - 法律/概念: 60_概念詞條/法律.md
+    - 民法: 60_概念詞條/民法.md
+    - 刑法: 60_概念詞條/刑法.md
+    - 行政法: 60_概念詞條/行政法.md
+    - 憲法: 60_概念詞條/憲法.md
+    - 智研助教: 60_概念詞條/智研助教.md
+  - 維運治理:
+    - 檔案清單: 90_維運治理/90_檔案清單表_v2026.2.28.md
+    - 文檔淨化引擎: 90_維運治理/92_文檔淨化引擎使用手冊_v1.0.0.md
+    - 冒煙測試: 90_維運治理/93_冒煙測試_SMOKE_TESTS_v1.0.0.md
+    - 匯出對照: 90_維運治理/94_匯出對照_EXPORT_MAP_v1.0.0.md
+    - 功能驗收矩陣: 90_維運治理/95_功能驗收矩陣_FUNCTION_ACCEPTANCE_v1.0.0.md
+    - 上線自測報告: 90_維運治理/96_上線自測報告_SELF_TEST_REPORT_v1.0.0.md
+    - 重構紀錄: 90_維運治理/97_重構紀錄_CHANGELOG_v2026.5.31.md
+  - 封存參考:
+    - 啟動流程(舊): 80_封存參考/80_啟動流程_BOOT_v2.40.0_引用政策更新版_deprecated.md
+    - 空間核心規格(舊): 80_封存參考/81_空間核心規格_PPL_SPACE_CORE_v3.0.0_reference.md
+    - 品質檢查模板(舊): 80_封存參考/83_品質檢查模板_v2.0.1_reference.md
+    - 版本整理系統(舊): 80_封存參考/87_版本整理系統_v1.0.0_legacy.md
+  - 願景: vision.md
+  - 路線圖: roadmap.md
+  - 架構: architecture.md
+
+watch:
+  - docs
