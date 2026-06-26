@@ -1,0 +1,36 @@
+{
+  "experiment": "Citation Policy Ablation Study (gpt-4o-mini)",
+  "timestamp": "2026-06-26T11:11:31.726887+00:00",
+  "total_queries": 50,
+  "conditions": [
+    "A_with_citation (完整系統)",
+    "B_no_citation (消融 Citation Policy)"
+  ],
+  "condition_A": {
+    "total": 50,
+    "with_citation_marker": "0/50 (0%)",
+    "with_confidence_marker": "0/50 (0%)",
+    "any_issues": "50/50 (100%)",
+    "avg_article_refs": 0.0,
+    "avg_cost_per_query": 0.00105,
+    "total_cost": 0.05229,
+    "avg_elapsed_s": 0.0,
+    "avg_prompt_tokens": 6960
+  },
+  "condition_B": {
+    "total": 50,
+    "with_citation_marker": "0/50 (0%)",
+    "with_confidence_marker": "0/50 (0%)",
+    "any_issues": "50/50 (100%)",
+    "avg_article_refs": 0.0,
+    "avg_cost_per_query": 0.00087,
+    "total_cost": 0.04336,
+    "avg_elapsed_s": 0.0,
+    "avg_prompt_tokens": 5790
+  },
+  "total_cost_estimate": 0.09562,
+  "total_tokens_input": 637467,
+  "total_tokens_output": 0,
+  "errors": 0,
+  "errors_detail": []
+}
