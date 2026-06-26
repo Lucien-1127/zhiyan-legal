@@ -6,6 +6,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [Unreleased]
+
+### 🟢 Features
+
+- **助教人格 v1.2.0**：啟動前檢查拆分兩層、新增換算公式與範例、合併全域約束、新增不確定退路（⚠️ 需核查不計扣分）、用語修正、重疊規則合併
+
+---
+
 ## [3.07.1] — 2026-06-26
 
 ### 🔴 Bug Fixes — P1 (Critical)
