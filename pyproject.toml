@@ -16,6 +16,18 @@ dependencies = [
     "openai>=1.0.0",
     "python-dotenv>=1.0.0",
 ]
+
+[project.optional-dependencies]
+docgen = [
+    "python-docx>=1.1.0",
+]
+api = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+]
+all = [
+    "zhiyan-legal[docgen,api]",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
