@@ -81,14 +81,14 @@ LAYER  NAME              FUNCTION                                    STATUS
 ────── ────────────────  ─────────────────────────────────────────── ──────
 L0.5   SRP               Safety Routing Protocol (RL0–RL3 risk tier) ✅ Complete
 L0     CORE_GATE         Fact gate: tiering, gaps, 5-element extract ✅ Complete
-L0.7   LOCAL_RAG         Statute plain-language RAG (47K entries,    ✅ v3.05
+L0.7   LOCAL_RAG         Statute plain-language RAG (47K entries,    ✅ v3.06.1
                           SQLite FTS5, auto-synced daily)
-L0.8   CASE_VERIFY       Real-case verification (judgment search +   ✅ v3.06
+L0.8   CASE_VERIFY       Real-case verification (judgment search +   ✅ v3.06.1
                           law firm practice articles)
        MODE_ROUTER       Task routing: QC → RESEARCH → REPORT        ✅ Complete
 L1     PERSONA_ROUTER    6 personas (consultant, tutor, TA, etc.)    ✅ Complete
 L2     MODULE_ROUTER     LITIGATION, CONTRACT_RISK (gated)           ✅ Complete
-       CITATION_POLICY   Citation v2.1 (RAG [T] + web [1] + judge   ✅ v3.05
+       CITATION_POLICY   Citation v2.1 (RAG [T] + web [1] + judge   ✅ v3.06.1
                           [2] + academic [3])
 ```
 
@@ -104,7 +104,7 @@ L2     MODULE_ROUTER     LITIGATION, CONTRACT_RISK (gated)           ✅ Complet
 | Archive (reference only) | 10 | ~2,000 | `docs/80_*/` |
 | Governance (not in prompt) | 8 | ~800 | `docs/90_*/` |
 
-**Total: 85+ spec files, ~10,000+ lines** — a complete, version-controlled specification
+**Total: 90+ spec files, ~10,000+ lines** — a complete, version-controlled specification
 that can be composed into a single research system prompt.
 
 ### 3.3 Design Boundary
@@ -210,8 +210,8 @@ under a CC-BY license to enable reproducibility.
 
 ### Ethical Considerations
 
-- **No legal advice.** Outputs are research artifacts. Under Taiwan's Attorney Act Art. 48,
-  B2C legal-advice delivery is constrained. This study operates in a research-only frame.
+- **No legal advice.** Outputs are research artifacts. Under Taiwan's Attorney Act Art. 127,
+  unlicensed persons practicing litigation for profit are criminally liable. This study operates in a research-only frame.
 - **Human oversight.** All outputs in the evaluation set are reviewed by a qualified legal
   professional. The system is never deployed in an unsupervised advisory capacity.
 - **Safety priority.** The safety routing protocol (SRP) ensures high-risk inputs are
@@ -236,4 +236,4 @@ under a CC-BY license to enable reproducibility.
 2. Lewis, P., et al. (2020). *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.* NeurIPS 2020. arXiv:2005.11401.
 3. Guha, N., Nyarko, J., Ho, D. E., Ré, C., Chilton, A., et al. (2023). *LegalBench: A Collaboratively Built Benchmark for Measuring Legal Reasoning in Large Language Models.* NeurIPS 2023 Datasets and Benchmarks. arXiv:2308.11462.
 4. Bommasani, R., et al. (2022). *On the Opportunities and Risks of Foundation Models.*
-5. Taiwan Attorney Act, Article 48 — Limitations on legal service provision by non-attorneys.
+5. Taiwan Attorney Act, Article 127 — Criminal penalty for unlicensed litigation practice (up to 1 year imprisonment).

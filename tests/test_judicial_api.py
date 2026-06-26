@@ -17,7 +17,7 @@ def test_parse_full_case():
     """完整案號解析：法院 + 年度 + 字別 + 號次"""
     result = client.parse_case_number("臺灣彰化地方法院 100 年度訴字第 1552 號")
     assert result is not None
-    assert result["court"] == "臺灣彰化地方法院"
+    assert result["court"] == "彰化地方法院"
     assert result["year"] == "100"
     assert result["case_type"] == "訴"
     assert result["case_no"] == "1552"

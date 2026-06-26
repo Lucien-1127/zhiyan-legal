@@ -9,11 +9,11 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 
 # 智研 AI 法律系統 · Zhiyan AI Legal System
 
-[![Hermes Skill](https://img.shields.io/badge/Hermes-v3.06-8B5CF6)](SKILL.md)
-[![Docs](https://img.shields.io/badge/docs-110+_specs-blue)](docs/)
+[![Hermes Skill](https://img.shields.io/badge/Hermes-v3.06.1-8B5CF6)](SKILL.md)
+[![Docs](https://img.shields.io/badge/docs-90+_specs-blue)](docs/)
 [![Python](https://img.shields.io/badge/python-3.10+-376F9B)](.)
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-81_passed-3DA639)](tests/)
+[![Tests](https://img.shields.io/badge/tests-116_passed-3DA639)](tests/)
 
 > **A citation-grounded, safety-first legal AI research platform for Taiwan law.**
 
@@ -78,14 +78,25 @@ zhiyan-legal/
 ├── pyproject.toml             Package metadata
 ├── requirements.txt           Deps: openai + python-dotenv
 ├── scripts/setup.sh            One-command install
-├── docs/                     110+ specification documents, 7 layers
+├── docs/                     90+ specification documents, 7 layers
 ├── src/zhiyan_legal/          Python harness (API-agnostic)
+│   ├── __init__.py            Package init
+│   ├── __main__.py            `python -m zhiyan_legal` entry point
 │   ├── cli.py                 CLI entry point
+│   ├── doc_generator.py       Court-compliant legal document generator
+│   ├── judicial_api.py        Judicial Yuan open-data API client
 │   ├── loader.py              System prompt composer
 │   ├── manifest.py            Load order + task map
-│   ├── router.py              Keyword routing (81 tests)
-│   └── runner.py              OpenAI-compatible API runner
-└── tests/test_routing.py      81 regression tests
+│   ├── router.py              Keyword routing
+│   ├── runner.py              OpenAI-compatible API runner
+│   └── sub_agent.py           Hermes delegate_task parallel scheduling
+└── tests/                     Test suite
+    ├── test_judicial_api.py
+    ├── test_loader.py
+    ├── test_manifest.py
+    ├── test_routing.py
+    ├── test_runner.py
+    └── test_sub_agent.py
 ```
 
 ## Quickstart
@@ -126,7 +137,7 @@ PYTHONPATH=src pytest tests/ -v
 ## For RAP Applicants
 
 This project is a **reproducible research study** — not a commercial tool. Includes:
-1. Complete 110+ document specification
+1. Complete 90+ document specification
 2. Three testable research questions with metrics
 3. Ablation-ready harness (`--dry-run` mode for zero-cost experiments)
 4. Pre-defined evaluation methodology
