@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280">
+  <title>智研 AI 法律工作站 — zhiyan-legal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@900&family=Noto+Sans+TC:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 1280px;
+      height: 640px;
+      overflow: hidden;
+      background: #080D1A;
+    }
+
+    .banner {
+      width: 1280px;
+      height: 640px;
+      position: relative;
+      background: linear-gradient(135deg, #060B16 0%, #0A1628 45%, #0C1E38 75%, #070C18 100%);
+      overflow: hidden;
+      display: flex;
+    }
+
+    /* ── 背景網格 ── */
+    .grid-bg {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(45,106,159,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(45,106,159,0.07) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    /* ── 光暈 ── */
+    .glow-brand {
+      position: absolute;
+      left: -60px;
+      top: 50%;
+      transform: translateY(-55%);
+      width: 560px;
+      height: 560px;
+      background: radial-gradient(circle,
+        rgba(201,168,76,0.14) 0%,
+        rgba(201,168,76,0.05) 35%,
+        transparent 68%);
+      pointer-events: none;
+    }
+
+    .glow-right {
+      position: absolute;
+      right: 40px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle,
+        rgba(30,90,150,0.12) 0%,
+        transparent 65%);
+      pointer-events: none;
+    }
+
+    /* ── 分隔線 ── */
+    .divider {
+      position: absolute;
+      left: 448px;
+      top: 44px;
+      bottom: 96px;
+      width: 1px;
+      background: linear-gradient(to bottom,
+        transparent 0%,
+        rgba(201,168,76,0.25) 18%,
+        rgba(201,168,76,0.4) 50%,
+        rgba(201,168,76,0.25) 82%,
+        transparent 100%);
+    }
+
+    /* ── 角落裝飾 ── */
+    .corner-tr {
+      position: absolute;
+      top: 28px;
+      right: 44px;
+      width: 36px;
+      height: 36px;
+      border-top: 1px solid rgba(201,168,76,0.28);
+      border-right: 1px solid rgba(201,168,76,0.28);
+    }
+    .corner-bl {
+      position: absolute;
+      bottom: 62px;
+      left: 36px;
+      width: 28px;
+      height: 28px;
+      border-bottom: 1px solid rgba(201,168,76,0.18);
+      border-left: 1px solid rgba(201,168,76,0.18);
+    }
+
+    /* ── 粒子 ── */
+    .p { position: absolute; border-radius: 50%; background: rgba(201,168,76,0.45); pointer-events: none; }
+
+    /* ══════════════════════════
+       左區：品牌識別
+    ══════════════════════════ */
+    .left-zone {
+      position: relative;
+      z-index: 10;
+      width: 448px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 48px 0 64px;
+    }
+
+    .brand-zh {
+      font-family: 'Noto Serif TC', serif;
+      font-weight: 900;
+      font-size: 118px;
+      line-height: 1;
+      color: #C9A84C;
+      letter-spacing: -3px;
+      text-shadow:
+        0 0 48px rgba(201,168,76,0.45),
+        0 0 120px rgba(201,168,76,0.18),
+        0 2px 0 rgba(0,0,0,0.5);
+      margin-bottom: 10px;
+    }
+
+    .brand-title {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-weight: 500;
+      font-size: 20px;
+      color: #E0ECF8;
+      letter-spacing: 7px;
+      margin-bottom: 22px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 400;
+      color: #C9A84C;
+      letter-spacing: 2px;
+      border: 1px solid rgba(201,168,76,0.35);
+      padding: 4px 10px;
+      margin-bottom: 28px;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+
+    .badge::before {
+      content: '⬡';
+      font-size: 9px;
+      opacity: 0.7;
+    }
+
+    .brand-repo {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 400;
+      color: #4E82AB;
+      letter-spacing: 1.2px;
+      margin-bottom: 5px;
+    }
+
+    .brand-version {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 300;
+      color: #3A596E;
+      letter-spacing: 0.6px;
+    }
+
+    /* ══════════════════════════
+       右區：功能列表
+    ══════════════════════════ */
+    .right-zone {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 56px 0 52px;
+      gap: 11px;
+    }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 13px 20px 13px 18px;
+      background: linear-gradient(100deg,
+        rgba(20,50,80,0.55) 0%,
+        rgba(14,36,60,0.28) 100%);
+      border: 1px solid rgba(40,90,140,0.32);
+      border-left: 2px solid rgba(201,168,76,0.65);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chip::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(95deg, rgba(201,168,76,0.04) 0%, transparent 40%);
+      pointer-events: none;
+    }
+
+    .chip-arrow {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: rgba(201,168,76,0.7);
+      flex-shrink: 0;
+    }
+
+    .chip-label {
+      font-family: 'Noto Sans TC', sans-serif;
+      font-weight: 500;
+      font-size: 15px;
+      color: #CDE0F2;
+      letter-spacing: 1.5px;
+      flex: 1;
+    }
+
+    .chip-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 300;
+      color: rgba(78,130,171,0.75);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* ══════════════════════════
+       底部資訊條
+    ══════════════════════════ */
+    .bottom-strip {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      background: rgba(3,7,16,0.88);
+      border-top: 1px solid rgba(30,70,110,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      z-index: 30;
+    }
+
+    .meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 300;
+      color: #38566A;
+      padding: 0 22px;
+      letter-spacing: 0.5px;
+    }
+
+    .meta-dot {
+      color: rgba(40,80,110,0.5);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    /* 左下浮水印 */
+    .watermark {
+      position: absolute;
+      bottom: 58px;
+      left: 64px;
+      font-family: 'Noto Serif TC', serif;
+      font-weight: 900;
+      font-size: 200px;
+      color: rgba(201,168,76,0.025);
+      line-height: 1;
+      letter-spacing: -8px;
+      pointer-events: none;
+      user-select: none;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">
+
+    <div class="grid-bg"></div>
+    <div class="glow-brand"></div>
+    <div class="glow-right"></div>
+    <div class="divider"></div>
+    <div class="corner-tr"></div>
+    <div class="corner-bl"></div>
+
+    <!-- 浮水印 -->
+    <div class="watermark">智</div>
+
+    <!-- 粒子 -->
+    <div class="p" style="width:3px;height:3px;top:11%;left:38%;opacity:.65;"></div>
+    <div class="p" style="width:2px;height:2px;top:27%;left:56%;opacity:.4;"></div>
+    <div class="p" style="width:4px;height:4px;top:62%;left:43%;opacity:.28;"></div>
+    <div class="p" style="width:2px;height:2px;top:44%;left:80%;opacity:.5;"></div>
+    <div class="p" style="width:3px;height:3px;top:78%;left:67%;opacity:.32;"></div>
+    <div class="p" style="width:2px;height:2px;top:17%;left:90%;opacity:.38;"></div>
+    <div class="p" style="width:2px;height:2px;top:52%;left:24%;opacity:.22;"></div>
+    <div class="p" style="width:3px;height:3px;top:35%;left:70%;opacity:.3;"></div>
+
+    <!-- ══ 左區：品牌 ══ -->
+    <div class="left-zone">
+      <div class="brand-zh">智研</div>
+      <div class="brand-title">AI 法律工作站</div>
+      <div class="badge">Taiwan Legal AI Platform</div>
+      <div class="brand-repo">zhiyan-legal</div>
+      <div class="brand-version">v3.06.1 &nbsp;·&nbsp; MIT License</div>
+    </div>
+
+    <!-- ══ 右區：功能 ══ -->
+    <div class="right-zone">
+      <div class="chip">
+        <span class="chip-arrow">▸</span>
+        <span class="chip-label">七層幻覺防禦架構</span>
+        <span class="chip-tag">HALLUCINATION GUARD</span>
+      </div>
+      <div class="chip">
+        <span class="chip-arrow">▸</span>
+        <span class="chip-label">47,001 條法條 RAG</span>
+        <span class="chip-tag">RAG · 47K ARTICLES</span>
+      </div>
+      <div class="chip">
+        <span class="chip-arrow">▸</span>
+        <span class="chip-label">法庭模擬 × 申論批改</span>
+        <span class="chip-tag">MOOT COURT SIM</span>
+      </div>
+      <div class="chip">
+        <span class="chip-arrow">▸</span>
+        <span class="chip-label">法規異動自動追蹤</span>
+        <span class="chip-tag">AUTO LAW TRACKER</span>
+      </div>
+      <div class="chip">
+        <span class="chip-arrow">▸</span>
+        <span class="chip-label">法律書狀自動起草</span>
+        <span class="chip-tag">LEGAL DRAFTING AI</span>
+      </div>
+    </div>
+
+    <!-- ══ 底部條 ══ -->
+    <div class="bottom-strip">
+      <span class="meta">MIT License</span>
+      <span class="meta-dot">·</span>
+      <span class="meta">Python + Flutter</span>
+      <span class="meta-dot">·</span>
+      <span class="meta">pytest 122 tests</span>
+      <span class="meta-dot">·</span>
+      <span class="meta">RAG 47,001 articles</span>
+    </div>
+
+  </div>
+</body>
+</html>
