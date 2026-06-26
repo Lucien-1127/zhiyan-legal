@@ -178,17 +178,24 @@ class JudicialAPIClient:
                 court = name
                 break
 
+        # 移除法院名稱前綴，避免後續 regex 吞掉法院名
+        rest = case_str[len(court):] if court else case_str
+
         # 年度
-        m = re.search(r'(\d{2,3})\s*年度', case_str)
+        m = re.search(r'(\d{2,3})\s*年度', rest)
         year = m.group(1) if m else ""
 
-        # 字別 + 號次
-        m = re.search(r'(?:年度)?(\w+)\s*字\s*第\s*(\d+)', case_str)
+        # 從剩餘字串移除已解析的年度部分，避免干擾字別提取
+        if m:
+            rest = rest[:m.start()] + rest[m.end():]
+
+        # 字別 + 號次（在剩餘字串中搜尋，避免法院名或年度干擾）
+        m = re.search(r'(\w+)\s*字\s*第\s*(\d+)', rest)
         if m:
             case_word = m.group(1)
             case_no = m.group(2)
         else:
-            m = re.search(r'(\w+)字第(\d+)', case_str)
+            m = re.search(r'(\w+)字第(\d+)', rest)
             if m:
                 case_word = m.group(1)
                 case_no = m.group(2)

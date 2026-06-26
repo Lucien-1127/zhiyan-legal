@@ -211,7 +211,9 @@ under a CC-BY license to enable reproducibility.
 ### Ethical Considerations
 
 - **No legal advice.** Outputs are research artifacts. Under Taiwan's Attorney Act Art. 127,
-  unlicensed persons practicing litigation for profit are criminally liable. This study operates in a research-only frame.
+  unlicensed persons practicing **litigation services** (e.g., court representation, drafting pleadings)
+  for profit face criminal liability. General legal information provision does not fall under this
+  restriction. This study operates in a research-only frame.
 - **Human oversight.** All outputs in the evaluation set are reviewed by a qualified legal
   professional. The system is never deployed in an unsupervised advisory capacity.
 - **Safety priority.** The safety routing protocol (SRP) ensures high-risk inputs are
@@ -236,4 +238,4 @@ under a CC-BY license to enable reproducibility.
 2. Lewis, P., et al. (2020). *Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.* NeurIPS 2020. arXiv:2005.11401.
 3. Guha, N., Nyarko, J., Ho, D. E., Ré, C., Chilton, A., et al. (2023). *LegalBench: A Collaboratively Built Benchmark for Measuring Legal Reasoning in Large Language Models.* NeurIPS 2023 Datasets and Benchmarks. arXiv:2308.11462.
 4. Bommasani, R., et al. (2022). *On the Opportunities and Risks of Foundation Models.*
-5. Taiwan Attorney Act, Article 127 — Criminal penalty for unlicensed litigation practice (up to 1 year imprisonment).
+5. Taiwan Attorney Act, Article 127 — Criminal penalty for unlicensed litigation services (court representation, drafting pleadings) for profit (up to 1 year imprisonment).

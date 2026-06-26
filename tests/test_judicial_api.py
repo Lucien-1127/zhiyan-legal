@@ -53,6 +53,65 @@ def test_parse_invalid_returns_none():
     assert result is None
 
 
+# ── Edge cases (non-standard case number formats) ──
+
+def test_parse_no_space_continuous():
+    """無空格連續案號：臺北地方法院113年度訴字第5678號"""
+    result = client.parse_case_number("臺北地方法院113年度訴字第5678號")
+    assert result is not None
+    assert result["court"] == "臺北地方法院"
+    assert result["year"] == "113"
+    assert result["case_type"] == "訴"
+    assert result["case_no"] == "5678"
+
+
+def test_parse_complex_case_type():
+    """複合字別：重訴、金訴、家親聲"""
+    cases = [
+        ("臺灣高等法院 112 年度重訴字第 5 號", "重訴"),
+        ("臺北地方法院 113 年度金訴字第 100 號", "金訴"),
+        ("士林地方法院 114 年度家親聲字第 20 號", "家親聲"),
+    ]
+    for case_str, expected_type in cases:
+        result = client.parse_case_number(case_str)
+        assert result is not None, f"Failed to parse: {case_str}"
+        assert result["case_type"] == expected_type, \
+            f"Expected '{expected_type}', got '{result['case_type']}' for '{case_str}'"
+
+
+def test_parse_short_year():
+    """短年度 3 碼"""
+    result = client.parse_case_number("最高法院 100 年度台上字第 1234 號")
+    assert result is not None
+    assert result["year"] == "100"
+    assert result["case_type"] == "台上"
+
+
+def test_parse_high_court_branch_continuous():
+    """高等法院分院連續格式"""
+    result = client.parse_case_number("臺灣高等法院高雄分院110年度上易字第333號")
+    assert result is not None
+    assert result["court"] == "臺灣高等法院高雄分院"
+    assert result["year"] == "110"
+    assert result["case_type"] == "上易"
+    assert result["case_no"] == "333"
+
+
+def test_parse_empty_input():
+    """空白輸入"""
+    result = client.parse_case_number("")
+    assert result is None
+
+
+def test_parse_mixed_chinese_digits():
+    """阿拉伯數字＋國字混合（實務常見）"""
+    result = client.parse_case_number("新北地方法院 113 年度簡字第 45 號")
+    assert result is not None
+    assert result["court"] == "新北地方法院"
+    assert result["case_type"] == "簡"
+    assert result["case_no"] == "45"
+
+
 # ── build_jid ────────────────────────────────────
 
 def test_build_jid_basic():
