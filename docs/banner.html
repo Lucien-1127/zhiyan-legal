@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>智研AI法律工作站 — zhiyan-legal</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: #0a0e1a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Noto Serif CJK TC', 'Times New Roman', serif;
+  }
+
+  .banner {
+    width: 1280px;
+    height: 640px;
+    background: linear-gradient(160deg, #0b1120 0%, #0d1428 30%, #0f1830 60%, #0a0e1a 100%);
+    display: flex;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 60px rgba(0,0,0,0.5);
+  }
+
+  /* Grid background */
+  .grid {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: 
+      linear-gradient(rgba(212, 175, 55, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212, 175, 55, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* Gold accent lines */
+  .accent-line-top {
+    position: absolute;
+    top: 20px; left: 60px; right: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.4) 20%, rgba(212,175,55,0.6) 50%, rgba(212,175,55,0.4) 80%, transparent 100%);
+  }
+  .accent-line-bottom {
+    position: absolute;
+    bottom: 20px; left: 60px; right: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(212,175,55,0.4) 20%, rgba(212,175,55,0.6) 50%, rgba(212,175,55,0.4) 80%, transparent 100%);
+  }
+
+  /* Gold geometric lines */
+  .geo-line-1 {
+    position: absolute;
+    top: 80px; right: 60px;
+    width: 120px; height: 1px;
+    background: rgba(212,175,55,0.2);
+    transform: rotate(-45deg);
+    transform-origin: right center;
+  }
+  .geo-line-2 {
+    position: absolute;
+    top: 80px; right: 60px;
+    width: 80px; height: 1px;
+    background: rgba(212,175,55,0.15);
+    transform: rotate(-30deg);
+    transform-origin: right center;
+  }
+  .geo-dot {
+    position: absolute;
+    top: 78px; right: 56px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: rgba(212,175,55,0.4);
+  }
+
+  /* Divider vertical */
+  .divider {
+    position: absolute;
+    left: 480px;
+    top: 80px;
+    bottom: 60px;
+    width: 1px;
+    background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.08) 30%, rgba(255,255,255,0.08) 70%, transparent 100%);
+  }
+
+  /* Left Section */
+  .left-section {
+    position: absolute;
+    left: 60px;
+    top: 0;
+    width: 380px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .logo-main {
+    font-size: 82px;
+    font-weight: 700;
+    color: #d4af37;
+    letter-spacing: 8px;
+    line-height: 1;
+    margin-bottom: 8px;
+    text-shadow: 0 0 30px rgba(212,175,55,0.15);
+  }
+
+  .logo-sub {
+    font-size: 34px;
+    font-weight: 600;
+    color: #e8e8f0;
+    letter-spacing: 4px;
+    margin-bottom: 16px;
+  }
+
+  .tagline-box {
+    display: inline-block;
+    border: 1px solid rgba(212,175,55,0.3);
+    padding: 4px 16px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: rgba(212,175,55,0.7);
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+    margin-bottom: 40px;
+  }
+
+  .repo-name {
+    font-size: 22px;
+    color: rgba(255,255,255,0.5);
+    font-family: 'Courier New', monospace;
+    margin-bottom: 4px;
+  }
+
+  .version {
+    font-size: 13px;
+    color: rgba(255,255,255,0.25);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 1px;
+  }
+
+  /* Right Section */
+  .right-section {
+    position: absolute;
+    left: 520px;
+    top: 0;
+    right: 60px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .feature-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    transition: all 0.2s ease;
+    cursor: default;
+    position: relative;
+  }
+  .feature-item:hover {
+    background: rgba(255,255,255,0.02);
+    padding-left: 24px;
+  }
+  .feature-item:hover .feature-zh {
+    color: #d4af37;
+  }
+
+  .feature-zh {
+    font-size: 20px;
+    color: #d0d0e0;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .feature-en {
+    font-size: 11px;
+    color: rgba(212,175,55,0.4);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .feature-icon {
+    color: rgba(212,175,55,0.2);
+    font-size: 14px;
+    margin-right: 16px;
+  }
+
+  .feature-left {
+    display: flex;
+    align-items: center;
+  }
+
+  /* Bottom bar */
+  .bottom-bar {
+    position: absolute;
+    bottom: 32px;
+    left: 60px;
+    right: 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .bottom-stats {
+    font-size: 12px;
+    color: rgba(255,255,255,0.2);
+    font-family: 'Courier New', monospace;
+  }
+  .bottom-stats span {
+    margin: 0 8px;
+    color: rgba(255,255,255,0.12);
+  }
+
+  /* Fade-in animation */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .left-section { animation: fadeIn 0.8s ease forwards; }
+  .feature-item:nth-child(1) { animation: fadeIn 0.6s ease 0.1s both; }
+  .feature-item:nth-child(2) { animation: fadeIn 0.6s ease 0.2s both; }
+  .feature-item:nth-child(3) { animation: fadeIn 0.6s ease 0.3s both; }
+  .feature-item:nth-child(4) { animation: fadeIn 0.6s ease 0.4s both; }
+  .feature-item:nth-child(5) { animation: fadeIn 0.6s ease 0.5s both; }
+
+  @media (max-width: 1280px) {
+    .banner { width: 100vw; height: auto; min-height: 400px; flex-direction: column; padding: 40px 20px; }
+    .left-section { position: relative; left: auto; width: 100%; align-items: center; text-align: center; margin-bottom: 30px; }
+    .right-section { position: relative; left: auto; width: 100%; }
+    .divider { display: none; }
+    .bottom-bar { position: relative; bottom: auto; left: auto; right: auto; margin-top: 20px; }
+    .accent-line-top, .accent-line-bottom, .geo-line-1, .geo-line-2, .geo-dot { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="banner">
+  <div class="grid"></div>
+  <div class="accent-line-top"></div>
+  <div class="accent-line-bottom"></div>
+  <div class="geo-line-1"></div>
+  <div class="geo-line-2"></div>
+  <div class="geo-dot"></div>
+  <div class="divider"></div>
+
+  <!-- Left: Branding -->
+  <div class="left-section">
+    <div class="logo-main">智研</div>
+    <div class="logo-sub">AI 法律工作站</div>
+    <div class="tagline-box">Taiwan Legal AI Platform</div>
+    <div class="repo-name">zhiyan-legal</div>
+    <div class="version">v3.06.1 &nbsp;·&nbsp; MIT License</div>
+  </div>
+
+  <!-- Right: Features -->
+  <div class="right-section">
+    <div class="feature-item">
+      <div class="feature-left">
+        <span class="feature-icon">▸</span>
+        <span class="feature-zh">七層幻覺防禦架構</span>
+      </div>
+      <span class="feature-en">Hallucination Guard</span>
+    </div>
+    <div class="feature-item">
+      <div class="feature-left">
+        <span class="feature-icon">▸</span>
+        <span class="feature-zh">47,001 條法條 RAG</span>
+      </div>
+      <span class="feature-en">RAG · 47K Articles</span>
+    </div>
+    <div class="feature-item">
+      <div class="feature-left">
+        <span class="feature-icon">▸</span>
+        <span class="feature-zh">法庭模擬 × 申論批改</span>
+      </div>
+      <span class="feature-en">Moot Court Sim</span>
+    </div>
+    <div class="feature-item">
+      <div class="feature-left">
+        <span class="feature-icon">▸</span>
+        <span class="feature-zh">法規異動自動追蹤</span>
+      </div>
+      <span class="feature-en">Auto Law Tracker</span>
+    </div>
+    <div class="feature-item">
+      <div class="feature-left">
+        <span class="feature-icon">▸</span>
+        <span class="feature-zh">法律書狀自動起草</span>
+      </div>
+      <span class="feature-en">Legal Drafting AI</span>
+    </div>
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="bottom-bar">
+    <div class="bottom-stats">
+      MIT License <span>·</span> Python + Flutter <span>·</span> pytest 122 tests <span>·</span> RAG 47,001 articles
+    </div>
+  </div>
+</div>
+</body>
+</html>
