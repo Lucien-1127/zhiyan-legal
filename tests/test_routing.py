@@ -63,8 +63,8 @@ def test_ta():
 
 
 def test_litigation():
-    """訴訟/攻防 → LITIGATION"""
-    assert route("模擬原告的攻防策略") == "LITIGATION"
+    """訴訟/攻防 → LITIGATION（不含模擬關鍵字）"""
+    assert route("原告的攻防策略") == "LITIGATION"
 
 
 def test_default_qc():
@@ -163,8 +163,13 @@ def test_simulation_hypothesis():
 
 
 def test_simulation_scenario():
-    """"模擬" 被「攻防」LITIGATION 覆蓋（LITIGATION > SIMULATION）"""
-    assert route("模擬原告的攻防策略") == "LITIGATION"
+    """「模擬」優先於「攻防」— SIMULATION 模式先行"""
+    assert route("模擬原告的攻防策略") == "SIMULATION"
+
+def test_simulation_overrides_litigation():
+    """模擬+訴訟 → SIMULATION（不應被 LITIGATION 攔截）🆕"""
+    assert route("模擬訴訟案件的可能走向") == "SIMULATION"
+
 
 def test_simulation_reasoning():
     """"推演" → SIMULATION（無 LITIGATION 關鍵字衝突）"""
@@ -177,5 +182,5 @@ def test_simulation_safety_overrides():
 
 
 def test_simulation_litigation_overrides():
-    """LITIGATION 應優先於 SIMULATION"""
-    assert route("假設我要提告") == "LITIGATION"
+    """模擬語境下 SIMULATION 優先於 LITIGATION"""
+    assert route("假設我要提告") == "SIMULATION"
