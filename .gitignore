@@ -22,6 +22,7 @@ site/
 
 # Environment
 .env
+.env.gcp
 *.token
 
 # Data artifacts
