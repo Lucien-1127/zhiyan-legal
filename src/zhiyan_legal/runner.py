@@ -43,9 +43,10 @@ def get_client() -> OpenAI:
 
     if not api_key:
         logger.error("No API key found")
-        print("❌ No API key found. Set ZHIYAN_API_KEY or one of:")
-        print("   OPENAI_API_KEY, OPENROUTER_API_KEY, GEMINI_API_KEY")
-        sys.exit(1)
+        raise RuntimeError(
+            "No API key found. Set ZHIYAN_API_KEY or one of:\n"
+            "   OPENAI_API_KEY, OPENROUTER_API_KEY, GEMINI_API_KEY"
+        )
 
     return OpenAI(base_url=base_url, api_key=api_key)
 
@@ -168,9 +169,8 @@ def run_llm(
         print("✅ Dry-run complete — 0 tokens consumed.")
         return ""
 
-    client = get_client()
-
     try:
+        client = get_client()
         logger.info(
             "Calling %s (%s, temp=%.1f, max=%d)",
             model, os.getenv("ZHIYAN_API_BASE_URL", "https://api.openai.com/v1"),
