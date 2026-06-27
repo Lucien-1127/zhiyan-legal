@@ -59,23 +59,23 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 
 ## 可以怎麼用
 
-如果你用 Hermes Agent，直接問就好：
+如果你用 Hermes Agent，法律相關的問題直接問就好，系統會自動判斷：
 
 ```
-/zhiyan 請分析這個契約有沒有風險
-hermes chat -q "/zhiyan 什麼是公然侮辱罪？"
+請分析這個契約有沒有風險
+什麼是公然侮辱罪？
 ```
 
-系統會自動判斷你要什麼模式，不需要記指令。
+不需要加任何前綴或指令。如果系統沒有自動觸發，可以說「智研」兩個字來強制啟動。
 
-如果想跑實驗或整合到自己的工作流程：
+如果想跑實驗：
 
 ```bash
 git clone https://github.com/Lucien-1127/zhiyan-legal.git
 cd zhiyan-legal && bash scripts/setup.sh
 
-PYTHONPATH=src pytest tests/ -v        # 跑測試
-PYTHONPATH=src python -m zhiyan_legal "什麼是公然侮辱？" --dry-run  # 乾跑
+PYTHONPATH=src pytest tests/ -v
+PYTHONPATH=src python -m zhiyan_legal "什麼是公然侮辱？" --dry-run
 ```
 
 ## 想更深入
