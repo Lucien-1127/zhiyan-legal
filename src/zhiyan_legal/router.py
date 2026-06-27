@@ -96,15 +96,15 @@ def route(text: str) -> str:
         if task == "SAFETY" and _keyword_in_text(kw, text):
             return "SAFETY"
 
-    # 2. Check LITIGATION
-    for kw, task in sorted_kw:
-        if task == "LITIGATION" and _keyword_in_text(kw, text):
-            return "LITIGATION"
-
-    # 3. Check SIMULATION (模擬模式 — 覆蓋一般任務路由)
+    # 2. Check SIMULATION (模擬模式 — 必須在 LITIGATION 之前，讓「模擬」覆蓋「訴訟」)
     for kw, task in sorted_kw:
         if task == "SIMULATION" and _keyword_in_text(kw, text):
             return "SIMULATION"
+
+    # 3. Check LITIGATION
+    for kw, task in sorted_kw:
+        if task == "LITIGATION" and _keyword_in_text(kw, text):
+            return "LITIGATION"
 
     # 4. Check mode routing (QC > RESEARCH > REPORT)
     for route_name in ROUTE_ORDER:
