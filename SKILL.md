@@ -7,7 +7,7 @@ user-invocable: true
 # 智研AI法律工作站 v3.07
 
 > GitHub: https://github.com/Lucien-1127/zhiyan-legal
-> 作者：小小育 <Lucien127@proton.me>
+> 作者：謝小育 <Lucien127@proton.me>
 
 ---
 
