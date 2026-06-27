@@ -11,7 +11,14 @@ Usage (from Hermes agent):
 """
 
 from typing import Any
-from hermes_tools import delegate_task as _delegate
+
+try:
+    from hermes_tools import delegate_task as _delegate
+except ImportError:
+    import sys as _sys
+    print("⚠️ sub_agent.py 需在 Hermes Agent 環境下執行")
+    print("   請透過 Hermes 載入本模組，或 pip install hermes-tools")
+    _sys.exit(1)
 
 
 # ── 1. 引證驗證並行 ─────────────────────────────────────────
