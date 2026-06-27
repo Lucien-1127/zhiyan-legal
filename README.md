@@ -3,7 +3,7 @@ title: 智研 AI 法律系統 · Zhiyan AI Legal System
 description: 以分層架構、強制引用政策與安全路由為核心的可重現台灣法律 AI 研究平台。
 license: MIT
 authors:
-  - Lucien (Lucien-1127) <Lucien127@proton.me>
+  - 謝小育 (Lucien-1127) <Lucien127@proton.me>
 repository: https://github.com/Lucien-1127/zhiyan-legal
 ---
 
@@ -155,7 +155,7 @@ PYTHONPATH=src pytest tests/ -v
 
 ```bibtex
 @software{zhiyan_legal_2026,
-  author = {Lucien (Lucien127@proton.me)},
+  author = {謝小育 (Lucien127@proton.me)},
   title = {Zhiyan AI Legal System},
   year = {2026},
   version = {v3.07},
@@ -263,7 +263,7 @@ This project is a **reproducible research study** — not a commercial tool. Inc
 
 ```bibtex
 @software{zhiyan_legal_2026,
-  author = {Lucien (Lucien127@proton.me)},
+  author = {謝小育 (Lucien127@proton.me)},
   title = {Zhiyan AI Legal System},
   year = {2026},
   version = {v3.07},
