@@ -17,9 +17,10 @@ import os
 import json
 import sys
 import logging
+import time
 from typing import Optional
 
-from openai import OpenAI
+from openai import OpenAI, RateLimitError
 
 from .loader import count_tokens
 
@@ -27,13 +28,53 @@ logger = logging.getLogger("zhiyan_legal")
 
 MODEL_DEFAULT = "deepseek-v4-flash"
 
+# ── Gemini SDK (optional) ──
+try:
+    import google.genai as genai
+    HAS_GEMINI_SDK = True
+except ImportError:
+    HAS_GEMINI_SDK = False
 
-def get_client() -> OpenAI:
-    """Create an OpenAI-compatible client using environment config."""
+
+def _get_gemini_key() -> str:
+    """Get Gemini API key from env or Hermes config."""
+    key = os.getenv("GEMINI_API_KEY", "") or os.getenv("GOOGLE_API_KEY", "")
+    if key:
+        return key
+    # Fallback: read from Hermes config
+    cfg_path = os.path.expanduser("~/.hermes/profiles/lenien-gcp/config.yaml")
+    try:
+        import subprocess
+        out = subprocess.run(
+            ["grep", "-A1", "gemini:", cfg_path],
+            capture_output=True, text=True, timeout=5,
+        ).stdout
+        for line in out.split("\n"):
+            if "api_key" in line:
+                return line.split("api_key:")[1].strip()
+    except Exception:
+        pass
+    return ""
+
+
+def get_client(key_num: int = 1) -> OpenAI:
+    """Create an OpenAI-compatible client.
+
+    Parameters
+    ----------
+    key_num : int
+        Which key to use (1 = ZHIYAN_API_KEY, 2 = ZHIYAN_API_KEY_2, etc.)
+
+    Raises RuntimeError if the requested key is not set.
+    """
     base_url = os.getenv("ZHIYAN_API_BASE_URL", "https://api.openai.com/v1")
-    api_key = os.getenv("ZHIYAN_API_KEY", "")
 
-    if not api_key:
+    if key_num == 1:
+        api_key = os.getenv("ZHIYAN_API_KEY", "")
+    else:
+        api_key = os.getenv(f"ZHIYAN_API_KEY_{key_num}", "")
+
+    if not api_key and key_num == 1:
         # Try common env-var names as fallback
         for fallback in ("OPENAI_API_KEY", "OPENROUTER_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY"):
             val = os.getenv(fallback)
@@ -42,11 +83,7 @@ def get_client() -> OpenAI:
                 break
 
     if not api_key:
-        logger.error("No API key found")
-        raise RuntimeError(
-            "No API key found. Set ZHIYAN_API_KEY or one of:\n"
-            "   OPENAI_API_KEY, OPENROUTER_API_KEY, GEMINI_API_KEY"
-        )
+        raise RuntimeError(f"API key {key_num} not found")
 
     return OpenAI(base_url=base_url, api_key=api_key)
 
@@ -120,6 +157,49 @@ def validate_output(result: str, task: str = "QC") -> str:
     return result
 
 
+def _run_gemini(
+    system_prompt: str,
+    user_message: str,
+    model: str,
+    temperature: float = 0.3,
+    max_tokens: int = 4096,
+    task: str = "QC",
+) -> str:
+    """Run LLM via Google GenAI SDK."""
+    if not HAS_GEMINI_SDK:
+        raise RuntimeError("google.genai SDK not installed. Run: pip install google-genai")
+
+    api_key = _get_gemini_key()
+    if not api_key:
+        raise RuntimeError("Gemini API key not found. Set GEMINI_API_KEY env var.")
+
+    gemini_mod = genai  # genai is guaranteed bound if HAS_GEMINI_SDK is True
+    client = gemini_mod.Client(api_key=api_key)
+
+    # Strip 'models/' prefix if present
+    gemini_model = model.removeprefix("models/")
+
+    logger.info("Calling Gemini %s (temp=%.1f, max=%d)", gemini_model, temperature, max_tokens)
+
+    try:
+        response = client.models.generate_content(
+            model=gemini_model,
+            contents=user_message,
+            config={
+                "system_instruction": system_prompt,
+                "max_output_tokens": max_tokens,
+                "temperature": temperature,
+            },
+        )
+        content = response.text or ""
+        logger.info("Gemini call succeeded (%d chars)", len(content))
+        return validate_output(content, task)
+    except Exception as e:
+        logger.error("Gemini API call failed: %s", e, exc_info=True)
+        print(f"\n❌ Gemini API 呼叫失敗：{e}")
+        return ""
+
+
 def run_llm(
     system_prompt: str,
     user_message: str,
@@ -154,7 +234,7 @@ def run_llm(
         print("🔍 DRY RUN — No API call will be made")
         print("=" * 60)
         print(f"\n📋 Model:      {model}")
-        print(f"📋 Base URL:   {os.getenv('ZHIYAN_API_BASE_URL', 'https://api.openai.com/v1')}")
+        print(f"📋 Provider:   {os.getenv('ZHIYAN_PROVIDER', 'openai')}")
         print(f"📋 System PMT: {len(system_prompt):,} chars ({count_tokens(system_prompt):,} tokens approx)")
         print(f"📋 User MSG:   {len(user_message):,} chars")
         print("\n" + "=" * 60)
@@ -169,28 +249,58 @@ def run_llm(
         print("✅ Dry-run complete — 0 tokens consumed.")
         return ""
 
-    try:
-        client = get_client()
-        logger.info(
-            "Calling %s (%s, temp=%.1f, max=%d)",
-            model, os.getenv("ZHIYAN_API_BASE_URL", "https://api.openai.com/v1"),
-            temperature, max_tokens,
-        )
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            temperature=temperature,
-            max_tokens=max_tokens,
-        )
-        content = response.choices[0].message.content or ""
-        logger.info("API call succeeded (%d chars returned)", len(content))
-        return validate_output(content, task)
-    except Exception as e:
-        logger.error("API call failed: %s", e, exc_info=True)
-        print(f"\n❌ API 呼叫失敗：{e}")
-        print("   請檢查 API Key 與端點設定是否正確。")
-        print("   可執行 python -m zhiyan_legal \"你的問題\" --dry-run 先行測試。")
-        return ""
+    # ── Provider routing ──
+    provider = os.getenv("ZHIYAN_PROVIDER", "openai").lower()
+    if provider == "gemini":
+        return _run_gemini(system_prompt, user_message, model, temperature, max_tokens, task)
+
+    # ── OpenAI-compatible: 嘗試 key 輪換（429 → 自動切下一把 key） ──
+    max_key_attempts = 3  # 最多試 key 1, key 2, key 3
+    last_error = None
+
+    for attempt in range(1, max_key_attempts + 1):
+        try:
+            client = get_client(key_num=attempt)
+            logger.info(
+                "Calling %s (key=%d, %s, temp=%.1f, max=%d)",
+                model, attempt, os.getenv("ZHIYAN_API_BASE_URL", "https://api.openai.com/v1"),
+                temperature, max_tokens,
+            )
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+            content = response.choices[0].message.content or ""
+            logger.info("API call succeeded (key=%d, %d chars)", attempt, len(content))
+            return validate_output(content, task)
+
+        except RateLimitError as e:
+            last_error = e
+            if attempt < max_key_attempts and os.getenv(f"ZHIYAN_API_KEY_{attempt + 1}"):
+                wait = 1.0
+                logger.warning(
+                    "Rate limited on key=%d (429). Waiting %.1fs then trying key=%d ...",
+                    attempt, wait, attempt + 1,
+                )
+                time.sleep(wait)
+                continue
+            else:
+                logger.error("Rate limited on all available keys: %s", e)
+                break
+
+        except Exception as e:
+            logger.error("API call failed (key=%d): %s", attempt, e, exc_info=True)
+            last_error = e
+            raise
+
+    # ── 所有 key 都失敗 ──
+    logger.error("All API keys exhausted. Last error: %s", last_error)
+    print(f"\n❌ API 呼叫失敗（嘗試了 {max_key_attempts} 把 key）：{last_error}")
+    print("   請檢查 API Key 與端點設定是否正確。")
+    print("   可執行 python -m zhiyan_legal \"你的問題\" --dry-run 先行測試。")
+    return ""
