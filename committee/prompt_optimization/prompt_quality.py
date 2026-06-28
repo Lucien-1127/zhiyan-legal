@@ -36,7 +36,7 @@ class ReviewerModel(Enum):
     """Which model produced the review."""
     DEEPSEEK = "deepseek_v4_flash"
     GEMINI   = "gemini_3_5_flash"
-    AGNES    = "agnes_2_0_flash"
+    CLAUDE   = "claude"
 
 
 # Re-export existing committee ConsensusLabel for cross-reference

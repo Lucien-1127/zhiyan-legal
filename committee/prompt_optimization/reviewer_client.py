@@ -40,6 +40,35 @@ from .prompt_normalizer import PromptNormalizer
 
 logger = logging.getLogger("reviewer_client")
 
+# ── Auto-load .env from common locations ────────────────
+def _auto_load_env() -> None:
+    """Load .env from known locations if not already loaded."""
+    import os
+    from pathlib import Path
+    # Only load if not already in env (avoid duplicate loading)
+    if os.environ.get("OPENROUTER_API_KEY"):
+        return
+    candidates = [
+        Path.home() / ".hermes" / "profiles" / "lenien-gcp" / ".env",
+        Path.home() / ".hermes" / ".env",
+        Path.cwd() / ".env",
+    ]
+    for env_path in candidates:
+        if env_path.exists():
+            try:
+                with open(env_path) as f:
+                    for line in f:
+                        line = line.strip()
+                        if "=" in line and not line.startswith("#"):
+                            k, v = line.split("=", 1)
+                            os.environ.setdefault(k.strip(), v.strip())
+                logger.debug("Loaded env from %s", env_path)
+                return
+            except Exception:
+                continue
+
+_auto_load_env()
+
 # ── Default model map ───────────────────────────────────
 # Maps ReviewerModel → (model_id, base_url)
 # Override by passing a custom dict to ReviewerClient.__init__
@@ -53,9 +82,9 @@ DEFAULT_MODEL_MAP: dict[ReviewerModel, tuple[str, str]] = {
         "gemini-2.5-flash",
         "https://generativelanguage.googleapis.com/v1beta/openai",
     ),
-    ReviewerModel.AGNES: (
-        "agnes-2.0-flash",
-        "https://apihub.agnes-ai.com/v1",
+    ReviewerModel.CLAUDE: (
+        "anthropic/claude-sonnet-4",
+        "https://openrouter.ai/api/v1",
     ),
 }
 
@@ -155,7 +184,7 @@ class ReviewerClient:
         env_map = {
             ReviewerModel.DEEPSEEK: "DEEPSEEK_API_KEY",
             ReviewerModel.GEMINI: "GEMINI_API_KEY",
-            ReviewerModel.AGNES: "AGNES_API_KEY",
+            ReviewerModel.CLAUDE: "OPENROUTER_API_KEY",
         }
         import os
         env_var = env_map.get(reviewer)
