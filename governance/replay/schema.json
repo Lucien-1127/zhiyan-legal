@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "case_id": "string",
+  "meta": {
+    "module_coverage": ["EvidencePolicy", "CommitteePolicy", "SecurityPolicy", "CostPolicy", "ClarificationPolicy", "CapabilityRegistry"],
+    "invariant_checks": ["I001", "I002", "I003", "I004"]
+  },
+  "reason_graphs": [
+    {
+      "model_id": "string",
+      "root_claim_id": "string",
+      "nodes": [
+        {
+          "node_id": "string",
+          "type": "claim|premise|inference|evidence_ref|counter",
+          "text": "string",
+          "confidence": "number"
+        }
+      ],
+      "edges": [
+        {"from": "string", "to": "string", "relation": "supports|contradicts|depends_on|infer"}
+      ]
+    }
+  ],
+  "audit_proof": {
+    "normalized_payload_hash": "string",
+    "prev_hash": "string|null",
+    "timestamp": "ISO8601"
+  }
+}
