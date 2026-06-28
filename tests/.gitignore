@@ -5,6 +5,11 @@
 # 排除所有 log 檔（機器生成，不進版本控制）
 *.log
 
+# 排除 ablation 中間製品（機器生成，非版本控制目標）
+ablation_results/ablation_results.json
+ablation_results/ablation_summary.json
+ablation_results/.quota_cache.json
+
 # 排除舊版消融腳本（v1-v7 已被 v8 取代）
 run_ablation.py
 run_ablation_bg.sh
