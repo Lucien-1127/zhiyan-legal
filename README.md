@@ -15,7 +15,7 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 [![Wiki](https://img.shields.io/badge/wiki-6_pages-2E8B57)](docs/wiki/)
 [![Python](https://img.shields.io/badge/python-3.10+-376F9B)](.)
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-122_passed-3DA639)](tests/)
+[![Tests](https://img.shields.io/badge/tests-123_passed-3DA639)](tests/)
 [![CI](https://img.shields.io/badge/GitHub%20Actions-pages-2088FF)](.github/workflows/)
 
 <p align="center">

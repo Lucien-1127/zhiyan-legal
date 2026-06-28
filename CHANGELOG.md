@@ -12,6 +12,18 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **助教人格 v1.2.0**：啟動前檢查拆分兩層、新增換算公式與範例、合併全域約束、新增不確定退路（⚠️ 需核查不計扣分）、用語修正、重疊規則合併
 
+### 🟡 Improvements
+
+- **版本號三方對齊**：pyproject.toml → v3.7.2，CITATION.cff → v3.07.2，與 git tag 一致
+- **依賴管理補強**：新增 committee/test 兩個 optional group（google-genai, PyYAML, requests, pytest, pytest-cov）
+- **Badge 一致化**：Tests 122→123
+- **清理已追蹤的實驗殘檔**：移除 7 個 results/exp-citation-ablation-* 目錄（.gitignore 無法處理已追蹤檔案）
+- **committee/README.md 路徑修正**：絕對路徑改為相對路徑
+
+### 🧪 Testing
+
+- 測試總數：122 → **123**（新增 1 個 committee test）
+
 ---
 
 ## [3.07.1] — 2026-06-26
