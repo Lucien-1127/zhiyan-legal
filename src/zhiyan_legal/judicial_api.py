@@ -62,7 +62,7 @@ async def _ensure_init():
     _waf = JudicialWAFBypass()
     _jud_search = JudicialSearchClient(_cache, _waf)
     _jud_doc = JudgmentDocClient(_cache, _waf)
-    _reg_client = RegulationClient(_cache, _waf)
+    _reg_client = RegulationClient(_cache)
     logger.info("MCP Taiwan Legal DB 初始化完成")
 
 
@@ -93,13 +93,21 @@ async def search_judgments(
 async def get_judgment(jid: str = "", url: str = "") -> dict:
     """依 JID 或 URL 取得判決全文"""
     await _ensure_init()
-    return await _jud_doc.get(jid=jid, url=url)
+    if jid:
+        return await _jud_doc.get_by_jid(jid=jid)
+    elif url:
+        return await _jud_doc.get_by_url(url=url)
+    return {"success": False, "error": "需提供 jid 或 url"}
 
 
 async def query_regulation(law_name: str = "", article_no: str = "", pcode: str = "") -> dict:
     """查詢法條（全國法規資料庫 law.moj.gov.tw）"""
     await _ensure_init()
-    return await _reg_client.query(law_name=law_name, article_no=article_no, pcode=pcode)
+    # 需要先 resolve pcode
+    pcode = _reg_client.resolve_pcode(law_name)
+    if not pcode:
+        return {"success": False, "error": f"無法解析法規名稱：{law_name}"}
+    return await _reg_client.get_article(pcode=pcode, article_no=article_no)
 
 
 async def search_regulations(keyword: str) -> list:
