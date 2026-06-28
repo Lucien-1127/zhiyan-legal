@@ -3,16 +3,16 @@ pipeline — Entry point for the full prompt review pipeline.
 
 Usage:
     from committee.prompt_optimization import pipeline
-    report, actions, gates = await pipeline.run_prompt_review(prompt_text, slug="v4.0")
+    result = await pipeline.run_prompt_review(prompt_text, slug="v4.0")
+    print(result.print_summary())
 
 Flow:
-  1. Normalizer loads reviewer prompts
-  2. Each reviewer model (DeepSeek/Gemini/Agnes) runs in parallel
-  3. Normalizer parses each response → PromptClaim list
-  4. Consensus clusters claims across reviewers
-  5. Dispatcher routes clusters → actions
-  6. Quality gates run on original prompt
-  7. All results returned as a dict
+  1. ReviewerClient calls 3 models in parallel (with retry+timeout)
+  2. Normalizer parses each response → PromptClaim list
+  3. Consensus clusters claims across reviewers (CONSENSUS/DISAGREEMENT/UNIQUE_INSIGHT/BLIND_SPOT)
+  4. Dispatcher routes clusters → actionable DispatchAction items
+  5. Quality gates (G1–G5) run on original prompt
+  6. All results bundled in PipelineResult
 """
 
 from __future__ import annotations
@@ -21,21 +21,17 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Optional
 
-from .prompt_quality import (
-    ReviewerModel, ConsensusLabel,
-    PromptReviewReport, PromptCommitteeReport,
-)
+from .prompt_quality import ReviewerModel, PromptReviewReport, PromptCommitteeReport
 from .prompt_normalizer import PromptNormalizer
 from .consensus import generate_report
-from .dispatch import ConsensusDispatcher, ActionType
+from .dispatch import ConsensusDispatcher
+from .reviewer_client import ReviewerClient
 from .quality_gate import run_all as run_quality_gates, format_report
 
 logger = logging.getLogger("pipeline")
 
-# Default reviewers
 DEFAULT_REVIEWERS = [
     ReviewerModel.DEEPSEEK,
     ReviewerModel.GEMINI,
@@ -50,7 +46,7 @@ class PipelineResult:
     actions: list
     quality_gates: dict
     prompt_vN: str
-    prompt_vN1: Optional[str] = None  # Optimized version (if applied)
+    prompt_vN1: Optional[str] = None
 
     def print_summary(self) -> str:
         lines = [
@@ -59,59 +55,23 @@ class PipelineResult:
             "📋 Dispatch Actions:",
         ]
         for a in self.actions:
-            lines.append(f"  {a.action_type.value:16s} P{a.priority} [{a.cluster.dimension.value}] {a.cluster.canonical_key[:40]}")
-
+            lines.append(
+                f"  {a.action_type.value:16s} P{a.priority} "
+                f"[{a.cluster.dimension.value}] {a.cluster.canonical_key[:40]}"
+            )
         lines.append("")
         lines.append(format_report(self.quality_gates))
         return "\n".join(lines)
 
 
-# ── Async API call simulator ────────────────────────────
-
-
-async def _call_reviewer(
-    reviewer: ReviewerModel,
-    prompt_text: str,
-    normalizer: PromptNormalizer,
-) -> PromptReviewReport:
-    """Call a reviewer model and normalize its output.
-
-    In production, this calls the actual LLM API.
-    For now, returns a structured error to signal "not yet wired".
-    """
-    slug = f"prompt_{hash(prompt_text) % 10000:04x}"
-
-    # Load reviewer prompt
-    system_prompt = normalizer.load_reviewer_prompt(reviewer)
-
-    # TODO: wire actual API call here
-    # For now, return a placeholder indicating this needs API integration
-    return PromptReviewReport(
-        reviewer=reviewer,
-        prompt_slug=slug,
-        claims=[],
-        summary=f"Pipeline scaffolding — API call to {reviewer.value} not yet wired",
-        raw_response="",
-        elapsed_s=0.0,
-        error="API_CALL_NOT_WIRED — implement in pipeline._call_reviewer()",
-    )
-
-
-# ── Sync quality gates ──────────────────────────────────
-
-
-def _run_gates(prompt: str) -> dict:
-    """Run G1–G5 on the prompt."""
-    return run_quality_gates(prompt)
-
-
-# ── Main pipeline ───────────────────────────────────────
+# ── Pipeline ───────────────────────────────────────────
 
 
 async def run_prompt_review(
     prompt_text: str,
     slug: str = "prompt",
     reviewers: Optional[list[ReviewerModel]] = None,
+    client: Optional[ReviewerClient] = None,
 ) -> PipelineResult:
     """Run the full prompt optimization pipeline.
 
@@ -120,65 +80,72 @@ async def run_prompt_review(
     prompt_text : str
         The writer system prompt to review.
     slug : str
-        Short identifier for the prompt version.
+        Short identifier for this prompt version.
     reviewers : list[ReviewerModel], optional
-        Which models to use. Defaults to DeepSeek + Gemini + Agnes.
+        Which reviewer models to use. Default: DeepSeek + Gemini + Agnes.
+    client : ReviewerClient, optional
+        Reusable API client (created fresh if omitted).
 
     Returns
     -------
-    PipelineResult with report, actions, and quality gate results.
+    PipelineResult containing report, dispatch actions, and quality gates.
     """
     if reviewers is None:
         reviewers = DEFAULT_REVIEWERS
 
-    normalizer = PromptNormalizer()
+    own_client = client is None
+    if client is None:
+        client = ReviewerClient()
 
-    # Phase 1: Parallel review
-    logger.info("Phase 1: Reviewing prompt with %d models", len(reviewers))
-    start = time.perf_counter()
+    try:
+        # ── Phase 1: Parallel API calls ────────────────
+        logger.info("Phase 1: Reviewing prompt with %d models", len(reviewers))
+        start = time.perf_counter()
 
-    tasks = [_call_reviewer(r, prompt_text, normalizer) for r in reviewers]
-    reports = await asyncio.gather(*tasks, return_exceptions=True)
+        tasks = [client.call(r, prompt_text, slug) for r in reviewers]
+        reports: list[PromptReviewReport | BaseException] = await asyncio.gather(*tasks, return_exceptions=True)  # type: ignore[assignment]
 
-    # Handle exceptions
-    valid_reports: list[PromptReviewReport] = []
-    for i, result in enumerate(reports):
-        if isinstance(result, BaseException):
-            logger.error("Reviewer %s failed: %s", reviewers[i].value, result)
-            valid_reports.append(PromptReviewReport(
-                reviewer=reviewers[i],
-                prompt_slug=slug,
-                claims=[],
-                summary="API call failed",
-                error=str(result),
-            ))
-        else:
-            valid_reports.append(result)
+        # Flatten exceptions into error reports
+        valid_reports: list[PromptReviewReport] = []
+        for i, result in enumerate(reports):
+            if isinstance(result, BaseException):
+                logger.error("Reviewer %s fatal: %s", reviewers[i].value, result)
+                valid_reports.append(PromptReviewReport(
+                    reviewer=reviewers[i],
+                    prompt_slug=slug, claims=[],
+                    summary="Fatal error", error=str(result),
+                ))
+            else:
+                valid_reports.append(result)
 
-    elapsed = time.perf_counter() - start
-    logger.info("Phase 1 done: %.1fs (%d/%d reviews successful)",
-                elapsed, sum(1 for r in valid_reports if not r.error), len(valid_reports))
+        elapsed = time.perf_counter() - start
+        ok = sum(1 for r in valid_reports if not r.error)
+        logger.info("Phase 1 done: %.1fs (%d/%d ok)", elapsed, ok, len(valid_reports))
 
-    # Phase 2: Consensus mapping
-    logger.info("Phase 2: Consensus mapping")
-    report = generate_report(valid_reports)
-    report.prompt_vN = prompt_text
+        # ── Phase 2: Consensus mapping ────────────────
+        logger.info("Phase 2: Consensus mapping")
+        report = generate_report(valid_reports)
+        report.prompt_vN = prompt_text
 
-    # Phase 3: Dispatch
-    logger.info("Phase 3: Dispatch")
-    dispatcher = ConsensusDispatcher()
-    actions = dispatcher.dispatch(report)
+        # ── Phase 3: Dispatch ─────────────────────────
+        logger.info("Phase 3: Dispatch")
+        dispatcher = ConsensusDispatcher()
+        actions = dispatcher.dispatch(report)
 
-    # Phase 4: Quality gates
-    logger.info("Phase 4: Quality gates")
-    gates = _run_gates(prompt_text)
+        # ── Phase 4: Quality gates ────────────────────
+        logger.info("Phase 4: Quality gates")
+        gates = run_quality_gates(prompt_text)
 
-    logger.info("Pipeline complete: %d clusters, %d actions, %d gates",
-                len(report.clusters), len(actions), len(gates))
+        logger.info(
+            "Pipeline complete: %d clusters, %d actions, %d gates",
+            len(report.clusters), len(actions), len(gates),
+        )
 
-    return PipelineResult(
-        report=report,
-        actions=actions,
-        quality_gates=gates,
-        prompt_vN=prompt_text,
-    )
+        return PipelineResult(
+            report=report, actions=actions,
+            quality_gates=gates, prompt_vN=prompt_text,
+        )
+
+    finally:
+        if own_client and client:
+            await client.shutdown()
