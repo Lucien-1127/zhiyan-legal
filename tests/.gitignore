@@ -1,0 +1,25 @@
+# tests/ — 消融實驗製品
+# 保留腳本（v8 為唯一有效版本）+ committee_report.json（可重現錨點）
+# 排除自動生成的中間製品、舊版腳本、log 檔
+
+# 排除所有 log 檔（機器生成，不進版本控制）
+*.log
+
+# 排除舊版消融腳本（v1-v7 已被 v8 取代）
+run_ablation.py
+run_ablation_bg.sh
+run_ablation_launcher.py
+run_ablation_v2.py
+run_ablation_v3.py
+run_ablation_v4.py
+run_ablation_v5.py
+run_ablation_v6_agnes.py
+run_ablation_v7_agnes.py
+
+# 排除一次性測試
+test_gemini_openai.py
+
+# 保留
+# run_ablation_v8_committee.py  — 合議庭消融腳本（有效版本）
+# ablation_results/committee_report.json — 可重現錨點（保留）
+# ablation_results/ 下的 log 等由 *.log 排除

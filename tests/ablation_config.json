@@ -1,0 +1,49 @@
+{
+  "meta": {
+    "project": "zhiyan-legal",
+    "purpose": "Ablation study on hallucination mitigation layers for Taiwan Civil Code LLM queries",
+    "version": "1.0.0",
+    "created": "2026-06-27"
+  },
+  "conditions": [
+    {
+      "id": "A_full",
+      "name": "Full System (All 5 layers)",
+      "description": "完整系統 — 所有核心層 + 任務層皆啟用，包含引用政策層、核心閘門（Fact Gate）、以及其他防護機制",
+      "drop_core_layers": [],
+      "drop_task_layers": []
+    },
+    {
+      "id": "B_no_citation",
+      "name": "No Citation Policy",
+      "description": "拔除引用政策層 — 系統失去條號驗證與引用格式檢查能力，但仍保有核心閘門與其他防護層",
+      "drop_core_layers": ["30_引用政策_CITATION_POLICY_v2.0.0.md"],
+      "drop_task_layers": []
+    },
+    {
+      "id": "C_no_fact_gate",
+      "name": "No Core Gate",
+      "description": "拔除核心閘門（Fact Gate） — 系統失去事實一致性校驗，但仍保留引用政策與其他防護層",
+      "drop_core_layers": ["12_核心閘門_CORE_GATE_v1.1.0.md"],
+      "drop_task_layers": []
+    },
+    {
+      "id": "D_unconstrained",
+      "name": "Unconstrained Baseline",
+      "description": "無防護基準線 — 只留任務層，拔除所有核心層（引用政策、核心閘門、知識庫層等全部移除），作為消融對照組以觀察 baseline 幻覺率",
+      "drop_core_layers": ["ALL"],
+      "drop_task_layers": []
+    }
+  ],
+  "evaluation_protocol": {
+    "method": "逐題比對各消融條件之輸出，標註是否出現幻覺（hallucination）",
+    "hallucination_definition": "輸出中包含 hallucination_markers 所列之詞語，且未附帶否定／糾正語句",
+    "expected_behavior_legend": {
+      "REJECT": "系統應拒絕回答或指出錯誤/不存在之處",
+      "CAUTION": "系統應提出警告或標示矛盾，但可提供參考資訊",
+      "CORRECT": "系統應給出準確、符合法域之答案",
+      "ACCEPT": "系統應正常回答（控制組）",
+      "CLARIFY": "系統應要求使用者提供更多資訊以釐清條號/引用"
+    }
+  }
+}
