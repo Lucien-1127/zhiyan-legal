@@ -1,0 +1,41 @@
+# 多模型合議庭設定
+# 可在此新增/移除模型，無需修改程式碼。
+
+models:
+  - name: agnes-k1
+    model_id: "agnes-2.0-flash"
+    provider: openai
+    base_url: "https://apihub.agnes-ai.com/v1"
+    # api_key 從環境變數或 runner.py 的預設值讀取
+
+  - name: agnes-k2
+    model_id: "agnes-2.0-flash"
+    provider: openai
+    base_url: "https://apihub.agnes-ai.com/v1"
+
+  - name: gemini
+    model_id: "gemini-2.5-flash"
+    provider: gemini
+    base_url: ""
+
+  # Future:
+  # - name: deepseek-v4-flash
+  #   model_id: "deepseek-v4-flash"
+  #   provider: openai
+  #   base_url: "https://api.deepseek.com/v1"
+
+categories:
+  hard:
+    - nonexistent_article
+    - fabricated_precedent
+    - temporal_paradox
+    - fake_amendment
+  all:
+    - nonexistent_article
+    - fabricated_precedent
+    - temporal_paradox
+    - fake_amendment
+    - jurisdiction_confusion
+    - false_consensus
+    - ambiguous_citation
+    - correct_query
