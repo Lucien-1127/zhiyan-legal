@@ -35,7 +35,7 @@ logger = logging.getLogger("pipeline")
 DEFAULT_REVIEWERS = [
     ReviewerModel.DEEPSEEK,
     ReviewerModel.GEMINI,
-    ReviewerModel.AGNES,
+    ReviewerModel.CLAUDE,
 ]
 
 
