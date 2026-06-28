@@ -13,7 +13,8 @@ zhiyan-legal 的品質閘門。**不裁決，只標示。**
 ## 使用方式
 
 ```bash
-cd ~/zhiyan-legal
+# 從 repo 根目錄執行
+cd ..
 
 # Dry-run 看看要跑多少
 PYTHONPATH=$PWD python3 -m committee.run --dry-run
@@ -98,7 +99,8 @@ models:
 ## 測試
 
 ```bash
-cd ~/zhiyan-legal
+# 從 repo 根目錄執行
+cd ..
 PYTHONPATH=$PWD python3 committee/tests/test_core.py
 ```
 

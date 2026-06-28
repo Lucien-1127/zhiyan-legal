@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zhiyan-legal"
-version = "3.4.0"
+version = "3.7.2"
 description = "智研AI法律工作站 — A reproducible study of citation-grounding and safety-routing for legal LLMs"
 authors = [
     {name = "Lucien", email = "ysga1127@gmail.com"}
@@ -18,15 +18,25 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+committee = [
+    "google-genai>=1.0.0",
+    "PyYAML>=6.0",
+    "requests>=2.31.0",
+]
 docgen = [
     "python-docx>=1.1.0",
 ]
 api = [
     "fastapi>=0.110.0",
     "uvicorn>=0.29.0",
+    "pydantic>=2.0.0",
 ]
 all = [
-    "zhiyan-legal[docgen,api]",
+    "zhiyan-legal[committee,docgen,api]",
+]
+test = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
