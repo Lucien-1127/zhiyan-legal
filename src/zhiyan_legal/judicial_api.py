@@ -40,12 +40,12 @@ try:
 except ImportError:
     logger.warning("mcp-server 未安裝，司法 API 功能不可用。安裝：pip install mcp-taiwan-legal-db")
 
-# ── 全域資源（lazy init） ───────────────────────────
-_cache: Optional[CacheDB] = None
-_waf: Optional[JudicialWAFBypass] = None
-_jud_search: Optional[JudicialSearchClient] = None
-_jud_doc: Optional[JudgmentDocClient] = None
-_reg_client: Optional[RegulationClient] = None
+# ── 全域資源（lazy init） — 型別註記用字串 forward ref ──
+_cache: "Optional[CacheDB]" = None
+_waf: "Optional[JudicialWAFBypass]" = None
+_jud_search: "Optional[JudicialSearchClient]" = None
+_jud_doc: "Optional[JudgmentDocClient]" = None
+_reg_client: "Optional[RegulationClient]" = None
 
 
 async def _ensure_init():
