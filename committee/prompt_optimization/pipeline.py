@@ -150,3 +150,8 @@ async def run_prompt_review(
     finally:
         if own_client and client:
             await client.shutdown()
+
+    return PipelineResult(
+        report=report, actions=actions,
+        quality_gates=gates, prompt_vN=prompt_text,
+    )

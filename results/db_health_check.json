@@ -1,0 +1,58 @@
+{
+  "timestamp": "2026-06-28T02:39:42.771422",
+  "regulation_db": {
+    "db": "regulation_tracker.db",
+    "path": "/home/hsieh89t_gmail_com/zhiyan-legal/regulation_tracker.db",
+    "exists": true,
+    "size_bytes": 8192,
+    "size_mb": 0.01,
+    "integrity": "ok",
+    "quick_check": "ok",
+    "table_count": 1,
+    "tables": [
+      "regulations"
+    ],
+    "row_counts": {
+      "regulations": 0
+    },
+    "errors": [],
+    "foreign_key_issues": 0,
+    "schema_version": 1,
+    "page_count": 2,
+    "page_size": 4096
+  },
+  "mcp_cache_db": {
+    "db": "mcp-taiwan-legal-db (CacheDB)",
+    "package_installed": true,
+    "version": "unknown",
+    "cache_db_exists": true,
+    "cache_db_path": "/tmp/zhiyan_legal_cache.db",
+    "cache_db_health": {
+      "db": "mcp-cache-cache",
+      "path": "/tmp/zhiyan_legal_cache.db",
+      "exists": true,
+      "size_bytes": 12288,
+      "size_mb": 0.01,
+      "integrity": "ok",
+      "quick_check": "ok",
+      "table_count": 1,
+      "tables": [
+        "cache_store"
+      ],
+      "row_counts": {
+        "cache_store": 0
+      },
+      "errors": [],
+      "foreign_key_issues": 0,
+      "schema_version": 1,
+      "page_count": 3,
+      "page_size": 4096
+    },
+    "errors": []
+  },
+  "fulltext_search": {
+    "fts5_tables": [],
+    "fts5_errors": []
+  },
+  "overall_status": "🟢 全部正常"
+}
