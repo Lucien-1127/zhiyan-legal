@@ -37,6 +37,7 @@ class ReviewerModel(Enum):
     DEEPSEEK = "deepseek_v4_flash"
     GEMINI   = "gemini_3_5_flash"
     CLAUDE   = "claude"
+    NVIDIA   = "nvidia"
 
 
 # Re-export existing committee ConsensusLabel for cross-reference

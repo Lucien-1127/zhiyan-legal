@@ -22,7 +22,7 @@ import sys
 from .manifest import get_load_order, EXCLUDED_DIRS, DOCS_DIR
 from .router import route, describe_route, KEYWORD_MAP
 from .loader import compose, count_tokens
-from .runner import run_llm
+from .engine import ZhiyanEngine, EngineConfig, validate_output
 
 
 def setup_logging(level: str = "WARNING") -> None:
@@ -122,11 +122,11 @@ Examples:
         }
         # Only run LLM if not dry_run
         if not args.dry_run:
-            llm_result = run_llm(
+            engine = ZhiyanEngine()
+            llm_result = engine.run(
                 system_prompt=system_prompt,
                 user_message=query,
                 model=args.model,
-                dry_run=args.dry_run,
                 task=task,
             )
             result_data["response"] = llm_result
@@ -143,7 +143,8 @@ Examples:
     print(f"📊 System prompt: ~{token_estimate:,} tokens")
 
     # ── 3. Run ──
-    result = run_llm(
+    engine = ZhiyanEngine()
+    result = engine.run(
         system_prompt=system_prompt,
         user_message=query,
         model=args.model,

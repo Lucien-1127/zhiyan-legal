@@ -1,0 +1,289 @@
+{
+  "repo": "zhiyan-legal v3.7.2",
+  "total_findings": 28,
+  "by_severity": {
+    "critical": 3,
+    "major": 14,
+    "minor": 11
+  },
+  "findings": [
+    {
+      "category": "duplication",
+      "severity": "major",
+      "location": "src/zhiyan_legal/runner.py 與 backend/engine.py",
+      "issue": "存在兩套 LLM 引擎模組，功能重疊",
+      "suggestion": "合併為統一引擎，保留非同步版本並棄用同步版本，或透過抽象層共用介面",
+      "confidence": 0.9,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "duplication",
+      "severity": "major",
+      "location": "committee/runner.py 與 committee/run.py",
+      "issue": "合議系統中存在兩個執行器檔，職責不清",
+      "suggestion": "整併為單一執行器，並明確命名（如 executor.py）",
+      "confidence": 0.85,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "duplication",
+      "severity": "minor",
+      "location": "docs/ 目錄下多版本文檔並存",
+      "issue": "docs/ 中包含多個版本號文件（v1.0.0, v2.0.0），可能造成混淆",
+      "suggestion": "建立版本管理策略，僅保留最新版本並用 git 歷史管理",
+      "confidence": 0.8,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "structure",
+      "severity": "major",
+      "location": "src/zhiyan_legal/manifest.py",
+      "issue": "FIXME 指出書狀起草模組文件不存在，暫時指向訴訟策略",
+      "suggestion": "補齊缺少的文件或建立獨立書狀起草模組，移除 FIXME",
+      "confidence": 1.0,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "dependencies",
+      "severity": "minor",
+      "location": "src/zhiyan_legal/sub_agent.py",
+      "issue": "子代理模組緊耦合 Hermes Agent，無法在其他專案復用",
+      "suggestion": "提取抽象接口，支持注入其他代理實作",
+      "confidence": 0.7,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "config",
+      "severity": "major",
+      "location": "backend/main.py",
+      "issue": "API 端點無版本前綴（如 /api/v1）",
+      "suggestion": "為未來 API 演化加入版本前綴，如 /api/v1/chat",
+      "confidence": 0.9,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "packaging",
+      "severity": "minor",
+      "location": "pyproject.toml (推測)",
+      "issue": "測試覆蓋率偏低（9 測試對 6,936 行），且缺少測試依賴標記",
+      "suggestion": "增加單元測試並在 pyproject.toml 以 optional-dependencies 列出測試套件",
+      "confidence": 0.8,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "structure",
+      "severity": "minor",
+      "location": "tests/run_ablation_v*.py",
+      "issue": "8 個消融腳本散落於 tests/，與測試混雜",
+      "suggestion": "將實驗腳本移至 scripts/ 或獨立目錄 experiments/",
+      "confidence": 0.75,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "duplication",
+      "severity": "minor",
+      "location": "src/zhiyan_legal/router.py 與 manifest.py",
+      "issue": "路由職責與文件清單分散兩模組，可能重複邏輯",
+      "suggestion": "考慮合併或明確定義路由表與文件裝載的分工",
+      "confidence": 0.6,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "config",
+      "severity": "minor",
+      "location": "mkdocs.yml",
+      "issue": "導航部份連結指向不存在或移動的檔案",
+      "suggestion": "執行 mkdocs 驗證修復所有斷鏈，並納入 CI",
+      "confidence": 0.85,
+      "_reviewer": "deepseek_v4_flash"
+    },
+    {
+      "category": "exception_handling",
+      "severity": "critical",
+      "location": "sub_agent.py delegate_task 呼叫",
+      "issue": "Hermes Agent 不存在時無回退機制",
+      "suggestion": "增加 try-except 包裝 delegate_task，提供 fallback 到主 LLM 或返回錯誤訊息",
+      "confidence": 0.95,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "security",
+      "severity": "major",
+      "location": "backend/main.py FastAPI 端點",
+      "issue": "缺乏 rate limiting 與 API 金鑰驗證",
+      "suggestion": "實作 slowapi 或 Redis-based rate limiter，增加 API_KEY 中介軟體驗證",
+      "confidence": 0.9,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "resource_leak",
+      "severity": "major",
+      "location": "backend/engine.py 連接池管理",
+      "issue": "async LLM 連接池可能未正確關閉",
+      "suggestion": "確保 aiohttp ClientSession 在 startup/shutdown 事件中正確初始化與關閉",
+      "confidence": 0.85,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "exception_handling",
+      "severity": "major",
+      "location": "judicial_api.py + regulation_api.py",
+      "issue": "外部 API 呼叫缺乏完整錯誤處理",
+      "suggestion": "增加網路超時、HTTP 狀態碼、JSON 解析錯誤的統一處理機制",
+      "confidence": 0.88,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "test_gap",
+      "severity": "major",
+      "location": "regulation_diff.py (697行) 僅 9 個單元測試",
+      "issue": "關鍵法規比對邏輯測試覆蓋率不足",
+      "suggestion": "針對 regulation_diff.py 核心演算法增加邊界條件與錯誤輸入測試",
+      "confidence": 0.92,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "security",
+      "severity": "major",
+      "location": "runner.py + engine.py LLM API 呼叫",
+      "issue": "使用者輸入未過濾可能導致 prompt 注入",
+      "suggestion": "實作輸入清理機制，限制特殊字元與過長輸入，防範 prompt injection",
+      "confidence": 0.87,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "dependency_risk",
+      "severity": "major",
+      "location": "manifest.py 文件路徑解析",
+      "issue": "docs/ 檔案路徑不存在時無錯誤處理",
+      "suggestion": "增加檔案存在性檢查，提供友善錯誤訊息而非直接崩潰",
+      "confidence": 0.83,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "exception_handling",
+      "severity": "minor",
+      "location": "router.py 關鍵詞路由",
+      "issue": "空輸入或特殊字元可能導致路由失敗",
+      "suggestion": "增加輸入驗證與預設路由處理，確保系統穩定性",
+      "confidence": 0.75,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "resource_leak",
+      "severity": "minor",
+      "location": "loader.py 文件載入",
+      "issue": "大量文件載入時記憶體使用未優化",
+      "suggestion": "考慮實作檔案串流讀取或 LRU 快取機制，避免記憶體溢出",
+      "confidence": 0.72,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "test_gap",
+      "severity": "minor",
+      "location": "committee/ 多模型合議系統",
+      "issue": "複雜合議邏輯缺乏整合測試",
+      "suggestion": "增加端到端測試驗證多模型協作與共識機制的正確性",
+      "confidence": 0.78,
+      "_reviewer": "claude"
+    },
+    {
+      "category": "hidden_coupling",
+      "severity": "major",
+      "location": "router.py & manifest.py",
+      "issue": "雙路由系統可能存在隱含耦合，路由邏輯過度複雜",
+      "suggestion": "考慮合併或明確定義路由決策流程，減少維護複雜度",
+      "confidence": 0.8,
+      "_reviewer": "nvidia"
+    },
+    {
+      "category": "tech_debt",
+      "severity": "critical",
+      "location": "manifest.py (FIXME 注釋)",
+      "issue": "暫時指向訴訟策略，缺乏獨立書狀起草模組",
+      "suggestion": "優先開發獨立書狀起草模組，避免功能不完整",
+      "confidence": 0.9,
+      "_reviewer": "nvidia"
+    },
+    {
+      "category": "maintainability",
+      "severity": "major",
+      "location": "docs/ (多版本並存)",
+      "issue": "文件版本管理混亂，可能導致新人上手困難",
+      "suggestion": "實施清晰的版本控制策略，提供最新文件索引",
+      "confidence": 0.7,
+      "_reviewer": "nvidia"
+    },
+    {
+      "category": "scalability",
+      "severity": "major",
+      "location": "backend/engine.py (Async LLM 引擎)",
+      "issue": "高流量下，連接池管理可能成為瓶頸",
+      "suggestion": "進行壓力測試，優化連接池配置和重試機制",
+      "confidence": 0.8,
+      "_reviewer": "nvidia"
+    },
+    {
+      "category": "future_risk",
+      "severity": "critical",
+      "location": "sub_agent.py (依賴 Hermes Agent)",
+      "issue": "不可攜的依賴可能限制未來架構變更",
+      "suggestion": "探索替代方案或與 Hermes Agent 開發者協調長期策略",
+      "confidence": 0.9,
+      "_reviewer": "nvidia"
+    },
+    {
+      "category": "maintainability",
+      "severity": "minor",
+      "location": "mkdocs.yml & docs/ 路徑",
+      "issue": "導航與檔案路徑不符，維護不便",
+      "suggestion": "更新 mkdocs.yml，確保所有導航路徑有效",
+      "confidence": 0.6,
+      "_reviewer": "nvidia"
+    },
+    {
+      "category": "scalability",
+      "severity": "major",
+      "location": "API 無版本前綴 (/api/chat)",
+      "issue": "未來版本更新可能導致兼容性問題",
+      "suggestion": "引入 API 版本控制 (e.g., /api/v1/chat)",
+      "confidence": 0.8,
+      "_reviewer": "nvidia"
+    },
+    {
+      "category": "maintainability",
+      "severity": "minor",
+      "location": "tests/ (單元測試覆蓋率)",
+      "issue": "測試覆蓋率低（9 個單元測試 vs 22 個 JSON + 8 個 ablation 腳本）",
+      "suggestion": "增加單元測試和整合測試，提高覆蓋率",
+      "confidence": 0.7,
+      "_reviewer": "nvidia"
+    }
+  ],
+  "reports": [
+    {
+      "model": "deepseek_v4_flash",
+      "elapsed_s": 16.3,
+      "error": null,
+      "raw_response": "{\n  \"findings\": [\n    {\n      \"category\": \"duplication\",\n      \"severity\": \"major\",\n      \"location\": \"src/zhiyan_legal/runner.py 與 backend/engine.py\",\n      \"issue\": \"存在兩套 LLM 引擎模組，功能重疊\",\n      \"suggestion\": \"合併為統一引擎，保留非同步版本並棄用同步版本，或透過抽象層共用介面\",\n      \"confidence\": 0.9\n    },\n    {\n      \"category\": \"duplication\",\n      \"severity\": \"major\",\n      \"location\": \"committee/runner.py 與 committee/run.py\",\n      \"issue\": \"合議系統中存在兩個執行器檔，職責不清\",\n      \"suggestion\": \"整併為單一執行器，並明確命名（如 executor.py）\",\n      \""
+    },
+    {
+      "model": "gemini_3_5_flash",
+      "elapsed_s": 21.2,
+      "error": null,
+      "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"category\": \"doc_code_gap\",\n      \"severity\": \"major\",\n      \"location\": \"src/zhiyan_legal/manifest.py\",\n      \"issue\": \"程式碼中明確標示缺少書狀起草模組文件。\",\n      \"suggestion\": \"為書狀起草模組建立獨立文件，並更新 manifest.py 中的註解。\",\n      \"confidence\": 1.0\n    },\n    {\n      \"category\": \"doc_code_gap\",\n      \"severity\": \"major\",\n      \"location\": \"src/zhiyan_legal/runner.py, backend/engine.py, docs/\",\n      \"issue\": \""
+    },
+    {
+      "model": "claude",
+      "elapsed_s": 13.1,
+      "error": null,
+      "raw_response": "```json\n{\n  \"findings\": [\n    {\n      \"category\": \"exception_handling\",\n      \"severity\": \"critical\",\n      \"location\": \"sub_agent.py delegate_task 呼叫\",\n      \"issue\": \"Hermes Agent 不存在時無回退機制\",\n      \"suggestion\": \"增加 try-except 包裝 delegate_task，提供 fallback 到主 LLM 或返回錯誤訊息\",\n      \"confidence\": 0.95\n    },\n    {\n      \"category\": \"security\",\n      \"severity\": \"major\",\n      \"location\": \"backend/main.py FastAPI 端點\",\n      \"issue\": \"缺乏 rate limiting 與 API 金鑰驗證\",\n      \"suggestion\": \"實作 slowapi 或 Re"
+    },
+    {
+      "model": "nvidia",
+      "elapsed_s": 49.2,
+      "error": null,
+      "raw_response": "以下是根據提供的 Zhiyan Legal 儲存庫架構摘要進行的架構盲點偵測報告，格式嚴格遵守 JSON：\n\n```json\n{\n  \"findings\": [\n    {\n      \"category\": \"hidden_coupling\",\n      \"severity\": \"major\",\n      \"location\": \"router.py & manifest.py\",\n      \"issue\": \"雙路由系統可能存在隱含耦合，路由邏輯過度複雜\",\n      \"suggestion\": \"考慮合併或明確定義路由決策流程，減少維護複雜度\",\n      \"confidence\": 0.8\n    },\n    {\n      \"category\": \"tech_debt\",\n      \"severity\": \"critical\",\n      \"location\": \"manifest.py (FIXME 注釋)\",\n      \"issue\": \"暫時指向訴訟策略，缺乏獨立書狀起草模組\",\n      \"suggestion\": \"優先開發獨立書狀起草模組，避免"
+    }
+  ]
+}

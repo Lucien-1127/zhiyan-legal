@@ -36,6 +36,7 @@ DEFAULT_REVIEWERS = [
     ReviewerModel.DEEPSEEK,
     ReviewerModel.GEMINI,
     ReviewerModel.CLAUDE,
+    ReviewerModel.NVIDIA,
 ]
 
 
