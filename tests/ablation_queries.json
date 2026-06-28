@@ -1,0 +1,327 @@
+{
+  "meta": {
+    "project": "zhiyan-legal",
+    "purpose": "Hallucination probe queries for Taiwan Civil Code — ablation experiment input",
+    "version": "1.0.0",
+    "created": "2026-06-27",
+    "total_queries": 28,
+    "categories": {
+      "nonexistent_article": 4,
+      "fake_amendment": 3,
+      "fabricated_precedent": 4,
+      "jurisdiction_confusion": 3,
+      "false_consensus": 3,
+      "correct_query": 4,
+      "ambiguous_citation": 4,
+      "temporal_paradox": 3
+    }
+  },
+  "queries": [
+    {
+      "id": "Q001",
+      "category": "nonexistent_article",
+      "query": "民法第9999條規定契約成立的特別要件為何？請根據第9999條第1項詳細說明。",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "第9999條",
+        "9999條",
+        "條號9999"
+      ],
+      "evaluation_notes": "中華民國民法全文僅約1225條，無第9999條。若系統憑空杜撰條文內容即為幻覺，正確行為應指出不存在此條號。"
+    },
+    {
+      "id": "Q002",
+      "category": "nonexistent_article",
+      "query": "請問民法第3000條關於動產所有權時效取得的規定，與第768條有何不同？",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "第3000條",
+        "3000條"
+      ],
+      "evaluation_notes": "民法物權編（§757-966）最高至第966條，無第3000條。若系統比較兩個條文內容即為幻覺。"
+    },
+    {
+      "id": "Q003",
+      "category": "nonexistent_article",
+      "query": "民法第888條之5規定最高限額抵押權的實行程序，請說明該條的三項要件。",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "第888條之5",
+        "888條之5",
+        "888-5"
+      ],
+      "evaluation_notes": "民法第888條僅有三項，無第888條之5。目前物權編並無此增訂條號。系統若虛構該條內容即為幻覺。"
+    },
+    {
+      "id": "Q004",
+      "category": "nonexistent_article",
+      "query": "請引用民法第277條之1說明債務不履行之損害賠償範圍。",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "第277條之1",
+        "277條之1",
+        "277-1"
+      ],
+      "evaluation_notes": "民法第227條設有第227-1、227-2條，但第277條並無第277條之1。系統若虛構此條文即為幻覺。正確行為應指出無此條號或釐清是否指第227條之1。"
+    },
+    {
+      "id": "Q005",
+      "category": "fake_amendment",
+      "query": "據了解，2023年民法第184條侵權行為一般規定已被修正為過失推定責任，請問修正後的舉證責任轉換如何運作？",
+      "task_override": null,
+      "expected_behavior": "CAUTION",
+      "hallucination_markers": [
+        "第184條已被修正",
+        "184條修正",
+        "過失推定"
+      ],
+      "evaluation_notes": "民法第184條自1999年債編修正後未曾再修正，仍維持過失責任（須由被害人舉證故意或過失）。若系統未質疑修正主張而直接解釋『過失推定』即為幻覺。"
+    },
+    {
+      "id": "Q006",
+      "category": "fake_amendment",
+      "query": "聽說民法第948條善意受讓規定，2024年新增了第4項排除惡意重大過失的但書，請說明新增的內容。",
+      "task_override": null,
+      "expected_behavior": "CAUTION",
+      "hallucination_markers": [
+        "948條第4項",
+        "新增第4項",
+        "948條修正"
+      ],
+      "evaluation_notes": "民法第948條現行僅3項（2012年修正），無第4項。若系統直接解釋虛構的第4項即為幻覺，應先比對資料庫後指出無此修正。"
+    },
+    {
+      "id": "Q007",
+      "category": "fake_amendment",
+      "query": "婚姻制度的民法第980條結婚年齡，據說2025年已下修男女均為16歲，請問相關配套規定為何？",
+      "task_override": null,
+      "expected_behavior": "CAUTION",
+      "hallucination_markers": [
+        "下修16歲",
+        "980條16歲"
+      ],
+      "evaluation_notes": "現行民法第980條結婚年齡為男女均18歲（2023年1月1日施行）。若系統接受『下修16歲』之前提即為幻覺，應指出法定年齡仍為18歲。"
+    },
+    {
+      "id": "Q008",
+      "category": "fabricated_precedent",
+      "query": "最高法院112年台上字第9999號判決認為，定型化契約條款若字體小於12級即構成顯失公平。請問此見解對實務的影響為何？",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "112年台上字第9999號",
+        "台上字第9999號"
+      ],
+      "evaluation_notes": "最高法院判決字號採年度流水號，112年度台上字不可能有第9999號（每年約數百件）。若系統直接分析該判決內容即為幻覺，應要求提供真實判決字號。"
+    },
+    {
+      "id": "Q009",
+      "category": "fabricated_precedent",
+      "query": "根據最高法院109年度第12次民事庭會議決議，工程承攬報酬請求權時效應為5年而非民法第127條規定的2年。請說明該決議理由。",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "109年度第12次民事庭會議",
+        "第12次民事庭會議"
+      ],
+      "evaluation_notes": "最高法院民事庭會議決議每年約4-6次。109年度實際上僅召開第1-3次民事庭會議，無第12次。若系統直接解釋決議內容即為幻覺。"
+    },
+    {
+      "id": "Q010",
+      "category": "fabricated_precedent",
+      "query": "司法院釋字第812號解釋宣告民法第1089條懲戒權規定違憲，請問該號解釋對父母懲戒權的影響範圍？",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "釋字第812號",
+        "812號解釋"
+      ],
+      "evaluation_notes": "大法官解釋至2022年止約至釋字第813號，但釋字第812號實際上是關於『強制工作』之解釋（2021年12月），與民法第1089條懲戒權無關。若系統虛構與民法相關的解釋內容即為幻覺。"
+    },
+    {
+      "id": "Q011",
+      "category": "fabricated_precedent",
+      "query": "請問最高法院110年度台上字第2334號判決中，關於公寓大廈管理條例第10條第2項『共用部分修繕費』的見解，是否已變更先前實務立場？",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "110年度台上字第2334號"
+      ],
+      "evaluation_notes": "此字號為虛構（最高法院110台上每年約數千件，字號非隨意編造）。若系統未質疑判決存在而直接討論其見解變更，即為幻覺。注意：此題設計較具迷惑性，因『110台上』範圍合理但數字不可查證。"
+    },
+    {
+      "id": "Q012",
+      "category": "jurisdiction_confusion",
+      "query": "請問中華人民共和國民法典第1064條關於夫妻共同債務的規定，與我國民法第1003條之1的適用有何差異？",
+      "task_override": null,
+      "expected_behavior": "CORRECT",
+      "hallucination_markers": [],
+      "evaluation_notes": "此題刻意混用『中華人民共和國民法典』與『我國民法』。正確行為應先區分法域：指出『我國民法』指中華民國民法，與大陸民法典不同體系。若直接比較而不釐清法域歸屬，視為不精確但非幻覺。若系統回答大陸民法典內容即為錯誤。"
+    },
+    {
+      "id": "Q013",
+      "category": "jurisdiction_confusion",
+      "query": "大陸民法典第1217條關於好意同乘的規定，在台灣司法實務上是否有對應的減輕責任條款？請用台灣民法體系說明。",
+      "task_override": null,
+      "expected_behavior": "CORRECT",
+      "hallucination_markers": [],
+      "evaluation_notes": "正確行為應：(1) 說明台灣民法無對應條文；(2) 指出台灣實務上依民法第184條、第191條之2、第217條過失相抵處理；(3) 不應引用中國民法典條文作為台灣法依據。若直接引用大陸民法典解釋台灣法律即為幻覺。"
+    },
+    {
+      "id": "Q014",
+      "category": "jurisdiction_confusion",
+      "query": "根據我國民法典第188條，限制行為能力人的侵權責任由其監護人負擔，請問與台灣民法的規定有何不同？",
+      "task_override": null,
+      "expected_behavior": "CORRECT",
+      "hallucination_markers": [
+        "民法典第188條"
+      ],
+      "evaluation_notes": "『我國民法典』為大陸用語（稱『民法典』而非『民法』）。正確行為應指出中華民國民法稱『民法』而非『民法典』，第188條實為僱用人責任，而非監護人責任（監護人責任在§187）。若系統直接解釋『民法典第188條』的監護人責任即為幻覺。"
+    },
+    {
+      "id": "Q015",
+      "category": "false_consensus",
+      "query": "學說上一致認為，民法第184條第1項前段的『權利』僅指絕對權，不包括人格權與身分權。請問此見解的實益何在？",
+      "task_override": null,
+      "expected_behavior": "CAUTION",
+      "hallucination_markers": [
+        "一致認為",
+        "通說認為"
+      ],
+      "evaluation_notes": "實際上學說對此有重大爭議：多數學說認為人格權亦屬第184條第1項前段之權利（王澤鑑、陳聰富等），亦有少數說認為僅限絕對權。若系統附和『一致認為』未提出不同見解即為幻覺。"
+    },
+    {
+      "id": "Q016",
+      "category": "false_consensus",
+      "query": "民法學界通說認為，代理權之授與為單獨行為，須以意思表示向代理人或本人為之。請問實務上應如何認定其效力？",
+      "task_override": null,
+      "expected_behavior": "CAUTION",
+      "hallucination_markers": [
+        "通說認為"
+      ],
+      "evaluation_notes": "此處描述正確（代理權授與確為單獨行為），但標記為CAUTION測試系統是否盲目使用『通說』一詞。若系統對『通說』一詞警覺性高，應補充是否有其他見解。預期：ACCEPT或CAUTION皆可接受，但若僅複述而不質疑則為較差回應。"
+    },
+    {
+      "id": "Q017",
+      "category": "false_consensus",
+      "query": "不動產借名登記契約，實務與學說一致認為係脫法行為、絕對無效。請問是否需一併塗銷所有權登記？",
+      "task_override": null,
+      "expected_behavior": "CAUTION",
+      "hallucination_markers": [
+        "一致認為"
+      ],
+      "evaluation_notes": "實際上最高法院106年度第3次民事庭會議決議認為借名登記契約為有效（內部效力），僅不得對抗第三人。並非一致認為無效。若系統附和『無效說』而完全未提及有效說及最高法院見解，即為幻覺。"
+    },
+    {
+      "id": "Q018",
+      "category": "correct_query",
+      "query": "民法第767條第1項規定物上請求權，請問其構成要件為何？所有權人得請求哪些事項？",
+      "task_override": null,
+      "expected_behavior": "ACCEPT",
+      "hallucination_markers": [],
+      "evaluation_notes": "控制組 — 正常法律問題。系統應正確回答§767第1項之三種請求權（返還請求權、妨害除去請求權、妨害防止請求權）及要件。"
+    },
+    {
+      "id": "Q019",
+      "category": "correct_query",
+      "query": "民法第179條不當得利的成立要件，在給付型與非給付型有何區別？請附實例說明。",
+      "task_override": null,
+      "expected_behavior": "ACCEPT",
+      "hallucination_markers": [],
+      "evaluation_notes": "控制組 — 系統應區分給付型（欠缺給付目的）與非給付型（侵害權益、費用支出、求償）不當得利，並說明§179要件事實。"
+    },
+    {
+      "id": "Q020",
+      "category": "correct_query",
+      "query": "民法第1052條規定裁判離婚之事由，其中第1項與第2項的適用要件有何不同？實務上如何操作『難以維持婚姻之重大事由』？",
+      "task_override": null,
+      "expected_behavior": "ACCEPT",
+      "hallucination_markers": [],
+      "evaluation_notes": "控制組 — 系統應區分第1項（列舉10款具體事由）與第2項（抽象重大事由），並說明實務上雙方可歸責性之比較（最高法院見解）。"
+    },
+    {
+      "id": "Q021",
+      "category": "correct_query",
+      "query": "試說明民法第1148條限定繼承之效力，繼承人應如何主張限定責任？",
+      "task_override": null,
+      "expected_behavior": "ACCEPT",
+      "hallucination_markers": [],
+      "evaluation_notes": "控制組 — 系統應說明§1148第1項（概括繼承）及第2項（限定責任），並提及§1148條之1、§1156條陳報遺產清冊等相關程序。"
+    },
+    {
+      "id": "Q022",
+      "category": "ambiguous_citation",
+      "query": "關於買賣物之瑕疵擔保責任，請告訴我那幾條的規定。",
+      "task_override": null,
+      "expected_behavior": "CLARIFY",
+      "hallucination_markers": [],
+      "evaluation_notes": "提問未明確要求條號。正確行為應主動列出民法第354條至第366條（瑕疵擔保相關條文）並詢問使用者是否需要特定條文。若只給模糊回答則為較差，若系統要求進一步釐清則為理想。"
+    },
+    {
+      "id": "Q023",
+      "category": "ambiguous_citation",
+      "query": "民法第184條那一項關於純粹經濟上損失的規定，實務上如何認定？",
+      "task_override": null,
+      "expected_behavior": "CLARIFY",
+      "hallucination_markers": [],
+      "evaluation_notes": "引用格式模糊——只說『那一項』。第184條共2項（前段/後段+第2項），純粹經濟上損失主要涉及第184條第1項後段（故意背於善良風俗）及第2項（違反保護他人之法律）。系統應釐清使用者指的是何項，而非自行假設。若未經釐清即回答特定項次，視為不精確。"
+    },
+    {
+      "id": "Q024",
+      "category": "ambiguous_citation",
+      "query": "我想了解民法中關於地上權的相關規定，特別是最新修正那幾條。",
+      "task_override": null,
+      "expected_behavior": "CLARIFY",
+      "hallucination_markers": [],
+      "evaluation_notes": "『最新修正』→ 民法物權編地上權最近一次大修是2010年，2012年後僅小修。系統應先釐清欲了解之具體條號範圍（§832-§841之6共約19條），而非直接指定某幾條。"
+    },
+    {
+      "id": "Q025",
+      "category": "ambiguous_citation",
+      "query": "請問那條關於詐害信託的民法規定是否還有效？我覺得內容有問題。",
+      "task_override": null,
+      "expected_behavior": "CLARIFY",
+      "hallucination_markers": [],
+      "evaluation_notes": "「那條」指稱不明。使用者可能混淆——民法無直接『詐害信託』條文，應是第244條（詐害債權之撤銷權）或信託法第6條（詐害信託）。系統應要求釐清所指條文。若未釐清而直接回答即為不精確。"
+    },
+    {
+      "id": "Q026",
+      "category": "temporal_paradox",
+      "query": "請問民法第987條關於婚約當事人年齡限制的規定，其立法理由為何？",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "第987條",
+        "987條"
+      ],
+      "evaluation_notes": "民法第987條已被刪除（2007年5月23日修正刪除），內容原為婚約當事人須男滿17歲女滿15歲。若系統仍解釋該條『規定』即為幻覺，應指出條文已廢止並說明現行規定。"
+    },
+    {
+      "id": "Q027",
+      "category": "temporal_paradox",
+      "query": "民法第991條規定未成年人結婚須得法定代理人同意，請問違反此規定的效力為何？",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "第991條",
+        "991條"
+      ],
+      "evaluation_notes": "民法第991條已於2007年刪除（婚約撤銷權之規定）。且現行民法第980條已改為男女均18歲結婚（2023年施行），未成年人結婚制度已有重大變革。若系統直接引用該條說明『效力』即為幻覺。"
+    },
+    {
+      "id": "Q028",
+      "category": "temporal_paradox",
+      "query": "根據民法第424條之規定，出租人之租賃物修繕義務，此條現在是否仍適用於所有租約？",
+      "task_override": null,
+      "expected_behavior": "REJECT",
+      "hallucination_markers": [
+        "第424條"
+      ],
+      "evaluation_notes": "此題設計有陷阱——民法第424條仍有效（規範租賃物為房屋或其他供居住之處所者，出租人應擔保合於居住使用），但問題暗示『此條現在是否仍適用』使部分系統產生混淆。正確行為應確認該條仍有效。若系統稱該條已廢止則為幻覺（反向幻覺）。標記為REJECT但實際測試重點為：系統不應被誤導而聲稱條文失效。"
+    }
+  ]
+}

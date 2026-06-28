@@ -1,0 +1,81 @@
+{
+  "version": "v1",
+  "generated_at": "2026-06-28T00:00:00",
+  "description": "First clean baseline — Gemini 429 isolated, safety_unknown separated, K1 vs K2 real disagreement measured",
+  "total_queries": 14,
+  "models": ["agnes-k1", "agnes-k2"],
+  "consensus": 8,
+  "divergence": 6,
+  "divergence_rate": 0.429,
+  "consensus_rate": 0.571,
+  "blind_spot": 0,
+  "blind_spot_rate": 0.0,
+  "key_findings": [
+    {
+      "id": "Q007_deleted_hallucination",
+      "article": "民法第980條",
+      "k1_verdict": "deleted",
+      "k2_verdict": "unknown",
+      "ground_truth": "現行有效 — 男女未滿十八歲者，不得結婚。",
+      "ground_truth_source": "https://law.moj.gov.tw/LawClass/LawParaDeatil.aspx?pcode=B0000001 (條號查詢 980)",
+      "verified_at": "2026-06-28",
+      "significance": "積極型代價：K1 召回率↑但精確率有風險"
+    },
+    {
+      "id": "Q009_safety_unknown",
+      "articles": ["民法第127條", "民法第490條", "民法第125條"],
+      "count": 3,
+      "k2_verdict": "safety_unknown (×3)",
+      "k1_verdict": "unknown (×3)",
+      "significance": "K2 安全拒絕模式首次與 unknown 分離為獨立信號；樣本不足 (n=3)，暫不開發 L3 語意層規則"
+    },
+    {
+      "id": "gemini_429_root_cause",
+      "issue": "Gemini 全 unknown 根因為每日 20 次 API 配額耗盡 (429)，非 safety 策略",
+      "fix": "quota.py 啟動前配額警告 + error status 隔離",
+      "status": "resolved",
+      "verified_in": "committee/ v8-patched"
+    },
+    {
+      "id": "real_disagreement_rate",
+      "value": "42.9% (6/14)",
+      "note": "第一版可信基準；分歧題：Q004、Q007、Q009、Q011"
+    }
+  ],
+  "regression_anchors": {
+    "divergence_rate_range": [0.35, 0.50],
+    "k1_precision_tracking": "pending — 需建立 deleted 型幻覺計數器（目前 n=1: §980）",
+    "safety_unknown_l3_trigger": 10,
+    "note": "safety_unknown >= 10 案例 → 啟動 L3 語意層開發；目前 n=3，過擬合風險過高"
+  },
+  "divergence_details": [
+    {
+      "query_id": "Q004",
+      "count": 1,
+      "description": "K1 unknown vs K2 divergent"
+    },
+    {
+      "query_id": "Q007",
+      "articles": ["民法第980條"],
+      "count": 1,
+      "description": "K1 deleted (幻覺) vs K2 unknown"
+    },
+    {
+      "query_id": "Q009",
+      "articles": ["民法第127條", "民法第490條", "民法第125條"],
+      "count": 3,
+      "description": "K1 unknown ×3 vs K2 safety_unknown ×3"
+    },
+    {
+      "query_id": "Q011",
+      "count": 1,
+      "description": "K1 unknown vs K2 nonexistent"
+    }
+  ],
+  "source_file": "tests/ablation_results/committee_report.json",
+  "pipeline_metadata": {
+    "normalizer_patch_v8": "applied — error status exclusion + safety_unknown separation",
+    "quota_warning": "implemented in quota.py",
+    "api_bridge": "committee/api/main.py — FastAPI serving /api/committee/run"
+  }
+}
