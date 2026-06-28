@@ -9,7 +9,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from zhiyan_legal.runner import validate_output
+from zhiyan_legal.engine import validate_output
 
 
 # ── validate_output() ──────────────────────────────────────────────

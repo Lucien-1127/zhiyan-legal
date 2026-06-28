@@ -31,9 +31,14 @@ from typing import Optional
 
 logger = logging.getLogger("judicial_api")
 
-# MCP Taiwan Legal DB 套件
-from mcp_server.server import JudicialSearchClient, JudgmentDocClient, CacheDB, JudicialWAFBypass
-from mcp_server.server import RegulationClient
+# MCP Taiwan Legal DB 套件（惰性載入 — 防止 CI 環境未安裝時中斷）
+_HAS_MCP = False
+try:
+    from mcp_server.server import JudicialSearchClient, JudgmentDocClient, CacheDB, JudicialWAFBypass
+    from mcp_server.server import RegulationClient
+    _HAS_MCP = True
+except ImportError:
+    logger.warning("mcp-server 未安裝，司法 API 功能不可用。安裝：pip install mcp-taiwan-legal-db")
 
 # ── 全域資源（lazy init） ───────────────────────────
 _cache: Optional[CacheDB] = None
@@ -47,6 +52,10 @@ async def _ensure_init():
     global _cache, _waf, _jud_search, _jud_doc, _reg_client
     if _cache is not None:
         return
+    if not _HAS_MCP:
+        raise RuntimeError(
+            "mcp-taiwan-legal-db 未安裝。執行：pip install mcp-taiwan-legal-db"
+        )
     db_path = os.path.join(tempfile.gettempdir(), "zhiyan_legal_cache.db")
     _cache = CacheDB(db_path=db_path)
     await _cache.initialize()

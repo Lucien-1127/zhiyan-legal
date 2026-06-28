@@ -1,30 +1,95 @@
 """
 Zhiyan Legal — Sub-agent orchestration module.
 
-Provides parallel task execution for zhiyan-legal using Hermes delegate_task.
-Designed to be imported and called from the main agent session.
+Provides parallel task execution for zhiyan-legal.
 
-Usage (from Hermes agent):
-    from sub_agent import parallel_citation_verify, courtroom_parallel
-    results = parallel_citation_verify("刑法", 271)
-    courtroom = courtroom_parallel(case_facts, model="deepseek-v4-flash")
+When running under Hermes Agent, uses delegate_task for true parallelism.
+When running standalone, falls back to sequential LLM calls via ZhiyanEngine.
 """
+from __future__ import annotations
 
+import logging
 from typing import Any
 
+logger = logging.getLogger("zhiyan_legal.sub_agent")
+
+# ── Hermes delegate (preferred) ──────────────────────
+
 try:
-    from hermes_tools import delegate_task as _delegate
+    from hermes_tools import delegate_task as _hermes_delegate
+    HAS_HERMES = True
 except ImportError:
-    import sys as _sys
-    print("⚠️ sub_agent.py 需在 Hermes Agent 環境下執行")
-    print("   請透過 Hermes 載入本模組，或 pip install hermes-tools")
-    _sys.exit(1)
+    HAS_HERMES = False
+    _hermes_delegate = None
 
 
-# ── 1. 引證驗證並行 ─────────────────────────────────────────
+def delegate_task(tasks: list[dict]) -> list[dict]:
+    """Dispatch tasks — Hermes delegate_task or fallback.
+
+    When Hermes is available, uses true parallel sub-agents.
+    When standalone, runs tasks sequentially via the local engine.
+    """
+    if HAS_HERMES:
+        return _hermes_delegate(tasks=tasks)
+
+    logger.info("Hermes not available — running %d tasks sequentially (fallback)", len(tasks))
+    return _run_fallback(tasks)
+
+
+def _run_fallback(tasks: list[dict]) -> list[dict]:
+    """Fallback: run each task locally using ZhiyanEngine.
+
+    Each task's 'goal' is treated as the query, with optional 'context'
+    prepended for additional background.
+    """
+    from zhiyan_legal.engine import ZhiyanEngine, EngineConfig
+
+    results: list[dict] = []
+    engine = ZhiyanEngine()
+
+    import asyncio
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(engine.startup())
+        for i, task in enumerate(tasks):
+            goal = task.get("goal", "")
+            context = task.get("context", "")
+            user_message = f"{context}\n\n{goal}" if context else goal
+
+            try:
+                result = engine.run(
+                    system_prompt="你是一位專業的法律分析助手。請根據以下任務執行。",
+                    user_message=user_message,
+                    max_tokens=2048,
+                    task="RESEARCH",
+                )
+                results.append({
+                    "task_index": i,
+                    "goal": goal[:80],
+                    "status": "completed",
+                    "content": result,
+                })
+                logger.info("Fallback task %d completed (%d chars)", i, len(result))
+            except Exception as e:
+                logger.error("Fallback task %d failed: %s", i, e)
+                results.append({
+                    "task_index": i,
+                    "goal": goal[:80],
+                    "status": "error",
+                    "error": str(e),
+                })
+        loop.run_until_complete(engine.shutdown())
+    finally:
+        loop.close()
+
+    return results
+
+
+# ── 1. Citation verification (parallel) ────────────────
+
 
 def parallel_citation_verify(law_name: str, article: int | str) -> list[dict]:
-    """並行查詢三來源：官方條文 + 判決 + 實務文章。"""
+    """Verify citations in parallel: official statute + judgments + practice articles."""
     tasks = [
         {
             "goal": f"查全國法規資料庫 {law_name} 第{article}條的完整條文內容，回傳條文原文與條號。",
@@ -42,11 +107,11 @@ def parallel_citation_verify(law_name: str, article: int | str) -> list[dict]:
             "toolsets": ["web"],
         },
     ]
-    return _delegate(tasks=tasks)
+    return delegate_task(tasks)
 
 
 def parallel_multi_article(law_citations: list[tuple[str, int]]) -> list[dict]:
-    """並行查詢多條法條（不同法域）。"""
+    """Query multiple articles in parallel (across legal domains)."""
     tasks = []
     for law_name, article in law_citations:
         tasks.append({
@@ -54,15 +119,18 @@ def parallel_multi_article(law_citations: list[tuple[str, int]]) -> list[dict]:
             "context": f"法規名稱={law_name}, 條號={article}",
             "toolsets": ["web"],
         })
-    return _delegate(tasks=tasks)
+    return delegate_task(tasks)
 
 
-# ── 2. 法庭模擬三方並行 ───────────────────────────────────
+# ── 2. Courtroom simulation (3-role parallel) ──────────
+
 
 def courtroom_parallel(case_facts: str, model: str = "") -> list[dict]:
-    """三方角色獨立準備，平行產出再合成。"""
-    context = f"案件事實：{case_facts}\n注意：這是一個學術模擬，請從角色立場出發分析。"
-    
+    """Three-role parallel preparation: judge, prosecutor, defense."""
+    context = (
+        f"案件事實：{case_facts}\n"
+        f"注意：這是一個學術模擬，請從角色立場出發分析。"
+    )
     tasks = [
         {
             "goal": "以法官角色分析此案：整理本案爭點、雙方主張摘要、適用法條",
@@ -80,50 +148,65 @@ def courtroom_parallel(case_facts: str, model: str = "") -> list[dict]:
             "toolsets": ["web"],
         },
     ]
-    return _delegate(tasks=tasks)
+    return delegate_task(tasks)
 
 
-# ── 3. TYPE-S QA 分離審查 ────────────────────────────────
+# ── 3. TYPE-S QA review ────────────────────────────────
+
 
 def type_s_review(draft_output: str, task_type: str = "QC") -> list[dict]:
-    """由獨立子代理對產出草稿進行 TYPE-S 審查。"""
+    """Independent QA review of draft output."""
     tasks = [
         {
-            "goal": f"審查以下法律分析草稿，檢查：1) 所有條號是否正確可追溯；2) 引用格式是否符合 [N] 標準；3) 是否有未驗證的主張。回傳審查報告。\n\n草稿：{draft_output[:3000]}",
-            "context": f"審查類型={task_type}。注意：你是一個獨立的 QA 審查員，不知道主 agent 的思考過程，只根據條文資料庫客觀審查。",
+            "goal": (
+                f"審查以下法律分析草稿，檢查：1) 所有條號是否正確可追溯；"
+                f"2) 引用格式是否符合 [N] 標準；3) 是否有未驗證的主張。回傳審查報告。\n\n"
+                f"草稿：{draft_output[:3000]}"
+            ),
+            "context": (
+                f"審查類型={task_type}。注意：你是一個獨立的 QA 審查員，"
+                f"不知道主 agent 的思考過程，只根據條文資料庫客觀審查。"
+            ),
             "toolsets": ["web"],
         },
     ]
-    return _delegate(tasks=tasks)
+    return delegate_task(tasks)
 
 
-# ── 4. 多法域平行研究 ────────────────────────────────────
+# ── 4. Multi-domain parallel research ──────────────────
+
 
 def parallel_legal_research(query: str, domains: list[str] | None = None) -> list[dict]:
-    """按法域拆給專門子代理平行研究。"""
+    """Split research across legal domains, each to a specialized sub-agent."""
     if domains is None:
         domains = ["刑法", "民法", "行政法"]
-    
-    context = f"原始查詢：{query}\n請從 {{{{domain}}}} 的專門角度分析此問題，回傳相關條文、爭點、實務見解。"
-    
+
+    template = (
+        f"原始查詢：{query}\n"
+        f"請從 {{domain}} 的專門角度分析此問題，"
+        f"回傳相關條文、爭點、實務見解。"
+    )
     tasks = []
     for domain in domains:
         tasks.append({
             "goal": f"以{domain}專家角色分析：{query}",
-            "context": context.replace("{{domain}}", domain),
+            "context": template.replace("{domain}", domain),
             "toolsets": ["web"],
         })
-    return _delegate(tasks=tasks)
+    return delegate_task(tasks)
 
 
-# ── 5. RAG + 聯網平行查詢 ────────────────────────────────
+# ── 5. RAG + online parallel query ─────────────────────
+
 
 def parallel_rag_online(query: str, category: str = "") -> list[dict]:
-    """本地 RAG + 聯網平行查詢。"""
-    rag_cmd = f"python3 ~/.hermes/rag/legal_translation/rag.py \"{query}\" --top-k 3"
+    """Local RAG + online database query in parallel."""
+    rag_cmd = (
+        f"python3 ~/.hermes/rag/legal_translation/rag.py \"{query}\" --top-k 3"
+    )
     if category:
         rag_cmd += f" --category {category}"
-    
+
     tasks = [
         {
             "goal": f"查本地法規資料庫：{query}。執行指令：{rag_cmd}",
@@ -136,29 +219,21 @@ def parallel_rag_online(query: str, category: str = "") -> list[dict]:
             "toolsets": ["web"],
         },
     ]
-    return _delegate(tasks=tasks)
+    return delegate_task(tasks)
 
 
-# ── 主排程 ───────────────────────────────────────────────
+# ── Main orchestrator ──────────────────────────────────
+
 
 def run_full_analysis(query: str, model: str = "") -> dict:
-    """完整法律分析流程：平行引證 + TYPE-S 審查。
+    """Full legal analysis pipeline: parallel citation + TYPE-S review.
 
-    回傳 dict 包含各階段結果，由主 agent 組合成最終輸出。
+    Returns a dict with phases, assembled by the calling agent.
     """
     results = {
         "citation_verify": [],
         "type_s": [],
         "domains": [],
     }
-    
-    # Phase 1: 平行引證（最快回饋）
     results["citation_verify"] = parallel_legal_research(query)
-    
-    # Phase 2: 主分析（由主 agent 自行執行）
-    # (不在 sub_agent 範圍，由外部 caller 處理)
-    
-    # Phase 3: TYPE-S 審查（對主 agent 的草稿執行）
-    # (需要先有草稿，由外部 caller 傳入)
-    
     return results

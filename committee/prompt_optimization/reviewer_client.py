@@ -82,6 +82,10 @@ DEFAULT_MODEL_MAP: dict[ReviewerModel, tuple[str, str]] = {
         "gemini-2.5-flash",
         "https://generativelanguage.googleapis.com/v1beta/openai",
     ),
+    ReviewerModel.NVIDIA: (
+        "nvidia/llama-3.3-nemotron-super-49b-v1",
+        "https://integrate.api.nvidia.com/v1",
+    ),
     ReviewerModel.CLAUDE: (
         "anthropic/claude-sonnet-4",
         "https://openrouter.ai/api/v1",
@@ -185,6 +189,7 @@ class ReviewerClient:
             ReviewerModel.DEEPSEEK: "DEEPSEEK_API_KEY",
             ReviewerModel.GEMINI: "GEMINI_API_KEY",
             ReviewerModel.CLAUDE: "OPENROUTER_API_KEY",
+            ReviewerModel.NVIDIA: "NVIDIA_API_KEY",
         }
         import os
         env_var = env_map.get(reviewer)

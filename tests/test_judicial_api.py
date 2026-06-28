@@ -114,7 +114,7 @@ def test_parse_mixed_chinese_digits():
 
 def test_build_jid_basic():
     """基本 JID 組裝"""
-    jid = client.build_jid("CHDM", "100", "訴", "1552", "20130517", "2")
+    jid = build_jid("CHDM", "100", "訴", "1552", "20130517", "2")
     assert jid == "CHDM,100,訴,1552,20130517,2"
 
 
@@ -132,7 +132,7 @@ def test_build_jid_from_parsed():
 
 def test_build_jid_default_check():
     """預設 check digit 為 1"""
-    jid = client.build_jid("TPH", "110", "毒抗", "1212")
+    jid = build_jid("TPH", "110", "毒抗", "1212")
     assert jid.endswith(",1")
 
 
