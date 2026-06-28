@@ -1,0 +1,3 @@
+rules:
+  fast_path_keywords: ["條文查詢", "定義"]
+  committee_path_keywords: ["狀紙", "風險評估"]

@@ -1,0 +1,3 @@
+rules:
+  default_deny: true
+  allowed_tools: ["search_law", "summarize"]

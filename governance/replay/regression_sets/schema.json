@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "case_id": "string",
+  "meta": {
+    "module_coverage": ["EvidencePolicy", "CommitteePolicy", "SecurityPolicy", "CostPolicy", "ClarificationPolicy", "CapabilityRegistry"],
+    "invariant_checks": ["I001", "I002", "I003", "I004"]
+  },
+  "input": {
+    "intent": "string",
+    "context": "object"
+  },
+  "expected": {
+    "classification": "string",
+    "routing": "string",
+    "decision": "string",
+    "reasoning": "string",
+    "confidence_min": "number"
+  }
+}
