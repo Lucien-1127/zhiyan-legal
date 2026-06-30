@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ZhiyanLegal Evaluation Query",
+  "description": "200-query evaluation dataset for citation-grounding and safety-routing ablation study.",
+  "type": "object",
+  "required": ["id","version","route","difficulty","query_text","ground_truth","ablation_flags","metadata"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^Q[0-9]{3}$", "description": "唯一識別碼，格式 Q001–Q200"},
+    "version": {"type": "string", "description": "資料集版本 YYYY-MM-DD", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "route": {"type": "string", "enum": ["QC","RESEARCH","REPORT","CONSULTANT","TUTOR","TA","LITIGATION","SAFETY","CROSS_JUR"]},
+    "difficulty": {"type": "string", "enum": ["STANDARD","EDGE_CASE"], "description": "EDGE_CASE=刻意構造以觸發 CORE_GATE 或邊界路由"},
+    "safety_level": {"type": "string", "enum": ["RL0","RL1","RL2","RL3","N/A"]},
+    "query_text": {"type": "string", "minLength": 5},
+    "ground_truth": {
+      "type": "object",
+      "required": ["statutes","expected_route","expected_gate_trigger","expected_confidence","verifiable_claims"],
+      "properties": {
+        "statutes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["law_name","article","pcode","moj_verified"],
+            "properties": {
+              "law_name": {"type": "string"},
+              "article": {"type": "string"},
+              "pcode": {"type": "string"},
+              "moj_verified": {"type": "boolean", "description": "已在 law.moj.gov.tw 交叉驗證"}
+            }
+          }
+        },
+        "expected_route": {"type": "string"},
+        "expected_gate_trigger": {"type": "string", "enum": ["NONE","UNCERTAINTY_MARKER","HUMAN_REVIEW","SAFETY_ABORT"]},
+        "expected_confidence": {"type": "string", "enum": ["HIGH","MEDIUM","LOW"]},
+        "verifiable_claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["claim","source_type","is_fabricatable"],
+            "properties": {
+              "claim": {"type": "string"},
+              "source_type": {"type": "string", "enum": ["statute","judgment","academic","unknown"]},
+              "is_fabricatable": {"type": "boolean", "description": "true=此聲明 LLM 容易捏造，重點測試對象"}
+            }
+          }
+        }
+      }
+    },
+    "ablation_flags": {
+      "type": "object",
+      "required": ["run_condition_A","run_condition_B","run_condition_C","run_condition_D"],
+      "properties": {
+        "run_condition_A": {"type": "boolean", "description": "Full system"},
+        "run_condition_B": {"type": "boolean", "description": "No citation policy"},
+        "run_condition_C": {"type": "boolean", "description": "No fact gate"},
+        "run_condition_D": {"type": "boolean", "description": "Unconstrained baseline"}
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["domain","created_by","law_area","rq_target"],
+      "properties": {
+        "domain": {"type": "string", "enum": ["刑法","民法","行政法","家事法","勞動法","憲法","跨域","安全"]},
+        "created_by": {"type": "string"},
+        "law_area": {"type": "array", "items": {"type": "string"}},
+        "rq_target": {"type": "array", "items": {"type": "string", "enum": ["RQ1","RQ2","RQ3"]}}
+      }
+    }
+  }
+}
