@@ -24,14 +24,17 @@ from .core import ModelVerdict, Verdict
 
 logger = logging.getLogger("committee.runner")
 
-# ── 預設 Agnes Keys ──
-_k1a = 'sk-dlL'; _k1b = 'kC3tAh9zmu2wDjbOIG7dd'; _k1c = 'p3H6leZN7Mv7K29QLQUo4Y4V'
-AGNES_KEY1 = _k1a + _k1b + _k1c
-_k2a = 'sk-'; _k2b = 'Ggsl3OR0CLyCdOES3Y2Biz3eldpxWTA8EY'; _k2c = 'eRfKJWiVpHNo80'
-AGNES_KEY2 = _k2a + _k2b + _k2c
+# ── Agnes Keys — 從環境變數讀取，不允許硬寫在原始碼中 ──
+# 設定方式：export AGNES_API_KEY_1=sk-...  export AGNES_API_KEY_2=sk-...
+AGNES_KEY1 = os.environ.get("AGNES_API_KEY_1", "")
+AGNES_KEY2 = os.environ.get("AGNES_API_KEY_2", AGNES_KEY1)
 
-PROJECT_DIR = str(Path.home() / "zhiyan-legal")
-ABLATION_SCRIPT = str(Path.home() / "zhiyan-legal" / "tests" / "run_ablation.py")
+# ── 專案路徑：優先使用環境變數，退後才用 ~/zhiyan-legal ──
+PROJECT_DIR = os.environ.get(
+    "ZHIYAN_PROJECT_DIR",
+    str(Path(__file__).resolve().parent.parent),
+)
+ABLATION_SCRIPT = str(Path(PROJECT_DIR) / "tests" / "run_ablation.py")
 PYTHON = sys.executable
 
 
@@ -107,19 +110,23 @@ def run_model_batch(
             "PYTHONPATH": "src",
         }
 
+    results_dir = Path(PROJECT_DIR) / "tests" / "ablation_results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    results_path = results_dir / f"{config.name}_results.json"
+
     t0 = time.time()
     result = subprocess.run(
         [PYTHON, "-u", ABLATION_SCRIPT,
          "--conditions", condition,
          "--categories", cats,
-         "--model", config.model_id],
+         "--model", config.model_id,
+         "--output", str(results_path)],
         cwd=PROJECT_DIR, env=env, capture_output=True, text=True,
         timeout=timeout,
     )
     elapsed = time.time() - t0
 
-    # Parse results from the ablation output JSON
-    results_path = Path.home() / "zhiyan-legal" / "tests" / "ablation_results" / "ablation_results.json"
+    # Parse results from the per-model output JSON (avoids race condition in parallel runs)
     verdicts: List[ModelVerdict] = []
 
     if results_path.exists() and result.returncode == 0:

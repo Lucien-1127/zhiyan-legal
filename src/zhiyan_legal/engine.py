@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 import sys
 import time
 import uuid
@@ -207,14 +208,15 @@ def _get_gemini_key() -> str:
         return key
     cfg_path = os.path.expanduser("~/.hermes/profiles/lenien-gcp/config.yaml")
     try:
-        import subprocess
-        out = subprocess.run(
-            ["grep", "-A1", "gemini:", cfg_path],
-            capture_output=True, text=True, timeout=5,
-        ).stdout
-        for line in out.split("\n"):
-            if "api_key" in line:
-                return line.split("api_key:")[1].strip()
+        with open(cfg_path, encoding="utf-8") as _f:
+            _in_gemini = False
+            for _line in _f:
+                if "gemini:" in _line:
+                    _in_gemini = True
+                elif _in_gemini and "api_key:" in _line:
+                    return _line.split("api_key:", 1)[1].strip()
+                elif _in_gemini and _line.strip() and not _line.startswith(" ") and ":" in _line:
+                    _in_gemini = False
     except Exception:
         pass
     return ""
@@ -255,7 +257,7 @@ def validate_output(result: str, task: str = "QC") -> str:
     if not checks:
         return result
 
-    matched = sum(1 for p in checks["patterns"] if p in result)
+    matched = sum(1 for p in checks["patterns"] if re.search(p, result))
     threshold = max(1, len(checks["patterns"]) // 3)
 
     if matched < threshold:
@@ -300,6 +302,7 @@ class ZhiyanEngine:
         # Document cache
         self._system_prompt: Optional[str] = None
         self._docs_loaded = False
+        self._doc_cache: dict[str, str] = {}  # task → composed prompt
 
         # Resources
         self._http_client: Optional[httpx.AsyncClient] = None
@@ -354,40 +357,37 @@ class ZhiyanEngine:
 
     # ── Document management ──────────────────────────
 
-    def load_docs(self) -> str:
-        """Load docs/ spec documents into a composed system prompt."""
-        if self._system_prompt and self._docs_loaded:
-            return self._system_prompt
+    def load_docs(self, task: str = "QC") -> str:
+        """Load task-specific docs via manifest.get_load_order() with per-task caching."""
+        if task in self._doc_cache:
+            return self._doc_cache[task]
 
-        parts: list[str] = []
-        load_order = [
-            "10_核心控制層",
-            "20_模式與引用層",
-            "40_模組與人格層",
-        ]
-        for category in load_order:
-            cat_dir = DOCS_DIR / category
-            if not cat_dir.exists():
-                logger.warning("目錄不存在: %s", cat_dir)
-                continue
-            files = sorted(cat_dir.glob("*.md"))
-            for f in files:
-                try:
-                    content = f.read_text(encoding="utf-8")
-                    parts.append(f"<!-- {f.name} -->\n{content}")
-                except Exception as e:
-                    logger.error("讀取失敗 %s: %s", f.name, e)
+        try:
+            file_paths = get_load_order(task)
+        except Exception as e:
+            logger.warning("get_load_order(%s) failed: %s — falling back to glob", task, e)
+            file_paths = [
+                str(f)
+                for cat in ["10_核心控制層", "20_模式與引用層", "40_模組與人格層"]
+                for f in sorted((DOCS_DIR / cat).glob("*.md"))
+                if (DOCS_DIR / cat).exists()
+            ]
 
-        self._system_prompt = "\n\n---\n\n".join(parts)
-        self._docs_loaded = True
-        logger.info("已載入 %d 份規格文件，共 %d 字元",
-                    len(parts), len(self._system_prompt))
-        return self._system_prompt
+        composed = compose(file_paths)
+        self._doc_cache[task] = composed
+
+        if not self._system_prompt:
+            self._system_prompt = composed
+            self._docs_loaded = True
+
+        logger.info("已載入 task=%s: %d 字元", task, len(composed))
+        return composed
 
     def reload(self):
-        """Force reload documents."""
+        """Force reload documents (clears all task caches)."""
         self._system_prompt = None
         self._docs_loaded = False
+        self._doc_cache.clear()
         return self.load_docs()
 
     # ── Core async query ─────────────────────────────
@@ -506,20 +506,38 @@ class ZhiyanEngine:
         except RuntimeError:
             loop = None
 
-        coro = self.query_async(
+        if loop and loop.is_running():
+            # asyncio.run() cannot be called from a running event loop — use sync client
+            if not self._sync_openai:
+                self._sync_openai = OpenAI(
+                    base_url=self._config.api_base,
+                    api_key=self._config.api_key,
+                )
+            model_name = model or self._config.default_model
+            msgs = list(conversation_history or [])
+            msgs.append({"role": "user", "content": user_message})
+            resp = self._sync_openai.chat.completions.create(
+                model=model_name, messages=msgs,
+                temperature=temperature, max_tokens=max_tokens,
+            )
+            content = resp.choices[0].message.content or ""
+            usage = resp.usage
+            return {
+                "content": content,
+                "model": model_name,
+                "tokens_in": usage.prompt_tokens if usage else 0,
+                "tokens_out": usage.completion_tokens if usage else 0,
+                "mode": "legal",
+            }
+
+        result = asyncio.run(self.query_async(
             user_message=user_message,
             model=model,
             temperature=temperature,
             max_tokens=max_tokens,
             conversation_history=conversation_history,
             task=task,
-        )
-
-        if loop and loop.is_running():
-            result = asyncio.run(coro)
-        else:
-            result = asyncio.run(coro)
-
+        ))
         return {
             "content": result.content,
             "model": result.model,
@@ -790,10 +808,18 @@ class ZhiyanEngine:
             existing_loop = None
 
         if existing_loop:
-            # Already in an event loop — run directly
-            return existing_loop.run_until_complete(
-                self._run_one_shot(model_name, messages, temperature, max_tokens, task)
+            # run_until_complete() cannot be called on a running event loop — use sync client
+            if not self._sync_openai:
+                self._sync_openai = OpenAI(
+                    base_url=self._config.api_base,
+                    api_key=self._config.api_key,
+                )
+            resp = self._sync_openai.chat.completions.create(
+                model=model_name, messages=messages,
+                temperature=temperature, max_tokens=max_tokens,
             )
+            content = resp.choices[0].message.content or ""
+            return validate_output(content, task)
 
         # No running loop — create one
         loop = asyncio.new_event_loop()

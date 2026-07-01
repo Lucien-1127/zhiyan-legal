@@ -647,7 +647,9 @@ class RegulationTracker:
 
     def get_recent_changes(self, days: int = 7) -> list[dict]:
         """回傳近期異動紀錄"""
-        cutoff = _add_days(_today_ymd(), -days)
+        ymd = _add_days(_today_ymd(), -days)
+        # checked_at is stored as ISO datetime ("YYYY-MM-DD HH:MM:SS"); convert cutoff to match
+        cutoff = f"{ymd[:4]}-{ymd[4:6]}-{ymd[6:8]}"
         with sqlite3.connect(self.db_path) as conn:
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
