@@ -230,10 +230,27 @@ def run_full_analysis(query: str, model: str = "") -> dict:
 
     Returns a dict with phases, assembled by the calling agent.
     """
-    results = {
+    results: dict = {
         "citation_verify": [],
         "type_s": [],
         "domains": [],
     }
+
+    # Phase 1: multi-domain research in parallel
     results["citation_verify"] = parallel_legal_research(query)
+
+    # Phase 2: split research across legal domains in parallel
+    results["domains"] = parallel_legal_research(
+        query, domains=["刑法", "民法", "行政法"]
+    )
+
+    # Phase 3: TYPE-S QA review of the citation phase output
+    if results["citation_verify"]:
+        draft = "\n\n".join(
+            r.get("content", "") for r in results["citation_verify"]
+            if isinstance(r, dict) and r.get("status") == "completed"
+        )
+        if draft:
+            results["type_s"] = type_s_review(draft, task_type="QC")
+
     return results
