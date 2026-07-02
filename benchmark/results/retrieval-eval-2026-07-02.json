@@ -1,0 +1,1246 @@
+{
+  "avg_recall@5": 0.0,
+  "avg_precision@5": 0.0,
+  "total": 100,
+  "zero_recall": 100,
+  "by_domain": {
+    "民法": 0.0,
+    "刑法": 0.0,
+    "刑事訴訟法": 0.0,
+    "行政程序法": 0.0,
+    "國家賠償法": 0.0,
+    "民事訴訟法": 0.0,
+    "訴願法": 0.0,
+    "行政訴訟法": 0.0,
+    "公司法": 0.0,
+    "勞動基準法": 0.0,
+    "營業秘密法": 0.0,
+    "著作權法": 0.0,
+    "專利法": 0.0,
+    "商標法": 0.0,
+    "強制執行法": 0.0
+  },
+  "details": [
+    {
+      "id": "R001",
+      "query": "買賣標的物有瑕疵時，買受人可以主張哪些權利？",
+      "domain": "民法",
+      "expected": [
+        "§354",
+        "§359",
+        "§360",
+        "§364",
+        "§365"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R002",
+      "query": "租賃契約中，修繕責任由誰負擔？",
+      "domain": "民法",
+      "expected": [
+        "§429",
+        "§430"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R003",
+      "query": "侵權行為的損害賠償請求權時效多久？",
+      "domain": "民法",
+      "expected": [
+        "§197"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R004",
+      "query": "承租人可以轉租嗎？",
+      "domain": "民法",
+      "expected": [
+        "§443"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R005",
+      "query": "買受人發現瑕疵後，多久內要主張權利？",
+      "domain": "民法",
+      "expected": [
+        "§356",
+        "§365"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R006",
+      "query": "什麼情況構成正當防衛？",
+      "domain": "刑法",
+      "expected": [
+        "§23"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R007",
+      "query": "什麼是共同正犯？",
+      "domain": "刑法",
+      "expected": [
+        "§28"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R008",
+      "query": "教唆犯和幫助犯有什麼不同？",
+      "domain": "刑法",
+      "expected": [
+        "§29",
+        "§30"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R009",
+      "query": "過失致死罪的刑度是多少？",
+      "domain": "刑法",
+      "expected": [
+        "§276"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R010",
+      "query": "什麼是意圖散布於眾？",
+      "domain": "刑法",
+      "expected": [
+        "§310"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R011",
+      "query": "被告有權保持沉默嗎？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§95"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R012",
+      "query": "違法搜索取得的證據可以用嗎？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§128",
+        "§131",
+        "§158-4"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R013",
+      "query": "被告要求請律師，警方可以拒絕嗎？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§27",
+        "§31",
+        "§95"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R014",
+      "query": "行政處分前一定要給當事人陳述意見的機會嗎？",
+      "domain": "行政程序法",
+      "expected": [
+        "§102",
+        "§103"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R015",
+      "query": "行政處分有哪些無效事由？",
+      "domain": "行政程序法",
+      "expected": [
+        "§111"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R016",
+      "query": "國家賠償的請求時效是多久？",
+      "domain": "國家賠償法",
+      "expected": [
+        "§8"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R017",
+      "query": "國家賠償的要件是什麼？",
+      "domain": "國家賠償法",
+      "expected": [
+        "§2",
+        "§3"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R018",
+      "query": "民事訴訟的舉證責任如何分配？",
+      "domain": "民事訴訟法",
+      "expected": [
+        "§277"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R019",
+      "query": "什麼是假扣押？",
+      "domain": "民事訴訟法",
+      "expected": [
+        "§522",
+        "§523"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R020",
+      "query": "什麼是搜索票的令狀原則？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§128"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R021",
+      "query": "緩刑的條件是什麼？",
+      "domain": "刑法",
+      "expected": [
+        "§74"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R022",
+      "query": "什麼是累犯？",
+      "domain": "刑法",
+      "expected": [
+        "§47"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R023",
+      "query": "自首可以減刑嗎？",
+      "domain": "刑法",
+      "expected": [
+        "§62"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R024",
+      "query": "侵占罪的構成要件？",
+      "domain": "刑法",
+      "expected": [
+        "§335"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R025",
+      "query": "詐欺罪的構成要件？",
+      "domain": "刑法",
+      "expected": [
+        "§339"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R026",
+      "query": "背信罪的構成要件？",
+      "domain": "刑法",
+      "expected": [
+        "§342"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R027",
+      "query": "什麼是侵權行為的過失責任？",
+      "domain": "民法",
+      "expected": [
+        "§184"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R028",
+      "query": "僱用人責任怎麼認定？",
+      "domain": "民法",
+      "expected": [
+        "§188"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R029",
+      "query": "產品責任的規定在哪裡？",
+      "domain": "民法",
+      "expected": [
+        "§191-1"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R030",
+      "query": "什麼是無因管理？",
+      "domain": "民法",
+      "expected": [
+        "§172",
+        "§176"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R031",
+      "query": "不當得利的返還範圍？",
+      "domain": "民法",
+      "expected": [
+        "§179",
+        "§181"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R032",
+      "query": "債務不履行的類型有哪些？",
+      "domain": "民法",
+      "expected": [
+        "§227",
+        "§231",
+        "§254"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R033",
+      "query": "買賣契約的危險負擔何時移轉？",
+      "domain": "民法",
+      "expected": [
+        "§373"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R034",
+      "query": "租賃契約的默示更新是什麼？",
+      "domain": "民法",
+      "expected": [
+        "§451"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R035",
+      "query": "承租人遲付租金，出租人怎麼辦？",
+      "domain": "民法",
+      "expected": [
+        "§440"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R036",
+      "query": "什麼是最高限額抵押權？",
+      "domain": "民法",
+      "expected": [
+        "§881-1"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R037",
+      "query": "抵押權的效力範圍？",
+      "domain": "民法",
+      "expected": [
+        "§861",
+        "§862"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R038",
+      "query": "什麼是質權？",
+      "domain": "民法",
+      "expected": [
+        "§884"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R039",
+      "query": "留置權的成立要件？",
+      "domain": "民法",
+      "expected": [
+        "§928",
+        "§929"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R040",
+      "query": "什麼是占有？",
+      "domain": "民法",
+      "expected": [
+        "§940"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R041",
+      "query": "確認之訴的意義？",
+      "domain": "民事訴訟法",
+      "expected": [
+        "§247"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R042",
+      "query": "什麼是訴訟參加？",
+      "domain": "民事訴訟法",
+      "expected": [
+        "§58"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R043",
+      "query": "支付命令的效力？",
+      "domain": "民事訴訟法",
+      "expected": [
+        "§508",
+        "§516"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R044",
+      "query": "什麼是上訴三審的限制？",
+      "domain": "民事訴訟法",
+      "expected": [
+        "§467",
+        "§468"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R045",
+      "query": "再審事由有哪些？",
+      "domain": "民事訴訟法",
+      "expected": [
+        "§496"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R046",
+      "query": "搜索票由誰簽發？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§128"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R047",
+      "query": "什麼是緊急搜索？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§131"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R048",
+      "query": "被告可以拒絕陳述嗎？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§156",
+        "§95"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R049",
+      "query": "什麼是傳聞法則？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§159"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R050",
+      "query": "證人有拒絕證言權嗎？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§179",
+        "§180",
+        "§181"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R051",
+      "query": "什麼是交互詰問？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§166"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R052",
+      "query": "緩起訴的條件？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§253-2"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R053",
+      "query": "什麼是簡易判決？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§449"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R054",
+      "query": "什麼是協商程序？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§455-2"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R055",
+      "query": "提起公訴的條件？",
+      "domain": "刑事訴訟法",
+      "expected": [
+        "§251"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R056",
+      "query": "行政程序法的一般原則有哪些？",
+      "domain": "行政程序法",
+      "expected": [
+        "§4",
+        "§5",
+        "§6",
+        "§7",
+        "§8"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R057",
+      "query": "行政處分的定義是什麼？",
+      "domain": "行政程序法",
+      "expected": [
+        "§92"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R058",
+      "query": "什麼是訴願？",
+      "domain": "訴願法",
+      "expected": [
+        "§1"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R059",
+      "query": "訴願期間是多久？",
+      "domain": "訴願法",
+      "expected": [
+        "§14"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R060",
+      "query": "行政訴訟的類型有哪些？",
+      "domain": "行政訴訟法",
+      "expected": [
+        "§4",
+        "§5",
+        "§6",
+        "§7",
+        "§8"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R061",
+      "query": "什麼是停止執行？",
+      "domain": "行政訴訟法",
+      "expected": [
+        "§116"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R062",
+      "query": "公務員違法執行職務的國賠責任？",
+      "domain": "國家賠償法",
+      "expected": [
+        "§2"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R063",
+      "query": "公共設施的國賠責任？",
+      "domain": "國家賠償法",
+      "expected": [
+        "§3"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R064",
+      "query": "什麼是公司負責人的忠實義務？",
+      "domain": "公司法",
+      "expected": [
+        "§23"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R065",
+      "query": "股份有限公司的股東會權限？",
+      "domain": "公司法",
+      "expected": [
+        "§202"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R066",
+      "query": "什麼是庫藏股？",
+      "domain": "公司法",
+      "expected": [
+        "§167"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R067",
+      "query": "公司合併的程序？",
+      "domain": "公司法",
+      "expected": [
+        "§316",
+        "§72",
+        "§73"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R068",
+      "query": "勞動契約的終止事由？",
+      "domain": "勞動基準法",
+      "expected": [
+        "§11",
+        "§12"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R069",
+      "query": "資遣費怎麼計算？",
+      "domain": "勞動基準法",
+      "expected": [
+        "§17"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R070",
+      "query": "加班費的計算標準？",
+      "domain": "勞動基準法",
+      "expected": [
+        "§24"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R071",
+      "query": "特別休假的天數？",
+      "domain": "勞動基準法",
+      "expected": [
+        "§38"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R072",
+      "query": "什麼是職業災害？",
+      "domain": "勞動基準法",
+      "expected": [
+        "§59"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R073",
+      "query": "什麼是營業秘密？",
+      "domain": "營業秘密法",
+      "expected": [
+        "§2"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R074",
+      "query": "營業秘密的侵害救濟？",
+      "domain": "營業秘密法",
+      "expected": [
+        "§11",
+        "§12",
+        "§13"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R075",
+      "query": "著作權的保護期間？",
+      "domain": "著作權法",
+      "expected": [
+        "§30",
+        "§31",
+        "§32",
+        "§33"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R076",
+      "query": "什麼是合理使用？",
+      "domain": "著作權法",
+      "expected": [
+        "§44",
+        "§45",
+        "§46",
+        "§47",
+        "§48",
+        "§49",
+        "§50",
+        "§51",
+        "§52",
+        "§65"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R077",
+      "query": "專利權的類型有哪些？",
+      "domain": "專利法",
+      "expected": [
+        "§2",
+        "§21",
+        "§22"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R078",
+      "query": "商標權的侵害救濟？",
+      "domain": "商標法",
+      "expected": [
+        "§68",
+        "§69",
+        "§70"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R079",
+      "query": "什麼是強制執行？",
+      "domain": "強制執行法",
+      "expected": [
+        "§1",
+        "§4"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R080",
+      "query": "查封的效力？",
+      "domain": "強制執行法",
+      "expected": [
+        "§45",
+        "§46",
+        "§47"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R081",
+      "query": "拍賣的程序？",
+      "domain": "強制執行法",
+      "expected": [
+        "§65",
+        "§66",
+        "§67",
+        "§68"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R082",
+      "query": "什麼是分配表？",
+      "domain": "強制執行法",
+      "expected": [
+        "§31",
+        "§34"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R083",
+      "query": "消滅時效的期間？",
+      "domain": "民法",
+      "expected": [
+        "§125",
+        "§126",
+        "§127"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R084",
+      "query": "時效中斷的事由？",
+      "domain": "民法",
+      "expected": [
+        "§129"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R085",
+      "query": "什麼是代理？",
+      "domain": "民法",
+      "expected": [
+        "§103",
+        "§104",
+        "§105",
+        "§106",
+        "§107"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R086",
+      "query": "無權代理的效果？",
+      "domain": "民法",
+      "expected": [
+        "§110",
+        "§169",
+        "§170"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R087",
+      "query": "什麼是意思表示？",
+      "domain": "民法",
+      "expected": [
+        "§86",
+        "§87",
+        "§88",
+        "§89",
+        "§90",
+        "§91",
+        "§92"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R088",
+      "query": "契約自由原則的限制？",
+      "domain": "民法",
+      "expected": [
+        "§71",
+        "§72",
+        "§73",
+        "§74"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R089",
+      "query": "什麼是定金？",
+      "domain": "民法",
+      "expected": [
+        "§248",
+        "§249"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R090",
+      "query": "違約金的性質？",
+      "domain": "民法",
+      "expected": [
+        "§250",
+        "§251",
+        "§252",
+        "§253"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R091",
+      "query": "什麼是和解？",
+      "domain": "民法",
+      "expected": [
+        "§736",
+        "§737"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R092",
+      "query": "什麼是連帶債務？",
+      "domain": "民法",
+      "expected": [
+        "§272",
+        "§273",
+        "§274",
+        "§275",
+        "§276",
+        "§277",
+        "§278",
+        "§279",
+        "§280",
+        "§281",
+        "§282"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R093",
+      "query": "什麼是抵銷？",
+      "domain": "民法",
+      "expected": [
+        "§334",
+        "§335",
+        "§336",
+        "§337",
+        "§338",
+        "§339",
+        "§340",
+        "§341",
+        "§342"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R094",
+      "query": "什麼是時效取得？",
+      "domain": "民法",
+      "expected": [
+        "§768",
+        "§769",
+        "§770",
+        "§772"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R095",
+      "query": "什麼是共有？",
+      "domain": "民法",
+      "expected": [
+        "§817",
+        "§818",
+        "§819",
+        "§820",
+        "§821",
+        "§822",
+        "§823",
+        "§824",
+        "§825",
+        "§826",
+        "§827",
+        "§828",
+        "§829",
+        "§830"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R096",
+      "query": "什麼是分管契約？",
+      "domain": "民法",
+      "expected": [
+        "§820",
+        "§826-1"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R097",
+      "query": "妨害名譽罪的構成要件？",
+      "domain": "刑法",
+      "expected": [
+        "§309",
+        "§310",
+        "§311",
+        "§312"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R098",
+      "query": "什麼是侵占遺失物罪？",
+      "domain": "刑法",
+      "expected": [
+        "§337"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R099",
+      "query": "什麼是恐嚇取財罪？",
+      "domain": "刑法",
+      "expected": [
+        "§346"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    },
+    {
+      "id": "R100",
+      "query": "什麼是公務員圖利罪？",
+      "domain": "刑法",
+      "expected": [
+        "§131"
+      ],
+      "retrieved": [],
+      "recall@5": 0.0,
+      "precision@5": 0.0
+    }
+  ]
+}

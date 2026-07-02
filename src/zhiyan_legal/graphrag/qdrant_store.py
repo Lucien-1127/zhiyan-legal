@@ -19,7 +19,7 @@ from qdrant_client.http.exceptions import UnexpectedResponse
 logger = logging.getLogger("zhiyan.graphrag.qdrant")
 
 COLLECTION_NAME = "zhiyan_legal_articles"
-EMBEDDING_DIM = 768  # sentence-transformers all-MiniLM-L6-v2
+EMBEDDING_DIM = 384  # sentence-transformers all-MiniLM-L6-v2
 
 
 class QdrantStore:
