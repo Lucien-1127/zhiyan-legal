@@ -24,11 +24,19 @@ from .core import ModelVerdict, Verdict
 
 logger = logging.getLogger("committee.runner")
 
-# ── 預設 Agnes Keys ──
-_k1a = 'sk-dlL'; _k1b = 'kC3tAh9zmu2wDjbOIG7dd'; _k1c = 'p3H6leZN7Mv7K29QLQUo4Y4V'
-AGNES_KEY1 = _k1a + _k1b + _k1c
-_k2a = 'sk-'; _k2b = 'Ggsl3OR0CLyCdOES3Y2Biz3eldpxWTA8EY'; _k2c = 'eRfKJWiVpHNo80'
-AGNES_KEY2 = _k2a + _k2b + _k2c
+# ── Agnes Keys（優先讀取環境變數，若無則使用內建值 ──
+_AGNES_KEY_ENV_1 = os.environ.get("AGNES_API_KEY_1") or os.environ.get("AGNES_KEY1")
+_AGNES_KEY_ENV_2 = os.environ.get("AGNES_API_KEY_2") or os.environ.get("AGNES_KEY2")
+
+if _AGNES_KEY_ENV_1 and _AGNES_KEY_ENV_2:
+    AGNES_KEY1 = _AGNES_KEY_ENV_1
+    AGNES_KEY2 = _AGNES_KEY_ENV_2
+else:
+    logger.warning("環境變數 AGNES_API_KEY_1/2 未設定，回退至內建金鑰（不安全，僅供開發測試）")
+    _k1a = 'sk-dlL'; _k1b = 'kC3tAh9zmu2wDjbOIG7dd'; _k1c = 'p3H6leZN7Mv7K29QLQUo4Y4V'
+    AGNES_KEY1 = _k1a + _k1b + _k1c
+    _k2a = 'sk-'; _k2b = 'Ggsl3OR0CLyCdOES3Y2Biz3eldpxWTA8EY'; _k2c = 'eRfKJWiVpHNo80'
+    AGNES_KEY2 = _k2a + _k2b + _k2c
 
 PROJECT_DIR = str(Path.home() / "zhiyan-legal")
 ABLATION_SCRIPT = str(Path.home() / "zhiyan-legal" / "tests" / "run_ablation.py")

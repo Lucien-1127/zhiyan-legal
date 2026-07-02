@@ -39,7 +39,7 @@ style = doc.styles['Normal']
 style.font.name = FONT; style.font.size = Pt(FS)
 style.element.rPr.rFonts.set(qn('w:eastAsia'), FONT)
 pf = style.paragraph_format
-pf.line_spacing = LINE_H; pf.space_before = pt0; pf.space_after = pt0
+pf.line_spacing = LINE_H; pf.space_before = Pt(0); pf.space_after = Pt(0)
 pf.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
 def borderless_table(rows, cols):
