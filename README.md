@@ -9,13 +9,13 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 
 # 智研 AI 法律系統 · Zhiyan AI Legal System
 
-[![Hermes Skill](https://img.shields.io/badge/Hermes-v3.07-8B5CF6)](SKILL.md)
+[![Hermes Skill](https://img.shields.io/badge/Hermes-v3.08-8B5CF6)](SKILL.md)
 [![Docs](https://img.shields.io/badge/docs-100%2B_specs-blue)](docs/)
 [![MkDocs](https://img.shields.io/badge/MkDocs-Material-0094F5)](https://lucien-1127.github.io/zhiyan-legal/)
 [![Wiki](https://img.shields.io/badge/wiki-6_pages-2E8B57)](docs/wiki/)
 [![Python](https://img.shields.io/badge/python-3.10+-376F9B)](.)
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-123_passed-3DA639)](tests/)
+[![Benchmark](https://img.shields.io/badge/benchmark-6_essays-8B5CF6)](benchmark/)
 [![CI](https://img.shields.io/badge/GitHub%20Actions-pages-2088FF)](.github/workflows/)
 
 <p align="center">
@@ -57,18 +57,40 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 
 最後，根據使用者的問題類型，系統會選擇適合的模式來回應：是要做品質檢查、法律研究、報告產出，還是出題考試、批改申論、模擬法庭——甚至連寫一篇申論示範答案都行。如果主題不是法律而是科普或商業，還有一個專門的提示詞工程模式，幫你生成客製化的寫手指令。
 
+### 新增功能（v3.08）
+
+- **合約審閱管線**：ClauseExtractor → RiskReviewer → LegalVerifier → LayoutChecker 四個子代理協作，含 LC-01~LC-15 排版強制校驗
+- **多模型合議庭（committee/）**：3 模型平行交叉驗證法條引用，標示共識／分歧／盲區
+- **AI Benchmark 申論題測驗集**：6 題跨法域（刑訴、刑法、行政法）按 6 項評分標準自動評測
+- **prompts/modes/router.json**：12 個 task_mode 對應提示詞路徑，統一路由入口
+
 ## 可以怎麼用
 
-如果你用 Hermes Agent，法律相關的問題直接問就好，系統會自動判斷：
+### Hermes Agent（法律問題直接問）
 
-```
+```text
 請分析這個契約有沒有風險
 什麼是公然侮辱罪？
 ```
 
-不需要加任何前綴或指令。如果系統沒有自動觸發，可以說「智研」兩個字來強制啟動。
+### 合約產生（CLI）
 
-如果想跑實驗：
+```bash
+python scripts/gen_nda_pro.py                          # 預設 NDA
+python scripts/gen_nda_pro.py --output ./nda.docx      # 自訂路徑
+python scripts/gen_nda_pro.py --compact --party-a "XXX" # 緊湊排版
+```
+
+### 多模型合議庭
+
+```bash
+cd zhiyan-legal
+PYTHONPATH=$PWD python -m committee.run --dry-run              # 預覽
+PYTHONPATH=$PWD python -m committee.run                        # 完整執行
+PYTHONPATH=$PWD python -m committee.run --categories correct_query  # 指定類別
+```
+
+### 跑實驗
 
 ```bash
 git clone https://github.com/Lucien-1127/zhiyan-legal.git
@@ -76,6 +98,13 @@ cd zhiyan-legal && bash scripts/setup.sh
 
 PYTHONPATH=src pytest tests/ -v
 PYTHONPATH=src python -m zhiyan_legal "什麼是公然侮辱？" --dry-run
+```
+
+### AI Benchmark（測試法律推理能力）
+
+```bash
+# 手動測試 6 題申論（見 benchmark/essay-questions.md）
+# 或載入 benchmark/essay-questions.json 程式化跑分
 ```
 
 ## 想更深入
@@ -89,7 +118,7 @@ PYTHONPATH=src python -m zhiyan_legal "什麼是公然侮辱？" --dry-run
   author = {謝小育 (Lucien127@proton.me)},
   title = {Zhiyan AI Legal System},
   year = {2026},
-  version = {v3.07},
+  version = {v3.08},
   url = {https://github.com/Lucien-1127/zhiyan-legal}
 }
 ```
@@ -129,7 +158,14 @@ The core gate classifies facts (verifiable vs.推测), extracts five elements (w
 
 From there, a local RAG database of 47,001 statute plain-language entries is queried. For contested provisions, the system connects directly to Taiwan's judicial judgment database via MCP protocol, with mandatory constitutional court checks for fundamental rights cases.
 
-Finally, the mode router selects the right response pattern: QC, research, report, essay grading, moot court, or even generating a custom writing prompt for non-legal topics.
+Finally, the mode router selects the right response pattern: QC, research, report, essay grading, moot court, or contract review.
+
+### New in v3.08
+
+- **Contract Review Pipeline**: 4-agent collaboration (ClauseExtractor → RiskReviewer → LegalVerifier → LayoutChecker) with mandatory LC-01~LC-15 layout checks
+- **Multi-Model Committee**: 3-model parallel citation verification, flagging consensus/dissensus/blind spots
+- **AI Benchmark Suite**: 6 cross-domain essay questions with 6-dimension scoring rubric
+- **Unified Router**: `prompts/modes/router.json` mapping 12 task_modes to prompt paths
 
 ## Quickstart
 
@@ -141,6 +177,12 @@ PYTHONPATH=src pytest tests/ -v
 PYTHONPATH=src python -m zhiyan_legal "What is public insult?" --dry-run
 ```
 
+### Multi-Model Committee
+
+```bash
+PYTHONPATH=$PWD python -m committee.run --verbose
+```
+
 ## Citation
 
 ```bibtex
@@ -148,7 +190,7 @@ PYTHONPATH=src python -m zhiyan_legal "What is public insult?" --dry-run
   author = {謝小育 (Lucien127@proton.me)},
   title = {Zhiyan AI Legal System},
   year = {2026},
-  version = {v3.07},
+  version = {v3.08},
   url = {https://github.com/Lucien-1127/zhiyan-legal}
 }
 ```

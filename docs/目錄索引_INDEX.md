@@ -10,7 +10,7 @@ tags:
 
 > 企業級法律 AI 系統，分為核心控制層、模式與引用層、模組與人格層、概念詞條與維運治理。
 
-最後更新：2026-07-02（v3.08 同步：contract task mode + SKILL-09 排版校驗 + router.json + 48/49 frontmatter）｜共 92 筆 Markdown
+最後更新：2026-07-02（v3.08：合約審閱、committee、benchmark）
 
 ## 📂 00_入口與總覽 — 🔰 入口文件，初次使用從這裡開始
 

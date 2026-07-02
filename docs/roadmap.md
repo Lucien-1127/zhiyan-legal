@@ -45,9 +45,13 @@ Safe Routing    Ablation Framework  Production Ops     Ecosystem
 | **LOCAL_RAG (L0.7)** | ✅ 完成 | 47,001 條法條白話摘要，SQLite FTS5 |
 | **CASE_VERIFY (L0.8)** | ✅ 完成 | 司法院判決書查詢整合 |
 | **MODE_ROUTER** | ✅ 完成 | 任務路由：QC → RESEARCH → REPORT |
-| **Persona Layer (L1)** | ✅ 完成 | 6 人格：MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER |
+| **Persona Layer (L1)** | ✅ 完成 | 14+ 人格/模組：MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER, PROMPT_ENGINEER, CONTRACT_RISK + 訴訟策略、安全、Sentinel、法庭模擬、申論測試 |
 | **Citation Policy v2.1** | ✅ 完成 | [T] + [1] + [2] + [3] 四階引用標記 |
-| **Hermes Agent Skill** | ✅ 完成 | v3.06 skill 定義，完整路由對應 |
+| **Hermes Agent Skill** | ✅ 完成 | v3.08 skill 定義（9 模組、10 條全局約束、contract task mode） |
+| **Contract Review** | ✅ 完成 | SkILL-03/SKILL-09：4 子代理管線含 LC-01~LC-15 排版校驗 |
+| **Multi-Model Committee** | ✅ 完成 | 3 模型平行合議庭，標示共識/分歧/盲區 |
+| **AI Benchmark** | ✅ 完成 | 6 題跨法域申論測驗集，6 項評分標準 |
+| **Unified Router** | ✅ 完成 | prompts/modes/router.json 覆蓋 12 task_mode |
 | **Court Simulation** | ✅ 完成 | 訴訟推演模組，攻防模擬 |
 | **TYPE-S System** | ✅ 完成 | 型態系統：單選題、多選題、申論題、案例題 |
 | **Sub-agent Parallel** | ✅ 完成 | 子代理並行排程，多任務同時處理 |
@@ -59,11 +63,11 @@ Safe Routing    Ablation Framework  Production Ops     Ecosystem
 
 | 指標 | 當前值 | 目標 |
 |:-----|:--------|:------|
-| 不虛構引用率 | 待測量 | ≥ 95% |
+| 不虛構引用率 | 待 committee 全量測試 | ≥ 95% |
 | 安全路由準確率 | 待測量 | ≥ 99% |
 | 事實閘門精確率 | 待測量 | ≥ 90% |
 | 法條檢索 Recall@5 | 待測量 | ≥ 85% |
-| 測試覆蓋率 | 81+ tests | ≥ 100 tests |
+| 測試覆蓋率 | 115 tests（7 測試檔） | ≥ 100 tests |
 
 ---
 
@@ -412,6 +416,6 @@ v6.x (Community OSS)
 
 > **路線圖的更新頻率**：本文件每季檢討一次，對應實際開發進度調整。
 >
-> 最新更新：2026-06
+> 最新更新：2026-07-02（v3.08）
 >
 > *路線圖是動態的。歡迎開 issue 或 PR 提出建議。*
