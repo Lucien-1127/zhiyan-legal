@@ -1,3 +1,9 @@
+"""
+⚠️ DEPRECATED — 此腳本已由 gen_nda_pro.py 取代。
+請改用：  python scripts/gen_nda_pro.py
+支援 --output, --compact, --party-a, --party-b 參數。
+"""
+
 """Generate NDA v1.2 FINAL as court-compliant .docx"""
 import sys, os
 sys.path.insert(0, r'C:\Users\ysga1\zhiyan-legal\src')

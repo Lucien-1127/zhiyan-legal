@@ -1,0 +1,128 @@
+[
+  {
+    "area": "測試與資料",
+    "finding": "tests/ 共 7 個 .py 檔案，但 src/zhiyan_legal/ 有 14 個 .py 模組。以下模組完全無測試：cli.py (163行), doc_generator.py (164行), regulation_api.py (266行), regulation_diff.py (697行), regulation_tracker.py (879行), runner.py (已棄用但被 ablation script 引用)。其中 regulation_diff.py + regulation_tracker.py 合計 1576 行，佔總程式碼 40%，卻零測試覆蓋。",
+    "severity": "high",
+    "suggestion": "優先為 regulation_diff.py 的 diff_articles()、lcs_diff()、build_diff_report() 與 regulation_tracker.py 的 _parse_amendment_dates()、_cn_to_num() 撰寫單元測試。cli.py 可透過 subprocess 呼叫測試 main()。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "test_routing.py 有 29 個測試案例，涵蓋 10 條路由（SAFETY, QC, RESEARCH, REPORT, CONSULTANT, TUTOR, TA, LITIGATION, LEGAL_WRITER, SIMULATION）及邊界條件（如「抹殺」不觸發 SAFETY、「報告」不觸發 LITIGATION）。覆蓋度良好。",
+    "severity": "low",
+    "suggestion": "考慮新增 ROUTER_GATE 測試（當路由結果為 SAFETY 時應觸發安全閘門），以及空字串 / Unicode 邊緣輸入的路由行為。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "test_loader.py 有 16 個測試，覆蓋 load_file()、compose()、count_tokens()、parse_frontmatter() 的主要路徑。但 loader.py 的 compose() 含 max_chars 截斷、encoding 錯誤處理、大檔案效能等路徑未測試。",
+    "severity": "medium",
+    "suggestion": "新增編碼錯誤（如 UTF-8 無效檔案）、max_chars 精確截斷邊界、以及空目錄下的 compose() 錯誤路徑測試。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "test_manifest.py 有 24 個測試（含 class-based），全面覆蓋 Layer dataclass、CORE_LAYERS、TASK_LAYERS、resolve_doc()、get_load_order()。並包含檔案存在性驗證（test_core_layer_files_exist, test_task_layer_files_exist）。",
+    "severity": "low",
+    "suggestion": "新增 EXCLUDED_DIRS / EXCLUDED_FILES 的實際排除行為測試（確認 .git、__pycache__ 等確實被跳過）。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "test_sub_agent.py 有 23 個測試，使用 MagicMock mock hermes_tools.delegate_task。覆蓋 parallel_citation_verify、courtroom_parallel、type_s_review、parallel_legal_research、parallel_rag_online、run_full_analysis 六大功能。但測試依賴 mock 層，不驗證實際的 task dict 結構完整性（如 toolsets、context 欄位是否存在）。",
+    "severity": "medium",
+    "suggestion": "新增測試驗證 delegate_task 收到的 tasks 結構符合 Hermes Agent 的 contract（包含 required keys: goal, context, toolsets）。另外 test_sub_agent.py 的 mock 在 CI 環境若無 hermes_tools 會 import 失敗，需確保 CI 有對應 mock。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "test_judicial_api.py 有 14 個測試，覆蓋 parse_case_number() 的多種台灣法院案號格式（含高等法院分院、複合字別如重訴/金訴/家親聲）及 build_jid()。但 judicial_api.py 有 220 行，COURT_CODES 映射和 CASE_TYPE_CODES 的完整覆蓋度未驗證。",
+    "severity": "medium",
+    "suggestion": "新增測試驗證 COURT_CODES 涵蓋所有 35+ 家法院且無重複代碼。測試 parse_case_number() 對異常輸入（極長字串、特殊字符）的行為。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "test_runner.py 有 8 個測試，僅覆蓋 engine.validate_output() 的簡單路徑檢查。engine.py 有 805 行，包含 ZhiyanEngine 類別（startup/shutdown/query_async/query/_call_llm/health_check 等 20+ 方法），幾乎全部未測試。",
+    "severity": "high",
+    "suggestion": "為 engine.py 建立完整的測試套件：(1) EngineConfig 的各種組合，(2) validate_output() 對各路由類型的行為，(3) health_check() 的 mock HTTP 測試，(4) _detect_legal_mode() 的語意判斷測試。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "data/ 目錄結構清晰：eval_queries.json (200 題目標, 目前 15 題種子), eval_schema.json (JSON Schema draft-07), articles/ (22 個全國法規 JSON 檔案)。Schema 定義完整，包含 id/version/route/difficulty/safety_level/ground_truth/ablation_flags/metadata 等欄位。",
+    "severity": "low",
+    "suggestion": "eval_queries.json 目前僅 15 題（7.5%），遠低於 200 題目標。建議優先補齊 SAFETY (25 題)、REPORT (20 題)、TA (20 題) 等高價值路由的查詢。同時 Q001 的 ground_truth.statutes 中有 moj_verified=false 的條文，應標記為待驗證。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "data/eval_schema.json 的 route enum 包含 CROSS_JUR 但 test_routing.py 的路由測試未涵蓋 CROSS_JUR 路由。eval_schema 的 safety_level 包含 RL0-RL3 但 test_routing.py 的 SAFETY 測試只涵蓋了 RL1/RL2 情境。",
+    "severity": "medium",
+    "suggestion": "在 test_routing.py 中新增 CROSS_JUR 路由測試（如「台灣與美國刑法對盜竊罪的差異」），並補充 RL0（低危）和 RL3（極危）的 SAFETY 路由邊界測試。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "scripts/run_ablation_experiment.py 是 366 行的消融實驗腳本，設計為 50 題 × 2 條件（A: 有 Citation Policy / B: 無）= 100 次 LLM 呼叫。使用 run_llm()（已棄用模組 runner.py）和 gpt-4o-mini 模型。結果寫入 results/exp-citation-ablation-YYYYMMDD-HHMMSS/ 帶時間戳的目錄。",
+    "severity": "medium",
+    "suggestion": "遷移至 ZhiyanEngine（取代已棄用的 run_llm）。將 QUERIES 硬編碼改為讀取 data/eval_queries.json，使實驗與評估資料集一致。新增 --dry-run 模式讓實驗可在無 API key 下驗證流程。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "tests/run_ablation_v8_committee.py 是 281 行的多模型合議消融實驗。依賴外部 API key（硬編碼在原始碼中：K1/K2），使用 subprocess 呼叫 tests/run_ablation.py（此檔案不存在於 tests/ 目錄），並需要 Gemini 2.5 Flash API。Phase 2 的 committee cross-comparison 使用統計近似（概率乘積）而非真實 per-query 粒度。",
+    "severity": "high",
+    "suggestion": "1) 將硬編碼 API key 移至 .env 檔案（security risk）。2) 確認 tests/run_ablation.py 是否存在（subprocess 呼叫目標）。3) Phase 2 的統計近似應改為真實 per-query 交叉比對（需讀取 ablation_results.json）。4) 移至 scripts/ 目錄以符合實驗腳本存放慣例。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "results/ 目錄有 3 個既有報告：architecture_health_check.json (28 findings from 4 AI reviewers), committee_v1_baseline.json (14 queries, 42.9% divergence rate), db_health_check.json (empty DB, 0 rows)。所有報告均為一次性快照，無版本追蹤或回歸基準。",
+    "severity": "medium",
+    "suggestion": "建立 results/ 的版本管理策略：(1) 為每個報告加入 version 欄位，(2) 建立 results/README.md 說明各報告用途與更新頻率，(3) 將 architecture_health_check.json 的 findings 量化為可追蹤的 metric（如 critical=3, major=14, minor=11）並納入 CI。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "docs/90_維運治理/93_冒煙測試_SMOKE_TESTS_v1.0.0.md 定義了 10 個 Agent 路由測試案例（T01-T10），涵蓋 RESEARCH/REPORT/QC/CONSULTANT/TA_REVIEW/TUTOR/LITIGATION/SAFETY/PRE_QC/RESEARCH->REPORT 路由。但這些是手動勾選清單（[ ]），沒有對應的自動化測試。",
+    "severity": "medium",
+    "suggestion": "將 T01-T10 的 10 個冒煙測試案例轉化為 pytest 測試（例如在 test_routing.py 或新增 test_smoke.py），使用 route() + validate_output() 自動化執行。T05 的 TA_REVIEW 路由在 test_routing.py 中未覆蓋（router 回傳 TA 而非 TA_REVIEW）。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "冒煙測試 T09 預期路由為 PRE_QC，但 test_routing.py 的 route() 函數返回的是 CONSULTANT（test_default_qc 第 72 行：'我朋友欠我錢不還，怎麼辦' → CONSULTANT）。PRE_QC 路由在 router.py 中未實現為獨立路由目標。",
+    "severity": "high",
+    "suggestion": "確認 router.py 是否支援 PRE_QC 路由。若不支援，需在 test_routing.py 新增 PRE_QC 測試並更新冒煙測試文件，或在 router.py 中新增 PRE_QC 路由邏輯。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "測試可重現性分析：(1) test_routing.py、test_loader.py、test_manifest.py、test_judicial_api.py 為純單元測試，無外部依賴，可重現。(2) test_sub_agent.py 需 mock hermes_tools，在 CI 需額外 setup。(3) test_runner.py 呼叫 engine.validate_output()，純邏輯測試，可重現。(4) scripts/run_ablation_experiment.py 需要 ZHIYAN_API_KEY/OpenAI API key 和 gpt-4o-mini 模型，有成本 (~$0.15/M tokens)。(5) tests/run_ablation_v8_committee.py 需要 3 個 API key + Gemini API，且呼叫不存在的 tests/run_ablation.py。",
+    "severity": "high",
+    "suggestion": "建立 .env.example 模板列出所有需要的 API key 變數。將 ablation 實驗移至 scripts/ 目錄。為 run_ablation_v8_committee.py 建立 tests/run_ablation.py 的 stub 或修正路徑。新增 pytest fixtures 管理 API key mock，讓 ablation 測試可在無 key 下執行 mock 模式。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "data/articles/ 有 22 個 JSON 檔案，來自 law.moj.gov.tw 的全國法規資料庫。涵蓋民法(B)、行政程序法(A)、民事訴訟法(C)、勞動基準法(N)、著作權法(J)、個人資料保護法(I)、家庭暴力防治法(D)、跟蹤騷擾防制法(G)、就業服務法(U)、就業保險法(T) 等 11 部法律。但 eval_queries.json 的 ground_truth 引用了 勞動基準法、行政訴訟法、民事訴訟法、消費者保護法等更多法規，articles/ 尚未涵蓋。",
+    "severity": "medium",
+    "suggestion": "擴充 data/articles/ 以覆蓋 eval_queries.json 中引用的所有法規（特別是行政訴訟法、消費者保護法、就業服務法、家庭暴力防治法）。建立 articles/ 的更新腳本，定期從 law.moj.gov.tw 同步最新條文。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "eval_queries.json 的 15 題種子查詢中，6 題 (Q002, Q003, Q012, Q108, Q151-Q153) 的 ground_truth.statutes 為空陣列或 moj_verified=false，代表這些是「不存在條文」或「待驗證」的 edge case。SAFETY 路由僅 4 題 (Q106-Q108 + Q107)，遠低於計畫的 25 題。",
+    "severity": "medium",
+    "suggestion": "優先完成 SAFETY 路由的 25 題（含 RL0-RL3 各級別），這是 RQ2（安全路由）的核心數據。為 moj_verified=false 的條文建立驗證追蹤表單，定期重新驗證。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "validate_dataset.py 存在於 scripts/ 而非 tests/，且是 standalone 腳本（非 pytest 測試）。它只做格式驗證（欄位存在性、enum 合法性），不做語義驗證（如 statutes 是否真的存在於 law.moj.gov.tw、query_text 是否與 route 匹配）。",
+    "severity": "low",
+    "suggestion": "將 validate_dataset.py 改寫為 pytest 測試模組（tests/test_eval_dataset.py），並新增語義層驗證：(1) 檢查 statutes 的 pcode 是否在 data/articles/ 中存在對應檔案，(2) 檢查 route 與 domain/law_area 的一致性，(3) 檢查 ablation_flags 中 SAFETY 路由的 condition_B/C/D 是否為 false。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "test_routing.py 的 test_default_qc 第 72 行預期 '我朋友欠我錢不還，怎麼辦' → CONSULTANT，但冒煙測試 T04 '這個案件我勝率多少' 也預期 CONSULTANT。兩者的語意相近但測試輸入不同。此外 test_mixed_qc_research (第 82 行) 預期 '幫我查這份合約有沒有漏洞' → RESEARCH，但 test_qc_check (第 32 行) 預期 '幫我檢查這份合約的違約條款是否完整' → QC。兩個輸入都含「合約」，但路由不同，顯示路由邏輯對「查」vs「檢查」有區分。",
+    "severity": "low",
+    "suggestion": "記錄此路由行為在 docs/ 中作為「路由決策規則」，避免未來修改 router.py 時破壞此行為。考慮新增模糊測試（fuzz testing）隨機生成輸入來驗證路由穩定性。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "data/eval_schema.json 定義了 ablation_flags 的 4 個條件 (A-D)，但 scripts/run_ablation_experiment.py 僅實現 A（有 Citation Policy）和 B（無 Citation Policy），C（No fact gate）和 D（Unconstrained baseline）未實現。tests/run_ablation_v8_committee.py 也只跑 condition A。",
+    "severity": "medium",
+    "suggestion": "實作 C（移除 fact gate / CORE_GATE）和 D（完全無約束基線）的消融條件，使 4×4 實驗矩陣完整。或將 eval_schema.json 的 ablation_flags 縮減為已實現的 A+B 兩條件以保持一致性。"
+  },
+  {
+    "area": "測試與資料",
+    "finding": "docs/90_維運治理/95_功能驗收矩陣_FUNCTION_ACCEPTANCE_v1.0.0.md 定義了 11 個功能（REPORT/RESEARCH/QC/CONSULTANT/TA_REVIEW/TUTOR/LITIGATION/SAFETY/PRE_QC/CITATION/CONCEPT），但 test_routing.py 的 route() 測試涵蓋 10 條路由（含 LEGAL_WRITER 和 SIMULATION），與驗收矩陣不完全對應。TA_REVIEW 在路由表中被簡化為 TA，CONCEPT 和 CITATION 沒有對應測試。",
+    "severity": "medium",
+    "suggestion": "統一路由表與驗收矩陣的名稱映射。為 CITATION 和 CONCEPT 路由新增測試案例。確認 LEGAL_WRITER 和 SIMULATION 是否應納入正式驗收矩陣。"
+  }
+]

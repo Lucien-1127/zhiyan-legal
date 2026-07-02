@@ -1,3 +1,9 @@
+"""
+⚠️ DEPRECATED — 此腳本已由 gen_nda_pro.py 取代。
+請改用：  python scripts/gen_nda_pro.py
+支援 --output, --compact, --party-a, --party-b 參數。
+"""
+
 """NDA v1.2 FINAL - real Taiwan contract formatting"""
 from docx import Document
 from docx.shared import Pt, Cm

@@ -1,0 +1,122 @@
+[
+  {
+    "area": "治理與安全",
+    "finding": "GOVERNANCE.md 僅有 6 條核心決策規則，缺少對資料分類（Data Classification）、資料保留（Data Retention）、存取控制（Access Control/RBAC）、加密傳輸（TLS/HTTPS）等基礎資安治理條款的規範。",
+    "severity": "high",
+    "suggestion": "擴充 GOVERNANCE.md 加入資料分级（LV1-LV4）、資料留存週期、最小權限原則（PoLP）、以及外部 API 通訊的加密要求。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "INVARIANTS.md 定義了 I001-I004 四條不變量，但未涵蓋資料隱私（如 GDPR/個資法合規）、模型輸出防注入（Prompt Injection Defense）、以及模型幻覺（Hallucination）的治理約束。",
+    "severity": "medium",
+    "suggestion": "新增 I005（Privacy）：個人識別資訊（PII）不得直接輸出，需脫敏處理。新增 I006（Anti-Hallucination）：法律結論必須附帶來源引用，禁止虛構法條或判例。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "policies/intent.yaml 僅定義了 fast_path_keywords 與 committee_path_keywords，內容過於簡略（共 3 行）。未涵蓋風險關鍵字、安全觸發詞、法域分類等進階意圖路由規則。",
+    "severity": "medium",
+    "suggestion": "擴充 intent.yaml 加入安全觸發詞清單（如「自殺」「暴力」「綁架」）、法域分類映射、以及意圖置信度閾值設定。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "policies/security.yaml 僅有 default_deny、allowed_tools 兩項設定（共 3 行）。允許的工具列表只有 search_law 和 summarize，未涵蓋安全掃描、日誌審計、入侵檢測等工具。缺少 rate limiting、輸入驗證、輸出過濾等安全控制。",
+    "severity": "high",
+    "suggestion": "擴充 security.yaml 加入：(1) 工具白名單分級（低/中/高風險工具分離）；(2) 速率限制規則；(3) 輸入長度上限與特殊字元過濾；(4) 輸出安全審計（PII 偵測）；(5) 日誌記錄策略。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "SECURITY.md 僅提供漏洞回報郵箱（Lucien127@proton.me），缺少：(1) 受支援版本範圍（Supported Versions）；(2) 漏洞分級與 SLA；(3) 依賴漏洞（Dependency Vulnerabilities）處理流程；(4) 第三方 API 金鑰洩漏應變程序；(5) 安全更新公告機制。",
+    "severity": "medium",
+    "suggestion": "擴充 SECURITY.md 加入 CVE 分級（Critical/High/Medium/Low）、各級 SLA（如 Critical ≤24h）、Dependabot/Snyk 依賴掃描流程、以及安全公告頻道。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "41_模組（安全風險對話處理）文件完整度高，涵蓋風險分級（RL0-RL3）、Intent 分類（11 種）、風險打分規則、回應模板、紅旗條件、測試用例與 Mermaid 流程圖。與 42_模組（Sentinel）有明確交叉引用。",
+    "severity": "low",
+    "suggestion": "建議加入：(1) 多語言支援的風險詞彙表（繁體中文、簡體中文、英文）；(2) 誤報/漏報案例分析欄位；(3) 與 INVARIANTS I001 的強制觸發關聯說明。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "42_模組（Sentinel 多法域前置檢測）文件結構清晰，涵蓋法域優先序（6 級）、檢測流程、固定輸出格式、路由結果、禁止事項、最小追問（3 題）。但缺少與 41_模組的自動化串接機制描述——僅文字提到「優先轉 41_模組」。",
+    "severity": "medium",
+    "suggestion": "在 42_模組中加入自動化路由的技術規格：(1) Sentinel 如何自動檢測安全風險並呼叫 41_模組；(2) 兩個模組間的數據交換格式；(3) 錯誤情況下（41_模組不可用）的降級策略。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": ".gitignore 正確排除了 .env、.env.gcp、*.token，防止 API 金鑰洩漏。但 .env.example 本身包含了佔位符金鑰格式（如 sk-you...here），若不小心替換為真實金鑰後提交，仍可能洩露。",
+    "severity": "low",
+    "suggestion": "在 .env.example 中明確標註『此為範本，切勿填入真實金鑰』警告。建議加入 pre-commit hook 檢查 .env 檔案是否意外加入 git staging area。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "scripts/get_secret.py 使用 GCP Secret Manager 管理 API 金鑰，涵蓋 OpenAI、OpenRouter、Gemini、NVIDIA、Gmail App Password。但 GCP Project ID（gen-lang-client-0435318113）硬編碼在函式中，且 .env.gcp 雖被 .gitignore 排除，腳本本身仍可被逆向工程取得專案 ID。",
+    "severity": "medium",
+    "suggestion": "(1) 將 GCP Project ID 移至環境變數或 config 檔案；(2) 增加 IAM 權限最小化原則說明；(3) 加入金鑰輪換（Key Rotation）流程文件；(4) 考慮使用 Workload Identity Federation 而非 Service Account 金鑰。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "governance/replay/ 架構設計完善：framework.md 定義五大決策問題與回歸測試原則；schema.json 包含 reason graphs、audit proof（含 normalized payload hash 與 prev_hash 鏈式結構）；regression_sets/schema.json 定義預期輸出的分類、路由、決策、置信度閾值；templates/report.md 提供標準報告格式。",
+    "severity": "low",
+    "suggestion": "建議補充：(1) 回放測試的自動化執行腳本（目前僅有框架與 schema）；(2) 回放結果的版本控制策略（存儲位置、保留週期）；(3) 與 CI/CD pipeline 的整合方式。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "committee_core/policies/governance_contract.py 僅有 4 行 stub 程式碼（enforce 方法為 pass），未實現任何實際的治理契約強制邏輯。與 GOVERNANCE.md 的 6 條規則和 INVARIANTS.md 的 4 條不變量之間缺乏程式碼層面的對應關係。",
+    "severity": "high",
+    "suggestion": "實現 GovernanceContract 類別的 enforce() 方法，將 GOVERNANCE.md 與 INVARIANTS.md 的規則編碼為可執行的檢查函數。每個 invariant 應對應一個獨立的驗證函數（如 enforce_i001_security()）。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "整個儲存庫缺少 Incident Response Plan（IRP）文件。雖然 41_模組處理即時安全風險對話，但沒有針對系統本身的事故應變流程（如 API 金鑰洩漏、模型被投毒、資料外洩、服務中斷等）。",
+    "severity": "high",
+    "suggestion": "建立 docs/90_維運治理/IR_Incident_Response_v1.0.0.md，涵蓋：(1) 事故分級標準；(2) 通報流程與聯繫窗口；(3) 遏制與根除步驟；(4) 恢復與事後檢討（Post-Mortem）模板；(5) 定期演練頻率。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "缺少資料保護合規文件。作為法律領域 AI 系統，處理的可能是敏感法律案件資料，但沒有 GDPR、台灣個資法或其他司法管轄區的合規指南。",
+    "severity": "high",
+    "suggestion": "建立 docs/compliance/DATA_PROTECTION_COMPLIANCE_v1.0.0.md，涵蓋：(1) PII 識別與脫敏規則；(2) 資料跨境傳輸限制；(3) 使用者權利（存取、刪除、更正）；(4) 資料保留與銷毀政策；(5) 合規審計清單。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "缺少 Dependabot、Renovate 或類似依賴漏洞掃描工具的設定。requirements.txt 與 pyproject.toml 中的第三方套件（如 google-cloud-secret-manager）若存在已知 CVE，將無人主動通知。",
+    "severity": "medium",
+    "suggestion": "新增 .github/dependabot.yml 啟用自動依賴更新與 CVE 警報。建議加入 trivy 或 safety 命令在 CI 中掃描依賴漏洞。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "LICENSE 為 MIT License，適合開源但對法律 AI 系統而言缺少免責聲明（Disclaimer）的強化。MIT 的 'AS IS' 條款雖存在，但法律工具應更明確標示『不構成法律意見』（Not Legal Advice）。",
+    "severity": "low",
+    "suggestion": "在 README.md 頂部加入醒目的免責聲明：本系統僅供教育與資訊目的，不構成正式法律意見。使用者應諮詢執業律師獲取個別法律建議。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "backend/.env.example 中包含 APP_SECRET_KEY=change-this-to-a-random-secret 示例值。若開發者直接複製此值而不替換為隨機金鑰，將導致整個應用程式使用可預測的 secret key，易受 CSRF/XSRF 攻擊。",
+    "severity": "medium",
+    "suggestion": "將 APP_SECRET_KEY 的範例值改為更明顯的提示（如 '<GENERATE-RANDOM-KEY-HERE>'），並在 setup.sh/start.sh 中自動產生隨機金鑰。建議使用 cryptographic random generator。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "SECURITY.md 提供的回報郵箱 Lucien127@proton.me 為個人信箱，非組織化漏洞通報管道。缺少 PGP 金鑰指纹供加密通報，也無 Coordinated Disclosure Timeline 說明。",
+    "severity": "low",
+    "suggestion": "在 SECURITY.md 中加入 PGP 公钥指纹，並明確 Coordinated Disclosure 時間線（如：Critical 漏洞 90 天內修補後公開）。考慮使用 GitHub Security Advisories（Private Vulnerability Reporting）作為主要通報渠道。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "replay/framework.md 的審核原則（Accuracy↓→Reject、Cost↑→Audit、Decision 變差→Reject）是合理的回歸測試框架，但缺少量化指標定義——『Accuracy 下降』的測量基準不明確，『Decision 變差』的主觀性高。",
+    "severity": "medium",
+    "suggestion": "在 replay/regression_sets/schema.json 中明確定義：(1) Accuracy 的計算公式（如與人工標註的 F1-score）；(2) 置信度最低門檻（confidence_min）的數值基準；(3) 加入 human-in-the-loop 評分的機制。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "GOVERNANCE.md Rule 3 嚴格禁止外部 Web Search，僅限本地 MCP 與官方 API。此策略對法律準確性有利，但也意味著無法即時獲取最新法條修訂或判例，可能導致資訊過時。",
+    "severity": "low",
+    "suggestion": "考慮引入受控的外部來源白名單機制（如司法院裁判書 API、全國法規資料庫），而非完全禁止。在 policies/security.yaml 中加入 approved_external_sources 列表。"
+  },
+  {
+    "area": "治理與安全",
+    "finding": "整個治理架構中，Capability Registry 被 INVARIANTS I003 描述為唯讀，但 committee_core/policies/governance_contract.py 中未見其實現。GOVERNANCE.md Rule 5 提到『必須通過 Capability Registry 查核才可調用 Shell/SQL』，但無對應的權限管理文件。",
+    "severity": "medium",
+    "suggestion": "建立 governance/CAPABILITY_REGISTRY_v1.0.0.md 定義權限等級與對應工具映射。將 I003 的唯讀約束實現為程式碼層的讀取檢查（如 readonly decorator）。"
+  }
+]
