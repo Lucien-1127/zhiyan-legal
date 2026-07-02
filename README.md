@@ -1,7 +1,7 @@
 # Zhiyan AI Legal System · 智研 AI 法律系統
 
 [![Hermes Skill](https://img.shields.io/badge/Hermes-v3.08-8B5CF6)](SKILL.md)
-[![Benchmark](https://img.shields.io/badge/benchmark-13_tests-8B5CF6)](benchmark/)
+[![Benchmark](https://img.shields.io/badge/benchmark-6_essays-8B5CF6)](benchmark/)
 [![Python](https://img.shields.io/badge/python-3.10+-376F9B)](.)
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-100%2B_specs-blue)](docs/)
@@ -9,7 +9,7 @@
 
 ---
 
-**🏆 97% citation accuracy · 93% legal retrieval (vs 65% OpenAI) · Apache 2.0 · Taiwan Law AI**
+**Open source Taiwan law AI framework · Multi-Model Committee · GraphRAG · Contract Review · Apache 2.0**
 
 ---
 
@@ -32,15 +32,23 @@ Most legal AI tools just wrap an LLM and hope it doesn't hallucinate. Zhiyan tre
 
 ## Benchmark Results
 
-| Metric | Zhiyan | OpenAI GPT-4 | DeepSeek v4 |
-|--------|--------|--------------|-------------|
-| Legal retrieval (Recall@5) | **93%** | 65% | 78% |
-| Citation accuracy | **97%** | 82% | 88% |
-| Contract risk detection | **85%** | 62% | 70% |
-| Legal reasoning (MMLU Pro) | **85.2%** | — | — |
-| Cost per query | **$0.002** | $0.15 | $0.05 |
+*Benchmark data from initial run (2026-07-02, 6 essay questions × agnes-2.0-flash). More comprehensive evaluation in progress.*
 
-*Benchmark: 13 tests across criminal procedure, criminal law, administrative law, and contract review.*
+| Dimension | Average Score | Notes |
+|-----------|:------------:|:------|
+| Issue Identification | 92/100 | Identified all legal issues across 6 scenarios |
+| Statute Citation Accuracy | 91/100 | All citations verifiable (Grade A/B/C system) |
+| Legal Application | 93/100 | Correct legal reasoning chain in 6/6 tests |
+| Reasoning Completeness | 94/100 | Multi-step legal analysis consistently applied |
+| Conclusion Consistency | 95/100 | No logical contradictions across sub-questions |
+
+**Score distribution by topic:**
+- Criminal Procedure (search & seizure, interrogation): **92-94/100**
+- Criminal Law (self-defense, accomplice liability): **90-92/100**
+- Administrative Law (due process, state compensation): **91/100**
+- Cross-domain comprehensive (hardest): **93/100**
+
+*Contract review benchmark (7 tests) and legal retrieval accuracy (100 queries) — data pending completion.*
 
 ## Quickstart
 
@@ -147,12 +155,21 @@ Apache 2.0. Outputs are research artifacts, not legal advice.
 
 ### Benchmark 數據
 
-| 指標 | 智研 | OpenAI GPT-4 | DeepSeek v4 |
-|------|------|--------------|-------------|
-| 法條檢索 R@5 | **93%** | 65% | 78% |
-| 引用正確率 | **97%** | 82% | 88% |
-| 合約風險辨識 | **85%** | 62% | 70% |
-| 每題成本 | **$0.002** | $0.15 | $0.05 |
+*首次執行數據（2026-07-02，6 題申論 × agnes-2.0-flash）。合約能力評測與法條檢索評測進行中。*
+
+| 評測面向 | 平均分數 | 說明 |
+|---------|:--------:|:-----|
+| 爭點辨識 | 92/100 | 6 題全部正確辨識法律爭點 |
+| 法條引用正確性 | 91/100 | 所有引用可驗證（A/B/C 分級制） |
+| 法律適用 | 93/100 | 6/6 題推理鏈正確 |
+| 論證完整性 | 94/100 | 多步驟法律分析一致適用 |
+| 結論一致性 | 95/100 | 子問題之間無邏輯矛盾 |
+
+**各法域分數分布：**
+- 刑事訴訟法（搜索扣押、警詢自白）：**92-94/100**
+- 刑法（正當防衛、共同正犯）：**90-92/100**
+- 行政法（正當程序、國賠）：**91/100**
+- 跨程序綜合題（最難）：**93/100**
 
 ### 新增功能（v3.08）
 
