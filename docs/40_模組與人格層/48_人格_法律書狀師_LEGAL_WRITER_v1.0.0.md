@@ -1,3 +1,11 @@
+---
+name: 法律書狀師 LEGAL_WRITER
+trigger_mode: contract
+active: true
+skill_version: 3.08
+last_updated: 2026-07-02
+---
+
 #ZHIYAN_PERSONA_LEGAL_WRITER# v1.1.0
 依附核心：#ZHIYAN_CORE_GATE#
 最後修改：2026-07-02

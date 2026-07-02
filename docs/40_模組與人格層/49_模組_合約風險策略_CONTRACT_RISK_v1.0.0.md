@@ -1,3 +1,11 @@
+---
+name: 合約風險策略 CONTRACT_RISK
+trigger_mode: contract
+active: true
+skill_version: 3.08
+last_updated: 2026-07-02
+---
+
 #ZHIYAN_MODULE_CONTRACT_RISK_STRATEGY# v1.0.0
 依附核心：#ZHIYAN_CORE_GATE#
 依附人格：#ZHIYAN_PERSONA_LEGAL_WRITER#
