@@ -76,6 +76,17 @@ MODE_ROUTER → QC / RESEARCH / REPORT / CONSULTANT / TUTOR / TA /
 
 優先順序：有摘要 RAG [T1] ＞ 聯網官方條文 [1] ＞ 判決書 [2] ＞ 學術 [3]
 
+## 使用規範
+
+**回應格式**：所有法律分析回覆必須使用智研 QC 格式：
+1. **問題確認** — 精準說明本次任務
+2. **風險燈號** — 🔴🟡🟢 分級標示
+3. **核心方案** — 條列可執行步驟（結論先行）
+4. **信心標記** — 百分比 + 理由
+5. **來源** — 本次實際用到的參考資料
+
+此格式適用於任何法律分析、合約審查、研究報告等輸出。G0 ❌ 信心低時除外。
+
 ## 完整技能文件
 
 完整程式碼、提示詞、參考資料在 GitHub:
@@ -84,7 +95,7 @@ https://github.com/Lucien-1127/zhiyan-legal
 也已安裝至 Hermes skill 目錄下的 `zhiyan-legal/`，包含:
 - `SKILL.md` — 本文件
 - `prompts/` — 各人格提示詞
-- `references/` — 法庭模組、申論測試、溫度分區、TYPE-S 審查等參考
+- `references/` — 法庭模組、申論測試、溫度分區、TYPE-S 審查、合約起草工作流程等參考
 - `docs/` — 完整文件目錄結構
 
 ## 合約起草模組狀態
@@ -93,7 +104,43 @@ https://github.com/Lucien-1127/zhiyan-legal
 |------|------|:----:|
 | LEGAL_WRITER | `docs/40_模組與人格層/48_人格_法律書狀師_LEGAL_WRITER_v1.0.0.md` | ✅ |
 | CONTRACT_RISK | `docs/40_模組與人格層/49_模組_合約風險策略_CONTRACT_RISK_v1.0.0.md` | ✅ |
-| 書狀 docx 產生器 | `src/zhiyan_legal/doc_generator.py` | ✅ |
+| 書狀 docx 產生器（舊） | `src/zhiyan_legal/doc_generator.py` | ✅ |
+| 專業合約排版產生器 | `scripts/gen_nda_pro.py` | ✅ |
+
+## 合約排版標準（台灣實務）
+
+經搜尋網路比對實際台灣合約範本（NCKU、會計師事務所、政府公開契約），整理出的排版規範：
+
+| 項目 | 標準 | 說明 |
+|:----|:-----|:------|
+| 紙張 | A4 (21×29.7cm) | 國家標準 |
+| 邊界 | 四面 2.5cm | 書狀規則 §3 |
+| 字體 | **標楷體（TW-Kai）** 12pt | 台灣合約最常見 |
+| 英數字 | 標楷體或 Times New Roman | 與中文一致 |
+| 行距 | **固定 22pt** | 約 1.5 倍行高，保留註記空間 |
+| 對齊 | **左右對齊（Justify）** | 邊界整齊不參差 |
+| 條號層級 | 第一條 → 一、 → （一） → 1. | 層級分明 |
+| 條號排版 | 首行凸排（Hanging indent） | 條號與文字不擁擠 |
+| 甲方乙方 | **無框表格**對齊冒號 | 不用空白鍵，完美對齊 |
+| 簽署欄 | **獨立分頁**，雙欄無框表格 | 避免簽名與內文分離 |
+| 頁碼 | 頁面底端置中 | 每頁標示 |
+| 騎縫章 | 紙本列印後加蓋 | 防竄改 |
+
+### 腳本使用
+
+```bash
+# 產生 NDA docx（桌面）
+python scripts/gen_nda_pro.py
+
+# 轉 PDF（需安裝 Word）
+python -c "
+import win32com.client
+word = win32com.client.Dispatch('Word.Application')
+word.visible = False
+doc = word.Documents.Open(r'C:\Users\ysga1\Desktop\NDA_v1.2_FINAL.docx')
+doc.SaveAs(r'C:\Users\ysga1\Desktop\NDA_v1.2_FINAL.pdf', FileFormat=17)
+doc.Close(); word.Quit()
+"
 
 ## ⚠️ 免責
 
