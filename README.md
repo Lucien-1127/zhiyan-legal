@@ -16,6 +16,7 @@ repository: https://github.com/Lucien-1127/zhiyan-legal
 [![Python](https://img.shields.io/badge/python-3.10+-376F9B)](.)
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
 [![Benchmark](https://img.shields.io/badge/benchmark-6_essays-8B5CF6)](benchmark/)
+[![Contract Benchmark](https://img.shields.io/badge/contract_benchmark-7_tests-8B5CF6)](benchmark/contract-benchmark.md)
 [![CI](https://img.shields.io/badge/GitHub%20Actions-pages-2088FF)](.github/workflows/)
 
 <p align="center">
@@ -103,8 +104,11 @@ PYTHONPATH=src python -m zhiyan_legal "什麼是公然侮辱？" --dry-run
 ### AI Benchmark（測試法律推理能力）
 
 ```bash
-# 手動測試 6 題申論（見 benchmark/essay-questions.md）
-# 或載入 benchmark/essay-questions.json 程式化跑分
+# 申論題測驗（6 題跨法域）
+# 見 benchmark/essay-questions.md
+
+# 合約能力測驗（7 題，含終極壓力測試）
+# 見 benchmark/contract-benchmark.md
 ```
 
 ## 想更深入
