@@ -6,8 +6,11 @@
 [![License](https://img.shields.io/badge/license-MIT-3DA639)](LICENSE)
 [![Docs](https://img.shields.io/badge/docs-100%2B_specs-blue)](docs/)
 [![CI](https://img.shields.io/badge/GitHub%20Actions-pages-2088FF)](.github/workflows/)
+[![Website](https://img.shields.io/badge/website-live-brightgreen)](https://lucien-1127.github.io/zhiyan-legal/)
 
 ---
+
+🌐 **Live Documentation Site** → [lucien-1127.github.io/zhiyan-legal](https://lucien-1127.github.io/zhiyan-legal/)
 
 **Open source Taiwan law AI framework · Multi-Model Committee · GraphRAG · Contract Review · Apache 2.0**
 
@@ -119,7 +122,7 @@ Civil Code knowledge graph with 60 entities and 83 relations across Sale, Lease,
 - **47,001** statute plain-language entries (SQLite FTS5, daily sync)
 - **21** statute article JSON files (6 major codes)
 - **60-node** Civil Code knowledge graph (growing)
-- **2000万+** Taiwan judicial database access (via MCP)
+- **2000萬+** Taiwan judicial database access (via MCP)
 
 ## License
 
@@ -142,6 +145,8 @@ Apache 2.0. Outputs are research artifacts, not legal advice.
 ## 🇹🇼 繁體中文
 
 一條錯誤的法條引用，可能讓當事人失去自由。智研不是另一個包裝成 AI 的法律工具，而是一套可重現的研究框架：把每項防禦機制都寫成可測試的程式碼，用實驗數據證明它到底有沒有用。
+
+🌐 **線上文件站** → [lucien-1127.github.io/zhiyan-legal](https://lucien-1127.github.io/zhiyan-legal/)
 
 ### 在研究什麼
 
