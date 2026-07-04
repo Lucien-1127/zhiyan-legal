@@ -142,8 +142,8 @@ See [3.06.1] — this release was immediately followed by the patch. The v3.06 t
 
 #### SKILL.md
 - **v3.05 升級**：新增 L0.7 白話 RAG 優先檢索層（47,001 條法條白話翻譯，SQLite FTS5 本地檢索，零套件依賴）。
-- **Citation v2.1**：新增 RAG 引用編號體系 `[T1][T2]…`，與聯網 `[1][2]…` 區分。
-- **引用優先順序**：白話 RAG [T1] ＞ 聯網官方條文 [1] ＞ 判決書 [2] ＞ 學術 [3]。
+- **Citation v2.1**：新增 RAG 引用編號體系 `[T1][T2]…`，與聯網 `…` 區分。
+- **引用優先順序**：白話 RAG [T1] ＞ 聯網官方條文  ＞ 判決書  ＞ 學術 。
 - **每日自動 sync**：Google Sheets 資料庫每日凌晨 3:00 自動同步重建索引。
 
 #### docs/

@@ -28,7 +28,7 @@ tags:
 **一句話總結**：研究發現的最可信版本是什麼？有沒有不確定性？
 
 【本段資料來源】  
-[1] 最主要的研究來源 — URL / 位置
+ 最主要的研究來源 — URL / 位置
 
 ---
 
@@ -37,24 +37,24 @@ tags:
 **分層列出依據**（重要性 + 可信度由高到低）：
 
 #### 🏛️ 官方數據 / 一手資料
-- [2] 來源 A：說了什麼
-- [3] 來源 B：說了什麼
+-  來源 A：說了什麼
+-  來源 B：說了什麼
 
 #### 📚 學術研究 / 專業報告
-- [4] 來源 C：研究發現
-- [5] 來源 D：理論依據
+-  來源 C：研究發現
+-  來源 D：理論依據
 
 #### 📰 媒體報導 / 業界評論
-- [6] 來源 E：最新動態
-- [7] 來源 F：專家看法
+-  來源 E：最新動態
+-  來源 F：專家看法
 
 【本段資料來源】  
-[2] 官方來源 — 政府 / 機構 | https://example.com | 信度：[Official]  
-[3] 官方來源 — 統計機構 | https://example.com | 信度：[Official]  
-[4] 學術研究 — 期刊名 | https://example.com | 信度：[Academic]  
-[5] 學術研究 — 研究報告 | https://example.com | 信度：[Academic]  
-[6] 媒體報導 — 新聞媒體 | https://example.com | 信度：[Media]  
-[7] 專家評論 — 產業分析 | https://example.com | 信度：[Industry]
+ 官方來源 — 政府 / 機構 | https://example.com | 信度：[Official]  
+ 官方來源 — 統計機構 | https://example.com | 信度：[Official]  
+ 學術研究 — 期刊名 | https://example.com | 信度：[Academic]  
+ 學術研究 — 研究報告 | https://example.com | 信度：[Academic]  
+ 媒體報導 — 新聞媒體 | https://example.com | 信度：[Media]  
+ 專家評論 — 產業分析 | https://example.com | 信度：[Industry]
 
 ---
 
@@ -68,8 +68,8 @@ tags:
 - 目前較可信版本：根據最新官方數據，應採用…
 
 【本段資料來源】  
-[8] 衝突來源 1 — https://example.com  
-[9] 衝突來源 2 — https://example.com
+ 衝突來源 1 — https://example.com  
+ 衝突來源 2 — https://example.com
 
 ---
 
@@ -89,15 +89,15 @@ tags:
 
 （彙總表）
 
-[1] 最主要研究 — 機構名 | https://example.com | 更新：2026-01-15 | 信度：[Official]  
-[2] 官方數據 — 政府機構 | https://example.com | 信度：[Official]  
-[3] 官方統計 — 統計局 | https://example.com | 信度：[Official]  
-[4] 學術論文 — 期刊名 | https://example.com | 信度：[Academic]  
-[5] 研究報告 — 研究所 | https://example.com | 信度：[Academic]  
-[6] 新聞報導 — 媒體名 | https://example.com | 信度：[Media]  
-[7] 產業分析 — 分析機構 | https://example.com | 信度：[Industry]  
-[8] 衝突來源 A — 媒體 | https://example.com | 信度：[Media]  
-[9] 衝突來源 B — 媒體 | https://example.com | 信度：[Media]
+ 最主要研究 — 機構名 | https://example.com | 更新：2026-01-15 | 信度：[Official]  
+ 官方數據 — 政府機構 | https://example.com | 信度：[Official]  
+ 官方統計 — 統計局 | https://example.com | 信度：[Official]  
+ 學術論文 — 期刊名 | https://example.com | 信度：[Academic]  
+ 研究報告 — 研究所 | https://example.com | 信度：[Academic]  
+ 新聞報導 — 媒體名 | https://example.com | 信度：[Media]  
+ 產業分析 — 分析機構 | https://example.com | 信度：[Industry]  
+ 衝突來源 A — 媒體 | https://example.com | 信度：[Media]  
+ 衝突來源 B — 媒體 | https://example.com | 信度：[Media]
 
 ---
 
@@ -107,42 +107,42 @@ tags:
 
 ```
 1) 核心結論
-全球 AI 採用率在 2025 年達到 71%[1]，較 2024 年增長 12%。
-預期 2026 年將突破 80%[2]。
+全球 AI 採用率在 2025 年達到 71%，較 2024 年增長 12%。
+預期 2026 年將突破 80%。
 
 【本段資料來源】
-[1] 全球 AI 採用調查 2025 — https://example.com
-[2] 業界預測報告 — https://example.com
+ 全球 AI 採用調查 2025 — https://example.com
+ 業界預測報告 — https://example.com
 
 2) 依據
 
 🏛️ 官方數據
-- [3] Gartner 企業調查：71% 企業已實施 AI[3]
-- [4] IDC 市場報告：2025 年 AI 市場規模 5000 億美元[4]
+-  Gartner 企業調查：71% 企業已實施 AI
+-  IDC 市場報告：2025 年 AI 市場規模 5000 億美元
 
 📚 學術研究
-- [5] Stanford AI Index 2025：全球 AI 投資集中在北美、亞洲[5]
-- [6] MIT 研究：AI 技能缺口達 50 萬人[6]
+-  Stanford AI Index 2025：全球 AI 投資集中在北美、亞洲
+-  MIT 研究：AI 技能缺口達 50 萬人
 
 📰 媒體報導
-- [7] TechCrunch：OpenAI 新模型引發業界討論[7]
-- [8] McKinsey：企業 AI 戰略面臨三大挑戰[8]
+-  TechCrunch：OpenAI 新模型引發業界討論
+-  McKinsey：企業 AI 戰略面臨三大挑戰
 
 【本段資料來源】
-[3] Gartner 調查 — https://example.com | 信度：[Official]
-[4] IDC 報告 — https://example.com | 信度：[Official]
-[5] Stanford AI Index — https://example.com | 信度：[Academic]
-[6] MIT 研究 — https://example.com | 信度：[Academic]
-[7] TechCrunch — https://example.com | 信度：[Media]
-[8] McKinsey 分析 — https://example.com | 信度：[Industry]
+ Gartner 調查 — https://example.com | 信度：[Official]
+ IDC 報告 — https://example.com | 信度：[Official]
+ Stanford AI Index — https://example.com | 信度：[Academic]
+ MIT 研究 — https://example.com | 信度：[Academic]
+ TechCrunch — https://example.com | 信度：[Media]
+ McKinsey 分析 — https://example.com | 信度：[Industry]
 
 3) 衝突檢查
 結論：未檢出重大衝突
 檢查範圍：全球 AI 採用率數據（2024-2025）
-口徑統一性：各機構定義類似（已實施 AI = 至少投入一項 AI 技術）[9]
+口徑統一性：各機構定義類似（已實施 AI = 至少投入一項 AI 技術）
 
 【本段資料來源】
-[9] 定義對標 — https://example.com
+ 定義對標 — https://example.com
 
 ...以此類推
 ```
@@ -151,27 +151,27 @@ tags:
 
 ```
 1) 核心結論
-全球氣溫上升速度存在測量分歧[1]。
-過去 10 年上升 0.18°C（範圍 0.13-0.23°C，95% 信賴區間）[1]。
+全球氣溫上升速度存在測量分歧。
+過去 10 年上升 0.18°C（範圍 0.13-0.23°C，95% 信賴區間）。
 
 【本段資料來源】
-[1] IPCC 第六次評估報告 — https://example.com
+ IPCC 第六次評估報告 — https://example.com
 
 2) 依據
 
 🏛️ 官方數據
-- [2] NASA GISS：過去 10 年上升 0.20°C[2]
-- [3] NOAA：過去 10 年上升 0.18°C[3]
+-  NASA GISS：過去 10 年上升 0.20°C
+-  NOAA：過去 10 年上升 0.18°C
 
 📚 學術研究
-- [4] Berkeley Earth：過去 10 年上升 0.19°C[4]
-- [5] 日本氣象廳：過去 10 年上升 0.17°C[5]
+-  Berkeley Earth：過去 10 年上升 0.19°C
+-  日本氣象廳：過去 10 年上升 0.17°C
 
 【本段資料來源】
-[2] NASA GISS — https://example.com | 信度：[Official]
-[3] NOAA — https://example.com | 信度：[Official]
-[4] Berkeley Earth — https://example.com | 信度：[Academic]
-[5] 日本氣象廳 — https://example.com | 信度：[Official]
+ NASA GISS — https://example.com | 信度：[Official]
+ NOAA — https://example.com | 信度：[Official]
+ Berkeley Earth — https://example.com | 信度：[Academic]
+ 日本氣象廳 — https://example.com | 信度：[Official]
 
 3) 衝突檢查
 結論：檢出衝突（但在合理範圍內）
@@ -182,11 +182,11 @@ tags:
 - 原因：測量方法略異（衛星 vs 地表測站權重不同）
 
 目前較可信版本：
-採用 IPCC 官方綜合結論：**0.18°C ± 0.05°C**[6]
-原因：IPCC 綜合了多個獨立機構的數據，信度最高[6]
+採用 IPCC 官方綜合結論：**0.18°C ± 0.05°C**
+原因：IPCC 綜合了多個獨立機構的數據，信度最高
 
 【本段資料來源】
-[6] IPCC 合併方法論 — https://example.com
+ IPCC 合併方法論 — https://example.com
 
 ...以此類推
 ```
@@ -197,28 +197,28 @@ tags:
 
 ### ❌ 舊格式（禁用）
 ```
-根據調查[1]，官方數據[2]，和媒體報導[3]…
+根據調查，官方數據，和媒體報導…
 
 【來源】
-[1] URL
-[2] URL
-[3] URL
+ URL
+ URL
+ URL
 ```
 
 ### ✅ 新格式（使用中）
 ```
-根據調查[1]，官方數據顯示[2]…
-不過媒體有不同看法[3]…
+根據調查，官方數據顯示…
+不過媒體有不同看法…
 
 【本段資料來源】
-[1] 調查報告 — https://example.com
-[2] 官方數據 — https://example.com
-[3] 媒體報導 — https://example.com
+ 調查報告 — https://example.com
+ 官方數據 — https://example.com
+ 媒體報導 — https://example.com
 
-總結來看[4]…
+總結來看…
 
 【本段資料來源】
-[4] 綜合分析 — https://example.com
+ 綜合分析 — https://example.com
 ```
 
 ---

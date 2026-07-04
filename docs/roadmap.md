@@ -46,7 +46,7 @@ Safe Routing    Ablation Framework  Production Ops     Ecosystem
 | **CASE_VERIFY (L0.8)** | ✅ 完成 | 司法院判決書查詢整合 |
 | **MODE_ROUTER** | ✅ 完成 | 任務路由：QC → RESEARCH → REPORT |
 | **Persona Layer (L1)** | ✅ 完成 | 14+ 人格/模組：MASTER, CONSULTANT, TUTOR, WRITER, TA, LEGAL_WRITER, PROMPT_ENGINEER, CONTRACT_RISK + 訴訟策略、安全、Sentinel、法庭模擬、申論測試 |
-| **Citation Policy v2.1** | ✅ 完成 | [T] + [1] + [2] + [3] 四階引用標記 |
+| **Citation Policy v2.1** | ✅ 完成 | [T] +  +  +  四階引用標記 |
 | **Hermes Agent Skill** | ✅ 完成 | v3.08 skill 定義（9 模組、10 條全局約束、contract task mode） |
 | **Contract Review** | ✅ 完成 | SkILL-03/SKILL-09：4 子代理管線含 LC-01~LC-15 排版校驗 |
 | **Multi-Model Committee** | ✅ 完成 | 3 模型平行合議庭，標示共識/分歧/盲區 |
