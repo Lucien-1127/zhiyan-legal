@@ -27,4 +27,5 @@ site/
 
 # Data artifacts
 data/regulation_tracker.db
+data/zhiyan.db
 data/exports/

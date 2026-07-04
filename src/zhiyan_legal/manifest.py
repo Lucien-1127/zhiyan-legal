@@ -60,7 +60,7 @@ TASK_LAYERS: Dict[str, List[Layer]] = {
         Layer("Consultant Persona", "40_模組與人格層", ["50_人格_顧問_v1.1.0.md"]),
     ],
     "TA": [
-        Layer("TA Persona",        "40_模組與人格層", ["51_人格_助教批改_v1.1.0.md"]),
+        Layer("TA Persona",        "40_模組與人格層", ["51_人格_助教批改_v1.2.0.md"]),
     ],
     "TUTOR": [
         Layer("Tutor Persona",     "40_模組與人格層", ["52_人格_教學_v1.1.0.md"]),
