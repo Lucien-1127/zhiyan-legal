@@ -257,8 +257,22 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 60px 20px 40px;
+  padding: 40px 20px;
   animation: fadeIn 0.5s ease;
+}
+
+.welcome-content {
+  display: flex;
+  gap: 40px;
+  align-items: center;
+  justify-content: center;
+  max-width: 1400px;
+  width: 100%;
+}
+
+.welcome-text {
+  flex: 0 0 auto;
+  min-width: 300px;
 }
 
 .welcome-icon {
@@ -277,7 +291,7 @@ body {
   color: var(--text-secondary);
   font-size: 14px;
   max-width: 400px;
-  margin-bottom: 32px;
+  margin: 0 auto 32px;
   line-height: 1.5;
 }
 
@@ -287,6 +301,20 @@ body {
   gap: 10px;
   justify-content: center;
   max-width: 500px;
+  margin: 0 auto;
+}
+
+.welcome-image {
+  flex: 0 0 auto;
+  max-width: 600px;
+}
+
+.welcome-image img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
 .suggestion-chip {
@@ -567,7 +595,21 @@ body {
   }
 
   .welcome {
-    padding: 40px 16px;
+    padding: 30px 16px;
+  }
+
+  .welcome-content {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .welcome-text {
+    min-width: auto;
+  }
+
+  .welcome-image {
+    max-width: 100%;
+    width: 100%;
   }
 
   .welcome-icon {
