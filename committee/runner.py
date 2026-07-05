@@ -22,21 +22,26 @@ from typing import Dict, List, Optional
 
 from .core import ModelVerdict, Verdict
 
+# 從統一設定入口載入 — 不再 hardcode 任何金鑰
+try:
+    from zhiyan_legal.config import settings as _cfg
+    AGNES_KEY1 = _cfg.agnes_key_1
+    AGNES_KEY2 = _cfg.agnes_key_2
+    _AGNES_BASE_URL = _cfg.agnes_base_url
+    _AGNES_MODEL = _cfg.agnes_model
+except ImportError:
+    # committee 在 src/ 外被直接執行時的 fallback
+    AGNES_KEY1 = os.environ.get("AGNES_API_KEY_1") or os.environ.get("AGNES_KEY1", "")
+    AGNES_KEY2 = os.environ.get("AGNES_API_KEY_2") or os.environ.get("AGNES_KEY2", "")
+    _AGNES_BASE_URL = os.environ.get("AGNES_BASE_URL", "https://apihub.agnes-ai.com/v1")
+    _AGNES_MODEL = os.environ.get("AGNES_MODEL", "agnes-2.0-flash")
+
 logger = logging.getLogger("committee.runner")
 
-# ── Agnes Keys（優先讀取環境變數，若無則使用內建值 ──
-_AGNES_KEY_ENV_1 = os.environ.get("AGNES_API_KEY_1") or os.environ.get("AGNES_KEY1")
-_AGNES_KEY_ENV_2 = os.environ.get("AGNES_API_KEY_2") or os.environ.get("AGNES_KEY2")
-
-if _AGNES_KEY_ENV_1 and _AGNES_KEY_ENV_2:
-    AGNES_KEY1 = _AGNES_KEY_ENV_1
-    AGNES_KEY2 = _AGNES_KEY_ENV_2
-else:
-    logger.warning("環境變數 AGNES_API_KEY_1/2 未設定，回退至內建金鑰（不安全，僅供開發測試）")
-    _k1a = 'sk-dlL'; _k1b = 'kC3tAh9zmu2wDjbOIG7dd'; _k1c = 'p3H6leZN7Mv7K29QLQUo4Y4V'
-    AGNES_KEY1 = _k1a + _k1b + _k1c
-    _k2a = 'sk-'; _k2b = 'Ggsl3OR0CLyCdOES3Y2Biz3eldpxWTA8EY'; _k2c = 'eRfKJWiVpHNo80'
-    AGNES_KEY2 = _k2a + _k2b + _k2c
+if not AGNES_KEY1 or not AGNES_KEY2:
+    logger.warning(
+        "AGNES_API_KEY_1/2 未設定 — 請在 .env 填入 Agnes 金鑰，或匯出環境變數。"
+    )
 
 PROJECT_DIR = str(Path.home() / "zhiyan-legal")
 ABLATION_SCRIPT = str(Path.home() / "zhiyan-legal" / "tests" / "run_ablation.py")
@@ -46,30 +51,36 @@ PYTHON = sys.executable
 @dataclass
 class ModelConfig:
     """單一模型的執行設定。"""
-    name: str                           # 顯示名稱 (ex: "agnes-k1")
-    model_id: str                       # API 模型 ID (ex: "agnes-2.0-flash")
-    provider: str = "openai"            # "openai" | "gemini"
-    api_key: str = ""                   # OpenAI-compatible key
-    api_key_2: str = ""                 # 備用 key (429 fallback)
-    base_url: str = "https://apihub.agnes-ai.com/v1"
+    name: str
+    model_id: str
+    provider: str = "openai"
+    api_key: str = ""
+    api_key_2: str = ""
+    base_url: str = _AGNES_BASE_URL
     extra_env: Dict[str, str] = field(default_factory=dict)
 
 
-# ── 預設模型清單 ──
+# ── 預設模型清單（從 .env 動態讀取，不 hardcode）──
 DEFAULT_MODELS = [
     ModelConfig(
-        name="agnes-k1", model_id="agnes-2.0-flash",
+        name="agnes-k1", model_id=_AGNES_MODEL,
         api_key=AGNES_KEY1, api_key_2=AGNES_KEY2,
+        base_url=_AGNES_BASE_URL,
     ),
     ModelConfig(
-        name="agnes-k2", model_id="agnes-2.0-flash",
+        name="agnes-k2", model_id=_AGNES_MODEL,
         api_key=AGNES_KEY2, api_key_2=AGNES_KEY1,
+        base_url=_AGNES_BASE_URL,
     ),
     ModelConfig(
-        name="gemini", model_id="gemini-2.5-flash",
+        name="gemini",
+        model_id=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
         provider="gemini",
-        extra_env={"ZHIYAN_API_KEY": "nokey", "ZHIYAN_API_KEY_2": "",
-                    "ZHIYAN_API_BASE_URL": ""},
+        extra_env={
+            "ZHIYAN_API_KEY": "nokey",
+            "ZHIYAN_API_KEY_2": "",
+            "ZHIYAN_API_BASE_URL": "",
+        },
     ),
 ]
 
@@ -89,10 +100,7 @@ def run_model_batch(
     condition: str = "A",
     timeout: int = 600,
 ) -> List[ModelVerdict]:
-    """透過 run_ablation.py 執行一個模型的批次查詢。
-
-    回傳 list[ModelVerdict]，每個 query 一個。
-    """
+    """透過 run_ablation.py 執行一個模型的批次查詢。"""
     cats = ",".join(sorted(set(q["category"] for q in queries)))
     logger.info("[%s] Starting batch: %d queries, cats=%s", config.name, len(queries), cats)
 
@@ -126,21 +134,25 @@ def run_model_batch(
     )
     elapsed = time.time() - t0
 
-    # Parse results from the ablation output JSON
-    results_path = Path.home() / "zhiyan-legal" / "tests" / "ablation_results" / "ablation_results.json"
+    results_path = (
+        Path.home() / "zhiyan-legal" / "tests"
+        / "ablation_results" / "ablation_results.json"
+    )
     verdicts: List[ModelVerdict] = []
 
     if results_path.exists() and result.returncode == 0:
         try:
             with open(results_path) as f:
                 raw_results = json.load(f)
-
             for r in raw_results:
                 qid = r.get("query_id", "")
                 h_score = r.get("hallucination_score", {})
                 score = h_score.get("score", "UNKNOWN")
-                verdict = Verdict.PASS if score == "PASS" else Verdict.FAIL if score == "FAIL" else Verdict.ERROR
-
+                verdict = (
+                    Verdict.PASS if score == "PASS"
+                    else Verdict.FAIL if score == "FAIL"
+                    else Verdict.ERROR
+                )
                 verdicts.append(ModelVerdict(
                     model_name=config.name,
                     query_id=qid,
@@ -166,12 +178,7 @@ def run_committee(
     condition: str = "A",
     max_workers: int = 3,
 ) -> Dict[str, List[ModelVerdict]]:
-    """平行執行多個模型，收集所有結果。
-
-    Returns
-    -------
-    dict: {model_name: [ModelVerdict, ...]}
-    """
+    """平行執行多個模型，收集所有結果。"""
     models = models or DEFAULT_MODELS
     results: Dict[str, List[ModelVerdict]] = {}
 
