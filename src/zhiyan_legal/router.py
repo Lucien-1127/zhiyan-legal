@@ -60,6 +60,9 @@ PERSONA_ORDER = ["CONSULTANT", "TA", "TUTOR", "LEGAL_WRITER"]
 
 _HIGH_RISK_SINGLE_CHARS = {"殺"}
 
+# Pre-compute once at module load — sorted longest-first to avoid substring collisions
+_SORTED_KW: list[tuple[str, str]] = sorted(KEYWORD_MAP.items(), key=lambda x: -len(x[0]))
+
 # ── SAFETY 詞表分級（Defect 2 fix: 分離高低風險）─────────────────
 # 無條件高危：任何語境直接 SAFETY，不可被模擬模式豁免
 _SAFETY_UNCONDITIONAL = {
@@ -72,12 +75,7 @@ _SAFETY_CONTEXT_SENSITIVE = {
 
 
 def _keyword_in_text(kw: str, text: str) -> bool:
-    """Match keyword with boundary protection for high-risk single chars.
-
-    Currently protects: '殺' (false match in '抹殺').
-    For these, we check the character is not fully embedded between
-    two CJK characters.
-    """
+    """Match keyword with boundary protection for high-risk single chars."""
     if len(kw) == 1 and kw in _HIGH_RISK_SINGLE_CHARS:
         idx = text.find(kw)
         while idx != -1:
@@ -98,45 +96,42 @@ def route(text: str) -> str:
     Returns the highest-priority matching task label.
     Default: "CONSULTANT"
     """
-    # Sort keywords by length (longest first) to avoid substring collisions
-    sorted_kw = sorted(KEYWORD_MAP.items(), key=lambda x: -len(x[0]))
-
     # 1a. SAFETY — 無條件高危詞（任何語境，含模擬模式）
-    for kw, task in sorted_kw:
+    for kw, task in _SORTED_KW:
         if task == "SAFETY" and kw in _SAFETY_UNCONDITIONAL and _keyword_in_text(kw, text):
             return "SAFETY"
 
     # 1b. 偵測 SIMULATION 語境（供情境敏感 SAFETY 降級使用）
     is_simulation = any(
         _keyword_in_text(kw, text)
-        for kw, task in sorted_kw if task == "SIMULATION"
+        for kw, task in _SORTED_KW if task == "SIMULATION"
     )
 
     # 1c. SAFETY — 情境敏感詞（僅非模擬語境觸發）
     if not is_simulation:
-        for kw, task in sorted_kw:
+        for kw, task in _SORTED_KW:
             if task == "SAFETY" and kw in _SAFETY_CONTEXT_SENSITIVE and _keyword_in_text(kw, text):
                 return "SAFETY"
 
-    # 2. Check SIMULATION (模擬模式 — 必須在 LITIGATION 之前，讓「模擬」覆蓋「訴訟」)
-    for kw, task in sorted_kw:
+    # 2. Check SIMULATION
+    for kw, task in _SORTED_KW:
         if task == "SIMULATION" and _keyword_in_text(kw, text):
             return "SIMULATION"
 
     # 3. Check LITIGATION
-    for kw, task in sorted_kw:
+    for kw, task in _SORTED_KW:
         if task == "LITIGATION" and _keyword_in_text(kw, text):
             return "LITIGATION"
 
     # 4. Check mode routing (QC > RESEARCH > REPORT)
     for route_name in ROUTE_ORDER:
-        for kw, task in sorted_kw:
+        for kw, task in _SORTED_KW:
             if task == route_name and _keyword_in_text(kw, text):
                 return route_name
 
     # 5. Check personas
     for p in PERSONA_ORDER:
-        for kw, task in sorted_kw:
+        for kw, task in _SORTED_KW:
             if task == p and _keyword_in_text(kw, text):
                 return p
 
