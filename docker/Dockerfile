@@ -6,9 +6,6 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# PYTHONPATH 讓 src/ 內模組可透過 zhiyan_legal.* 匯入
-ENV PYTHONPATH=/app/src
-
 # 安裝系統相依
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \

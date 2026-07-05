@@ -22,6 +22,20 @@ from typing import Dict, List, Optional
 
 from .core import ModelVerdict, Verdict
 
+logger = logging.getLogger("committee.runner")
+
+# ── Agnes Keys — 從環境變數讀取，不允許硬寫在原始碼中 ──
+# 設定方式：export AGNES_API_KEY_1=sk-...  export AGNES_API_KEY_2=sk-...
+AGNES_KEY1 = os.environ.get("AGNES_API_KEY_1", "")
+AGNES_KEY2 = os.environ.get("AGNES_API_KEY_2", AGNES_KEY1)
+
+# ── 專案路徑：優先使用環境變數，退後才用 ~/zhiyan-legal ──
+PROJECT_DIR = os.environ.get(
+    "ZHIYAN_PROJECT_DIR",
+    str(Path(__file__).resolve().parent.parent),
+)
+ABLATION_SCRIPT = str(Path(PROJECT_DIR) / "tests" / "run_ablation.py")
+
 # 從統一設定入口載入 — 不再 hardcode 任何金鑰
 try:
     from zhiyan_legal.config import settings as _cfg
@@ -51,6 +65,31 @@ PYTHON = sys.executable
 @dataclass
 class ModelConfig:
     """單一模型的執行設定。"""
+    name: str                           # 顯示名稱 (ex: "agnes-k1")
+    model_id: str                       # API 模型 ID (ex: "agnes-2.0-flash")
+    provider: str = "openai"            # "openai" | "gemini"
+    api_key: str = ""                   # OpenAI-compatible key
+    api_key_2: str = ""                 # 備用 key (429 fallback)
+    base_url: str = "https://apihub.agnes-ai.com/v1"
+    extra_env: Dict[str, str] = field(default_factory=dict)
+
+
+# ── 預設模型清單 ──
+DEFAULT_MODELS = [
+    ModelConfig(
+        name="agnes-k1", model_id="agnes-2.0-flash",
+        api_key=AGNES_KEY1, api_key_2=AGNES_KEY2,
+    ),
+    ModelConfig(
+        name="agnes-k2", model_id="agnes-2.0-flash",
+        api_key=AGNES_KEY2, api_key_2=AGNES_KEY1,
+    ),
+    ModelConfig(
+        name="gemini", model_id="gemini-2.5-flash",
+        provider="gemini",
+        extra_env={"ZHIYAN_API_KEY": "nokey", "ZHIYAN_API_KEY_2": "",
+                    "ZHIYAN_API_BASE_URL": ""},
+
     name: str
     model_id: str
     provider: str = "openai"
@@ -100,6 +139,11 @@ def run_model_batch(
     condition: str = "A",
     timeout: int = 600,
 ) -> List[ModelVerdict]:
+    """透過 run_ablation.py 執行一個模型的批次查詢。
+
+    回傳 list[ModelVerdict]，每個 query 一個。
+    """
+
     """透過 run_ablation.py 執行一個模型的批次查詢。"""
     cats = ",".join(sorted(set(q["category"] for q in queries)))
     logger.info("[%s] Starting batch: %d queries, cats=%s", config.name, len(queries), cats)
@@ -123,16 +167,25 @@ def run_model_batch(
             "PYTHONPATH": "src",
         }
 
+    results_dir = Path(PROJECT_DIR) / "tests" / "ablation_results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    results_path = results_dir / f"{config.name}_results.json"
+
     t0 = time.time()
     result = subprocess.run(
         [PYTHON, "-u", ABLATION_SCRIPT,
          "--conditions", condition,
          "--categories", cats,
+         "--model", config.model_id,
+         "--output", str(results_path)],
+
          "--model", config.model_id],
         cwd=PROJECT_DIR, env=env, capture_output=True, text=True,
         timeout=timeout,
     )
     elapsed = time.time() - t0
+
+    # Parse results from the per-model output JSON (avoids race condition in parallel runs)
 
     results_path = (
         Path.home() / "zhiyan-legal" / "tests"
@@ -144,10 +197,14 @@ def run_model_batch(
         try:
             with open(results_path) as f:
                 raw_results = json.load(f)
+
             for r in raw_results:
                 qid = r.get("query_id", "")
                 h_score = r.get("hallucination_score", {})
                 score = h_score.get("score", "UNKNOWN")
+                verdict = Verdict.PASS if score == "PASS" else Verdict.FAIL if score == "FAIL" else Verdict.ERROR
+
+
                 verdict = (
                     Verdict.PASS if score == "PASS"
                     else Verdict.FAIL if score == "FAIL"
@@ -178,6 +235,13 @@ def run_committee(
     condition: str = "A",
     max_workers: int = 3,
 ) -> Dict[str, List[ModelVerdict]]:
+    """平行執行多個模型，收集所有結果。
+
+    Returns
+    -------
+    dict: {model_name: [ModelVerdict, ...]}
+    """
+
     """平行執行多個模型，收集所有結果。"""
     models = models or DEFAULT_MODELS
     results: Dict[str, List[ModelVerdict]] = {}

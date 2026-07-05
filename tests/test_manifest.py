@@ -24,6 +24,8 @@ from zhiyan_legal.manifest import (
 )
 
 
+# ── Layer dataclass ─────────────────────────────────────────────────
+
 # ── Layer dataclass ───────────────────────────────────────────────────────────────────
 
 class TestLayer:
@@ -45,6 +47,12 @@ class TestLayer:
         layer = Layer("Test", "dir")
         assert layer.files == []
 
+
+# ── CORE_LAYERS ─────────────────────────────────────────────────────
+
+class TestCoreLayers:
+    def test_core_layers_count(self):
+        """CORE_LAYERS 應有 8 個條目"""
 
 # ── CORE_LAYERS ───────────────────────────────────────────────────────────────────
 
@@ -73,6 +81,8 @@ class TestCoreLayers:
         assert CORE_LAYERS[0].name == "System Prompt"
 
 
+# ── TASK_LAYERS ─────────────────────────────────────────────────────
+
 # ── TASK_LAYERS ───────────────────────────────────────────────────────────────────
 
 class TestTaskLayers:
@@ -81,6 +91,11 @@ class TestTaskLayers:
         assert "LEGAL_WRITER" in TASK_LAYERS, "LEGAL_WRITER missing from TASK_LAYERS"
 
     def test_all_route_tasks_covered(self):
+        """所有 router.py 定義的任務都應有對應 TASK_LAYERS"""
+        expected_tasks = {
+            "QC", "RESEARCH", "REPORT", "CONSULTANT",
+            "TA", "TUTOR", "LEGAL_WRITER", "LITIGATION", "SAFETY",
+
         """所有 router.py 定義的任務都應有對應 TASK_LAYERS
 
         v3.9.1: MODE_ROUTER 擴展為 13 個模式，同步更新 expected_tasks。
@@ -111,6 +126,9 @@ class TestTaskLayers:
         assert any("訴訟策略" in f for f in all_files), (
             "LEGAL_WRITER should reference litigation strategy module"
         )
+
+
+# ── EXCLUDED_DIRS / EXCLUDED_FILES ─────────────────────────────────
 
     def test_courtroom_present(self):
         """COURTROOM 應存在於 TASK_LAYERS（v3.9.1 新增）"""
@@ -145,12 +163,13 @@ class TestExclusions:
             assert isinstance(f, str)
 
 
+# ── resolve_doc() ───────────────────────────────────────────────────
+
 # ── resolve_doc() ───────────────────────────────────────────────────────────────────────
 
 class TestResolveDoc:
     def test_resolve_doc_found(self, monkeypatch):
         """resolve_doc 應返回正確的完整路徑"""
-        import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             doc_dir = Path(tmp)
             subdir = doc_dir / "test_subdir"
@@ -163,12 +182,13 @@ class TestResolveDoc:
 
     def test_resolve_doc_not_found(self, monkeypatch):
         """resolve_doc 在檔案不存在時應拋出 FileNotFoundError"""
-        import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             monkeypatch.setattr("zhiyan_legal.manifest.DOCS_DIR", str(Path(tmp)))
             with pytest.raises(FileNotFoundError):
                 resolve_doc("nonexistent", "nope.md")
 
+
+# ── get_load_order() ────────────────────────────────────────────────
 
 # ── get_load_order() ────────────────────────────────────────────────────────────────────
 
@@ -179,6 +199,7 @@ class TestGetLoadOrder:
         mode_dir = tmp_root / "20_模式與引用層"
         core_dir.mkdir(parents=True)
         mode_dir.mkdir(parents=True)
+        # Core files (matching CORE_LAYERS)
         for fname in [
             "09_AGENT_SYSTEM_PROMPT_v1.0.0.md",
             "10_主人格_MASTER_v2.0.0.md",
@@ -187,6 +208,14 @@ class TestGetLoadOrder:
             "12_核心閘門_CORE_GATE_v1.1.0.md",
             "14_智研AI代理運行流程_RUNBOOK_v1.0.0.md",
             "15_任務路由表_TASK_ROUTER_v1.0.0.md",
+            "30_引用政策_CITATION_POLICY_v2.0.0.md",
+        ]:
+            (core_dir / fname).write_text(f"# {fname}")
+        (mode_dir / "30_引用政策_CITATION_POLICY_v2.0.0.md").write_text(
+            "# Citation Policy"
+        )
+        # QC task file
+
         ]:
             (core_dir / fname).write_text(f"# {fname}")
         (mode_dir / "30_引用政策_CITATION_POLICY_v2.0.0.md").write_text("# Citation Policy")
@@ -194,6 +223,10 @@ class TestGetLoadOrder:
 
     def test_get_load_order_returns_paths(self, monkeypatch):
         """get_load_order 應返回檔案路徑 list"""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_root = Path(tmp)
+            # Create docs/ inside the temp root (matches ROOT logic)
+
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             tmp_root = Path(tmp)
@@ -201,18 +234,22 @@ class TestGetLoadOrder:
             self._setup_docs(docs_dir)
             monkeypatch.setattr("zhiyan_legal.manifest.DOCS_DIR", str(docs_dir))
             monkeypatch.setattr("zhiyan_legal.manifest.SKILL_DIR", str(tmp_root / ".hermes" / "skills"))
+
             paths = get_load_order("QC")
             assert isinstance(paths, list)
             assert len(paths) >= 1
 
     def test_get_load_order_core_first_then_task(self, monkeypatch):
         """get_load_order 應先回傳 core layers，再回傳 task layers"""
-        import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             docs_dir = Path(tmp) / "docs"
             self._setup_docs(docs_dir)
             monkeypatch.setattr("zhiyan_legal.manifest.DOCS_DIR", str(docs_dir))
             monkeypatch.setattr("zhiyan_legal.manifest.SKILL_DIR", str(Path(tmp) / ".hermes" / "skills"))
+
+            paths = get_load_order("QC")
+            # Core files contain "09_AGENT_SYSTEM_PROMPT", "10_主人格"
+
             paths = get_load_order("QC")
             core_filenames = {os.path.basename(p) for p in paths}
             assert "09_AGENT_SYSTEM_PROMPT_v1.0.0.md" in core_filenames
@@ -220,34 +257,42 @@ class TestGetLoadOrder:
 
     def test_get_load_order_dedup(self, monkeypatch):
         """get_load_order 不應包含重複路徑"""
-        import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             docs_dir = Path(tmp) / "docs"
             self._setup_docs(docs_dir)
             monkeypatch.setattr("zhiyan_legal.manifest.DOCS_DIR", str(docs_dir))
             monkeypatch.setattr("zhiyan_legal.manifest.SKILL_DIR", str(Path(tmp) / ".hermes" / "skills"))
+
             paths = get_load_order("QC")
             assert len(paths) == len(set(paths)), "Duplicate paths found!"
 
     def test_get_load_order_default_is_qc(self, monkeypatch):
         """get_load_order() 無參數時應預設為 QC"""
-        import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             docs_dir = Path(tmp) / "docs"
             self._setup_docs(docs_dir)
             monkeypatch.setattr("zhiyan_legal.manifest.DOCS_DIR", str(docs_dir))
             monkeypatch.setattr("zhiyan_legal.manifest.SKILL_DIR", str(Path(tmp) / ".hermes" / "skills"))
+
+            # Should not raise
             paths = get_load_order()
             assert len(paths) >= 1
 
     def test_get_load_order_unknown_task_fallback(self, monkeypatch):
         """未知 task 應只回傳 core layers"""
-        import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             docs_dir = Path(tmp) / "docs"
             self._setup_docs(docs_dir)
             monkeypatch.setattr("zhiyan_legal.manifest.DOCS_DIR", str(docs_dir))
             monkeypatch.setattr("zhiyan_legal.manifest.SKILL_DIR", str(Path(tmp) / ".hermes" / "skills"))
+
+            paths = get_load_order("UNKNOWN_TASK")
+            # Should still have core layers without crashing
+            assert len(paths) >= 1
+
+
+# ── DOCS_DIR path sanity ────────────────────────────────────────────
+
             paths = get_load_order("UNKNOWN_TASK")
             assert len(paths) >= 1
 
@@ -270,6 +315,8 @@ class TestDocsDir:
         assert not missing, f"以下 CORE_LAYERS 檔案不存在：\n" + "\n".join(missing)
 
     def test_task_layer_files_exist(self):
+        """TASK_LAYERS 中所有參考的檔案在 docs/ 下應存在"""
+
         """TASK_LAYERS 中所有參考的檔案在 docs/ 下應存在
 
         v3.9.1: 新增 COURTROOM/WRITER/PROMPT_ENGINEER/CONTRACT 四個模式的檔案均指向已存在檔案。

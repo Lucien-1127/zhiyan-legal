@@ -10,6 +10,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### 🟢 Features
 
+- **助教人格 v1.2.0**：啟動前檢查拆分兩層、新增換算公式與範例、合併全域約束、新增不確定退路（⚠️ 需核查不計扣分）、用語修正、重疊規則合併
+
 - **助教人格 v1.2.0**：啟動前檢查拆分兩層、新增換算公式與範例、合併全域約束、新增不確定退路（⚠️ 需核查不計口分）、用語修正、重疊規則合併
 
 ### 🟡 Improvements
@@ -17,6 +19,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **版本號三方對齊**：pyproject.toml → v3.7.2，CITATION.cff → v3.07.2，與 git tag 一致
 - **依賴管理補強**：新增 committee/test 兩個 optional group（google-genai, PyYAML, requests, pytest, pytest-cov）
 - **Badge 一致化**：Tests 122→123
+- **清理已追蹤的實驗殘檔**：移除 7 個 results/exp-citation-ablation-* 目錄（.gitignore 無法處理已追蹤檔案）
+
 - **清理已追蹤的實驗殘檔**：移除 7 個 results/exp-citation-ablation-* 目錄
 - **committee/README.md 路徑修正**：絕對路徑改為相對路徑
 
@@ -26,89 +30,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-## [3.09] — 2026-07-05
-
-### 🟢 Features
-
-#### FEG 三層品質閘門建置
-
-本版建置了全套　FEG（Final Evaluation Gate）三層閘門架構，涵蓋單模型、寫作人格、多模型合議三個層級的輸出品質控制。
-
-**層級架構**：
-```
-L1 FEG_CORE_EXTREME   ← 第一層：SKILL.md 單模型輸出（法律邏輯）
-FEG_WRITING           ← 第二層：LEGAL_WRITER 寫作人格文字品質
-FEG_COMMITTEE         ← 第三層：多模型合議結果品質
-```
-
-- **SKILL.md → v3.09**：新增 `L1 FEG_CORE_EXTREME` 輸出品質閘門完整節段，含路由優先表、七維速查表（A:引用精確 ~ G:格式規範，含 S1–S5 錨點），層級流程圖更新，GLOBAL_CONSTRAINTS 第 5 條整合 FEG 優先規則、新增第 11 條強制執行條款
-- **LEGAL_WRITER → v1.2.0**：新增 `FEG_WRITING` 輸出品質閘門，含七維評分速查表（A:文字精準 ~ G:排版格式）、路由優先表、旗標說明（StyleBreak/BH/QF/AMB/RM/FU）、雙層閘門執行順序圖
-- **`committee/FEG_COMMITTEE.md` 新增**：多模型合議結果品質閘門完整規格，含 ConsensusLabel→FEG 映射表、七維評分速查表（A:引用一致 ~ G:報告格式）、BLIND_SPOT→STOP 行為明確規格（圖面最大空缺）、runner.py 整合規格（插入點 + CommitteeHaltError 事後類別）
-
-### 🟡 Improvements
-
-- **FEG 可移植性驗證**：七維評分架構証明可跨層級復用（法律 / 寫作 / 合議三層均七維，語意重映射即可適用）
-- **BLIND_SPOT 行為補完**：現有 core.py 定義了標記但未定義觸發後行為，本版在 FEG_COMMITTEE.md 明確規定 5 條強制規則
-
-### ⏳ 待執行（Next Steps）
-
-- `committee/runner.py`：插入 `evaluate_feg_committee()` 閘門函數（規格已定義於 FEG_COMMITTEE.md）
-- `committee/core.py`：新增 `CommitteeHaltError` 事後類別
-- `committee/tests/`：補一暉 BLIND_SPOT→STOP 驗證測試案例
-
-### 完整 Commit Index
-
-| SHA | 說明 |
-|:----|------|
-| [`753964173f`](https://github.com/Lucien-1127/zhiyan-legal/commit/753964173f0deaf8fddec4902db9fbc9e89c994c) | feat(SKILL): v3.09 L1 FEG_CORE_EXTREME + 七維速查表 |
-| [`1eff6b6f0b`](https://github.com/Lucien-1127/zhiyan-legal/commit/1eff6b6f0bc43141c288b59c5c2eb082ffe4de84) | feat(LEGAL_WRITER): FEG_WRITING 輸出品質閘門 + 七維評分速查表 v1.2.0 |
-| [`019502ad1f`](https://github.com/Lucien-1127/zhiyan-legal/commit/019502ad1f8f0ec8d85be69796f49e8d92786928) | feat(committee): FEG_COMMITTEE 輸出品質閘門規格文件 v1.0.0 |
-
----
-
-## [3.08] — 2026-07-02
-
-### 🟢 Features
-
-#### SKILL.md v3.08 — Hermes Skill Manifest 整合
-
-- **SKILL-09 合約排版生成與校驗**：完整排版規範 v1.0，含頁面設定標準、字型字級規範、條款層次與縮排系統、金額與日期格式防窾改規則、排版校驗清單 LC-01~LC-15
-- **SKILL-01 task_mode 新增 `contract` 模式**：合約、契約、NDA、審閱、起草、排版觸發
-- **SKILL-03 新增 `LayoutChecker` 子代理**：合議庭四代理架構补完排版校驗局
-- **GLOBAL_CONSTRAINTS 第 10 條**：排版校驗強制規則（LC-01 總 LC-15）
-- **PART C 合約框架整合排版腳本路由**
-
-### 🟡 Improvements
-
-- **Benchmark v1.0 執行**：agnes-2.0-flash，6 題跨法域，平均分數 91.5/100
-- **合約審閱評測初步數據**：Claude CLI 真實借款契約 92/100
-- **引用格式統一**：v2.3.0，句尾上標格式
-- **TASK_ROUTER CONTRACT_RISK 映射新增**：v1.1.0
-- **C5.4 引用政策補完**：來源分級 VERIFIED / CROSS_REFERENCED / USER_REPORTED / NEED_CHECK
-
-### 🔴 Known Issues
-
-- **C5.4 測試 2/5 通過**：FreeLLMAPI 逾時與認證問題導致 T1/T3/T4 失敗，待 API 穩定後重測
-
-### 完整 Commit Index
-
-| SHA | 說明 |
-|:----|------|
-| [`594f3f3a`](https://github.com/Lucien-1127/zhiyan-legal/commit/594f3f3a69cf7a7da48715a5c415cd3408c6f603) | refactor: 統一引用格式為句尾上標 v2.3.0 |
-| [`7c3f2f07`](https://github.com/Lucien-1127/zhiyan-legal/commit/7c3f2f0717dc04e4c939b4025cc4a6b1082617c1) | feat: TASK_ROUTER CONTRACT_RISK 映射 v1.1.0 |
-| [`7a17f01e`](https://github.com/Lucien-1127/zhiyan-legal/commit/7a17f01e6e5babb0e706f5dc31bf0521da97ea84) | test: C5.4 驗證測試腳本（2/5 通過） |
-| [`73dc0844`](https://github.com/Lucien-1127/zhiyan-legal/commit/73dc08447598dee41c7121a40f8c12437db1cee7) | fix: C5.4 來源分級對應規則 v2.2 |
-| [`0abfb006`](https://github.com/Lucien-1127/zhiyan-legal/commit/0abfb006d48d70e2c6b2c99f6213fe63f2fe0b7a) | benchmark: 合約 7 題評測組（Claude CLI） |
-| [`d30ef7073`](https://github.com/Lucien-1127/zhiyan-legal/commit/d30ef7073c2c2155790dbc03fe9795178f2cd35a) | ref: 去敏借款契約範本（22條+9風險標記） |
-
----
-
 ## [3.07.1] — 2026-06-26
 
 ### 🔴 Bug Fixes — P1 (Critical)
 
 - **LICENSE 補上**：根目錄新增標準 MIT License（2026, Lucien），與 README badge / CITATION.cff 聲明一致。
 - **律師法條號修正**：RESEARCH.md §8 原引 Art. 48（事務所型態定義）改為 Art. 127（非律師訴訟業務刑責），經全國法規資料庫查證確認。
+- **judicial_api parser 重構**：`parse_case_number` 改為「剝 court name → 剝年度 → parse 字別號次」三步驟，解決連續格式（無空格案號）下 regex 貪婪吞食法院名和年度的問題。
+- **test_judicial_api.py**：`test_parse_full_case` assertion 配合 COURT_CODES 鍵值修正 + 新增 6 個 edge case（連續格式、複合字別、分院連續、空白輸入等）。
+
+### 🟡 Improvements — P2 (High)
+
+- **文件數與版本號統一**：README「110+」→「90+」、RESEARCH「85+」→「90+」；CITATION.cff v3.05→v3.07.1，RESEARCH 表格 v3.05/v3.06 一併更新。三方錨點收斂：CHANGELOG = CITATION.cff = git tag v3.07.1。
+- **測試 badge 更新**：81→122。
+- **README layout 更新**：src 從 5 檔補到 11 檔，tests 從 1 檔補到 6 檔。
+- **CHANGELOG 規範化**：三個 [Unreleased] 改為版本標題 + 修正錯字 + 保留完整 commit index URL 表格。
+- **Citation Policy 檔名**：保留 v2.0.0（26 處跨文件參考），CHANGELOG 加註原因。
+- **RESEARCH.md §127 措辭精準化**：明確區分 litigation services（撰狀、出庭）vs. general legal information（不落入 §127）。
+- **git tag v3.06.1 重映射**：刪除指向 HEAD 的錯誤 tag，重新收斂至 v3.07.1。
+
+### 🧪 Testing
+
+- 測試總數：56 → 81 → 106 → **122**（6/9 審查 56 → 6/26 維護 81 → 子代理 106 → TYPE-S audit 116 → edge cases +6）
+- **122/122 全數通過**
+
+### 完整 Commit Index
+
+| SHA | 說明 |
+|:----|------|
+| `ae536a5` | Round 2: CHANGELOG 忠於git史、§127措辭、judicial_api 6 edge cases |
+| `d742244` | TYPE-S audit — 10 fixes applied |
+
 - **judicial_api parser 重構**：`parse_case_number` 改為「劑 court name → 劑年度 → parse 字別號次」三步驟，解決連續格式（無空格案號）下 regex 貪婪吞食法院名和年度的問題。
 - **test_judicial_api.py**：`test_parse_full_case` assertion 配合 COURT_CODES 鍵値修正 + 新增 6 個 edge case。
 
@@ -127,6 +79,44 @@ FEG_COMMITTEE         ← 第三層：多模型合議結果品質
 ### 🟢 Features — P3 (Enhancement)
 
 #### 子代理並行策略（sub_agent.py）
+- **新增 `src/zhiyan_legal/sub_agent.py`**：Hermes delegate_task 子代理排程模組，支援五種平行化模式：
+  - `parallel_citation_verify()`：條文 + 判決 + 實務文章三路並行查詢
+  - `courtroom_parallel()`：法官/檢察官/辯護人三方獨立準備
+  - `type_s_review()`：獨立 QA 子代理進行 TYPE-S 審查
+  - `parallel_legal_research()`：按法域拆給專門子代理
+  - `parallel_rag_online()`：本地 RAG + 聯網平行查詢
+- **新增 `docs/10_核心控制層/17_子代理並行策略.md`**：策略設計文件，含五個並行機會分析與加速比計算
+
+### 🟢 Features — P3 (Enhancement)
+
+#### 書狀格式規範與產生器
+- **新增 `src/zhiyan_legal/doc_generator.py`**：法院合規書狀產生器，符合民事訴訟書狀規則 §3（114/08/29 修正）：
+  - A4 紙張 / 2.5cm 邊界 / 標楷體 14pt / 固定行高 28pt / 頁碼置中
+  - `add_title()` / `add_section_title()` / `add_body()` / `add_indent_body()` / `add_reference()`
+- **新增 `docs/60_概念詞條/書狀格式規範.md`**：完整格式規範文件，含三來源聯網驗證（law.moj.gov.tw, judicial.gov.tw, cons.judicial.gov.tw）
+- **下載司法院官方範本**：`templates/民事書狀範本.docx`
+- **安裝 python-docx 1.2.0**：至 zhiyan-legal venv
+
+#### 司法院裁判書開放 API 整合
+- **新增 `src/zhiyan_legal/judicial_api.py`**：司法院資料開放平臺裁判書 API 客戶端，支援 Auth / JList / JDoc 三個端點，含法院代碼 37 個、案號解析、JID 組裝、錯誤處理
+- **新增 `docs/60_概念詞條/司法院裁判書API整合.md`**：API 規格文件、使用說明、尚未完成項目
+- **新增 `tests/test_judicial_api.py`**（10 個測試）：案號解析（4 cases）、JID 組裝（3 cases）、代碼完整性（2 cases）、非法輸入（1 case）
+
+### 🧪 Testing
+
+- **新增 `tests/test_sub_agent.py`**（25 個測試）：5 種平行化模式的 task 結構驗證、edge case（空條號/空法域/空白草稿）、mock hermes_tools.delegate_task 的呼叫慣例。**全覆蓋 25/25 通過。**
+- 測試總數：56 → **81 → 106**
+
+### 完整 Commit Index
+
+| SHA | 說明 |
+|:----|------|
+| `0d9ce16` | feat: 子代理並行策略 v1.0 — sub_agent.py + 設計文件 |
+| `8983569` | test: 子代理並行策略測試 25 個（總測試 106） |
+| `7b1d62a` | feat: 書狀格式規範 + doc_generator.py |
+| `3156a65` | feat: 司法院裁判書開放 API 整合 |
+
+
 - 新增 `src/zhiyan_legal/sub_agent.py`：Hermes delegate_task 子代理排程模組，支援五種平行化模式。
 - 新增 `docs/10_核心控制層/17_子代理並行策略.md`
 
@@ -146,6 +136,27 @@ FEG_COMMITTEE         ← 第三層：多模型合議結果品質
 
 ### 🔴 Bug Fixes — P1 (Critical)
 
+#### 架構文件一致性
+- **RESEARCH.md §3.1**：「Five-Layer Architecture」→「Seven-Layer Architecture」，補入 L0.7 LOCAL_RAG 及 L0.8 CASE_VERIFY 兩層。
+- **Citation Policy v2.0 → v2.1**：`30_引用政策_CITATION_POLICY_v2.0.0.md` 新增 [T1][T2] RAG 來源引用格式，與 SKILL.md 的 Citation v2.1 對齊。（檔名保留 v2.0.0 因 26 處跨文件引用，避免破壞既有連結）
+- **manifest.py**：LEGAL_WRITER 層標註 FIXME，說明目前無獨立書狀起草文件，暫時指向訴訟策略模組。
+
+### 🟡 Improvements — P2 (High)
+
+- **runner.py**：`MODEL_DEFAULT` 由 `"gpt-5.1"` 改為 `"deepseek-v4-flash"`，與目前主要測試模型一致。
+- **router.py**：RESEARCH 關鍵字新增「查詢」。
+
+### 🟢 Features — P3 (Enhancement)
+
+- **Citation Policy**：尾部新增「來源引用對照」表，排除引用來源混亂。
+
+### 完整 Commit Index
+
+| SHA | 說明 |
+|:----|------|
+| `05510d8` | v3.06.1: fix: 架構審查 6 項修正 |
+| `9ae2e86` | v3.06: feat: 新增 L0.8 實務案例驗證層 (previous) |
+
 - RESEARCH.md §3.1 架構層數修正、Citation Policy v2.1 對齊、manifest.py FIXME 標註
 
 ### 🟡 Improvements — P2 (High)
@@ -162,6 +173,23 @@ See [3.06.1] — this release was immediately followed by the patch. The v3.06 t
 
 ## [3.05] — 2026-06-21
 
+### 🟢 Features — P3 (Enhancement)
+
+#### SKILL.md
+- **v3.05 升級**：新增 L0.7 白話 RAG 優先檢索層（47,001 條法條白話翻譯，SQLite FTS5 本地檢索，零套件依賴）。
+- **Citation v2.1**：新增 RAG 引用編號體系 `[T1][T2]…`，與聯網 `[1][2]…` 區分。
+- **引用優先順序**：白話 RAG [T1] ＞ 聯網官方條文 [1] ＞ 判決書 [2] ＞ 學術 [3]。
+- **每日自動 sync**：Google Sheets 資料庫每日凌晨 3:00 自動同步重建索引。
+
+#### docs/
+- 系統架構新增 L0.7 層：SRP → L0 → L0.7 RAG → MODE_ROUTER → 功能模組 → Citation v2.1。
+
+### 完整 Commit Index
+
+| SHA | 說明 |
+|:----|------|
+| `55b1ee1` | v3.05: feat: 新增 L0.7 白話 RAG 層 + Citation v2.1 |
+
 ### 🟢 Features
 
 - SKILL.md v3.05：新增 L0.7 白話 RAG 優先檢索層（47,001 條，SQLite FTS5）、Citation v2.1 RAG 引用編號體系
@@ -169,6 +197,75 @@ See [3.06.1] — this release was immediately followed by the patch. The v3.06 t
 ---
 
 ## 2026-06-09 — Code Review Sprint
+
+This session covers a single intensive code-review sprint.
+All changes were reviewed, implemented, and verified on the `main` branch.
+
+### 🔴 Bug Fixes — P1 (Critical)
+
+#### `router.py`
+- **關鍵字衝突修正**：`比對` 原同時存在於 `QC` 與 `RESEARCH`，造成不確定路由行為；移出 `RESEARCH`，保留於 `QC`（改為 `核對比對`）。
+- **單字邊界保護**：單字關鍵字 `告`、`殺` 在正常詞語中（如「報告」、「抹殺」）會誤觸 `LITIGATION`/`SAFETY`；`告` 改為複合詞（`告人`/`告他`/`提告`/`被告`/`告訴`/`控告`），`殺` 加入邊界保護邏輯（前後皆為中文字時不匹配）。
+- **新增 `LEGAL_WRITER` 任務**：補上起草、合約、律師函、訴狀、法律文書、契約等 6 個觸發詞。
+- **預設 fallback 修正**：`default` 由 `"QC"` 改為 `"CONSULTANT"`，符合無關鍵字問句的真實使用情境。
+
+#### `pyproject.toml`
+- **`build-backend` 修正**：`setuptools.backends._legacy:_Backend`（私有 API）改為 `setuptools.build_meta`。
+
+#### `loader.py`
+- **遺失文件靜默忽略**：`compose()` 中 `missing` 變數僅收集但從未使用，改為 `warnings.warn()` 發出警告。
+
+### 🟡 Improvements — P2 (High)
+
+#### `runner.py`
+- **API 錯誤處理**：`client.chat.completions.create()` 加入 `try/except`，捕獲 `400/429/500` 及空 `choices`，避免 crash。
+- **dry-run token 估算**：`split()` 改為 `count_tokens()`（`len // 4`），對中文不再嚴重低估。
+
+#### `setup.sh`
+- **`cd` 路徑錯誤**：`cd "$SCRIPT_DIR"` 解析到 `scripts/` 子目錄，導致找不到 `requirements.txt`；改為 `cd "$PROJECT_ROOT"`。
+
+#### 全域
+- **`print()` → `logging`**：`runner.py`、`manifest.py` 加入 `logging.getLogger("zhiyan_legal")`；CLI 新增 `--verbose` 開啟 `DEBUG` 層級輸出。
+
+### 🟢 Features — P3 (Enhancement)
+
+#### `router.py`
+- `describe_route()` 新增 `LEGAL_WRITER` 描述：`"合約起草 (Legal Writing)"`。
+
+#### `manifest.py`
+- `SKILL_DIR` 支援 `ZHIYAN_SKILL_DIR` 環境變數覆寫，解除對 `.hermes/` 路徑的硬編碼依賴。
+
+#### `cli.py`
+- 新增 `--list-tasks` 參數，列出所有支援的任務類型與對應範例關鍵字。
+- 新增 `__main__.py`，支援 `python -m zhiyan_legal` 直接執行。
+
+#### 清理
+- 刪除根目錄殘留空檔案 `=1.0.0`。
+
+### 🧪 Testing
+
+#### `tests/test_routing.py`（+7 cases）
+- 修正 `test_mixed_qc_research` docstring 自相矛盾（說明文字與 assert 方向相反）。
+- 修正 `test_default_qc` docstring 更新為「預設 CONSULTANT」。
+- 新增 LEGAL_WRITER 觸發測試（4 cases）：合約、律師函、訴狀、法律文書。
+- 新增 `test_qc_verification`：驗證 `核對比對` → `QC`。
+- 新增邊界保護測試（6 cases）：`報告` 不觸 LITIGATION、`告他`/`被告` 正確觸發、`抹殺` 不觸 SAFETY、`殺人` 正確觸發、`調查` 仍為 RESEARCH。
+
+#### `tests/test_loader.py`（new — 9 cases）
+- `load_file()`：frontmatter 剝離、無 frontmatter、前後空白 strip。
+- `compose()`：多文件串接、標頭插入、遺失文件警告、截斷邏輯（精確長度斷言）、空檔案跳過。
+- `count_tokens()`：`len // 4` 估算驗證。
+
+#### `tests/test_manifest.py`（new — 22 cases）
+- `Layer` dataclass 結構驗證。
+- `CORE_LAYERS` 完整性（數量 8、名稱、檔案）。
+- `TASK_LAYERS` 任務覆蓋（含 LEGAL_WRITER 新增驗證）。
+- `EXCLUDED_DIRS` / `EXCLUDED_FILES` 格式。
+- `resolve_doc()`：正常路徑 + `FileNotFoundError`（monkeypatch tempfile）。
+- `get_load_order()`：排序、去重、預設 QC、未知 task fallback。
+
+### 📊 Coverage Milestone
+
 
 ### 🔴 Bug Fixes — P1 (Critical)
 
@@ -190,6 +287,23 @@ See [3.06.1] — this release was immediately followed by the patch. The v3.06 t
 |-----------|-------|--------|
 | Before audit | 14 | 14 |
 | After audit | **56** | **56** |
+
+Covered modules: `router`, `loader`, `manifest`.
+
+### Commit Index
+
+| SHA | Description |
+|-----|-------------|
+| [`557ff08`](https://github.com/Lucien-1127/zhiyan-legal/commit/557ff08) | merge: 架構改進全部到位 |
+| [`a1b27ae`](https://github.com/Lucien-1127/zhiyan-legal/commit/a1b27ae) | 架構改進：邊界保護、logging、API 錯誤處理、--list-tasks |
+| [`7d41faa`](https://github.com/Lucien-1127/zhiyan-legal/commit/7d41faa) | test: 新增 test_manifest.py（22 個測試） |
+| [`1cbab97`](https://github.com/Lucien-1127/zhiyan-legal/commit/1cbab97) | fix: test_compose_truncation 斷言改為精確長度檢驗 |
+| [`670735d`](https://github.com/Lucien-1127/zhiyan-legal/commit/670735d) | test: 補上 LEGAL_WRITER/loader 測試 + default 改為 CONSULTANT |
+| [`1d9132e`](https://github.com/Lucien-1127/zhiyan-legal/commit/1d9132e) | merge: 程式碼審查 7 項問題修正 |
+
+---
+
+*Generated on 2026-06-26 · zhiyan-legal*
 
 ---
 

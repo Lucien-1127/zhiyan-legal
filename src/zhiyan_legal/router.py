@@ -75,7 +75,12 @@ _SAFETY_CONTEXT_SENSITIVE = {
 
 
 def _keyword_in_text(kw: str, text: str) -> bool:
-    """Match keyword with boundary protection for high-risk single chars."""
+    """Match keyword with boundary protection for high-risk single chars.
+
+    Currently protects: '殺' (false match in '抹殺').
+    For these, we check the character is not fully embedded between
+    two CJK characters.
+    """
     if len(kw) == 1 and kw in _HIGH_RISK_SINGLE_CHARS:
         idx = text.find(kw)
         while idx != -1:
@@ -113,7 +118,7 @@ def route(text: str) -> str:
             if task == "SAFETY" and kw in _SAFETY_CONTEXT_SENSITIVE and _keyword_in_text(kw, text):
                 return "SAFETY"
 
-    # 2. Check SIMULATION
+    # 2. Check SIMULATION (模擬模式 — 必須在 LITIGATION 之前，讓「模擬」覆蓋「訴訟」)
     for kw, task in _SORTED_KW:
         if task == "SIMULATION" and _keyword_in_text(kw, text):
             return "SIMULATION"

@@ -27,13 +27,4 @@ site/
 
 # Data artifacts
 data/regulation_tracker.db
-data/zhiyan.db
 data/exports/
-*.db          # 根目錄誤放的 .db 檔
-
-# 廢棄根目錄 audit 檔（已移至 audit/）
-audit_results.json
-audit_prompt_engineering.json
-audit-governance-security.json
-audit_test_and_data.json
-devops_audit.json

@@ -1,4 +1,9 @@
 # 法規異動監控 — Tailscale 入口
+# 手機連 http://100.68.234.34/docs 即可開 Swagger
+
+http://100.68.234.34:80 {
+	reverse_proxy 127.0.0.1:7850
+
 # 手機連 https://100.68.234.34/docs 即可開 Swagger
 
 https://100.68.234.34:443 {

@@ -71,6 +71,40 @@ SAFETY_UNKNOWN_PATTERNS: List[str] = [
 ]
 
 
+def _match_status_with_confidence(text: str) -> Tuple[Optional[ClaimStatus], float]:
+    """判別文字狀態並回傳 (status, confidence)。
+
+    信心度 = min(0.3 + 每多一個 pattern 命中加 0.15, 0.9)。
+    優先序：ERROR > DELETED > NONEXISTENT > AMENDED > SAFETY_UNKNOWN
+    """
+    if not text or len(text.strip()) < 5:
+        return ClaimStatus.ERROR, 0.9
+
+    for pat in API_ERROR_PATTERNS:
+        if re.search(pat, text, re.IGNORECASE):
+            return ClaimStatus.ERROR, 0.9
+
+    for patterns, status in [
+        (STATUS_DELETED_PATTERNS, ClaimStatus.DELETED),
+        (STATUS_NONEXISTENT_PATTERNS, ClaimStatus.NONEXISTENT),
+        (STATUS_AMENDED_PATTERNS, ClaimStatus.AMENDED),
+    ]:
+        count = sum(1 for p in patterns if re.search(p, text))
+        if count:
+            return status, min(0.3 + count * 0.15, 0.9)
+
+    count = sum(1 for p in SAFETY_UNKNOWN_PATTERNS if re.search(p, text, re.IGNORECASE))
+    if count:
+        return ClaimStatus.SAFETY_UNKNOWN, min(0.3 + count * 0.15, 0.9)
+
+    return None, 0.0
+
+
+def _match_status(text: str) -> Optional[ClaimStatus]:
+    """對一段文字進行用語正規化，判別其狀態。(backward-compat wrapper)"""
+    status, _ = _match_status_with_confidence(text)
+    return status
+
 def _match_status(text: str) -> Optional[ClaimStatus]:
     """對一段文字進行用語正規化，判別其狀態。
 
@@ -148,6 +182,10 @@ def normalize_citation(text: str) -> str:
     """
     result = text
 
+    def _normalize_precedent(m: re.Match) -> str:
+        full = m.group(0).strip()
+        m2 = re.match(r"(\d+)(?:年度)?\s*([^\d\s]+?)\s*(?:字第)?(\d+)", full)
+
     # 1. 判決字號正規化
     def _normalize_precedent(m: re.Match) -> str:
         year = m.group(1).replace("年度", "")
@@ -161,11 +199,19 @@ def normalize_citation(text: str) -> str:
             return f"{y}年度{ct}字第{n}號"
         return full
 
+    # 正規化流程
+
     # For now, simple regex-based normalization
     # 釋字第XXX號
     result = INTERPRETATION_RE.sub(r"釋字第\1號", result)
     # 院字/院解字 XXX 號
     result = COURT_INTERPRETATION_RE.sub(r"\g<0>", result)  # already fine
+
+    # §123 → 民法第123條 (only §-shorthand, not bare 第X條 which may belong to other laws)
+    result = re.sub(r"§(\d+)", r"民法第\1條", result)
+
+    # Apply precedent normalization: "112台上9999號" → "112年度台上字第9999號"
+    result = PRECEDENT_RE.sub(lambda m: _normalize_precedent(m), result)
 
     # §123 → 民法第123條
     result = re.sub(r"§(\d+)", r"民法第\1條", result)
@@ -242,6 +288,10 @@ def normalize_response(
         # 從 text 中提取條號 (簡易版：找「第XXX條」)
         refs = re.findall(r"第(\d+(?:之\d+)?)條", text)
 
+    status, confidence = _match_status_with_confidence(text)
+    for i, ref in enumerate(refs):
+        full_ref = f"民法第{ref}條" if not ref.startswith("民法") else ref
+
     for i, ref in enumerate(refs):
         full_ref = f"民法第{ref}條" if not ref.startswith("民法") else ref
         status = _match_status(text)
@@ -250,6 +300,7 @@ def normalize_response(
             article_ref=full_ref,
             claim_type=ClaimType.STATUTE_EXISTENCE,
             status=status or ClaimStatus.UNKNOWN,
+            confidence=confidence,
             summary=text[:60].replace("\n", " "),
             model_name=model_name,
             raw_snippet=text[:200],
