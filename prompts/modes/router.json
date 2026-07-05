@@ -1,0 +1,21 @@
+{
+  "task_modes": {
+    "chat":       "docs/40_模組與人格層/50_人格_顧問_v1.1.0.md",
+    "research":   "docs/40_模組與人格層/47_模式_提示詞工程師_PROMPT_ENGINEER_v1.0.0.md",
+    "contract":   [
+      "docs/40_模組與人格層/48_人格_法律書狀師_LEGAL_WRITER_v1.1.0.md",
+      "docs/40_模組與人格層/49_模組_合約風險策略_CONTRACT_RISK_v1.0.0.md"
+    ],
+    "litigation": "docs/40_模組與人格層/40_模組_訴訟策略_v2.2.0.md",
+    "courtroom":  "docs/40_模組與人格層/43_模組_法庭模擬_v1.1.0.md",
+    "tutor":      "docs/40_模組與人格層/52_人格_教學_v1.1.0.md",
+    "ta":         "docs/40_模組與人格層/51_人格_助教批改_v1.2.0.md",
+    "safety":     "docs/40_模組與人格層/41_模組_安全風險對話處理_v1.0.0.md",
+    "sentinel":   "docs/40_模組與人格層/42_模組_Sentinel多法域前置檢測_v1.0.0.md",
+    "writer":     "docs/40_模組與人格層/46_人格_申論寫作_WRITER_v1.0.0.md",
+    "qc":         "docs/20_模式與引用層/22_模式_QC_查核_v2.0.1.md",
+    "report":     "docs/20_模式與引用層/20_模式_REPORT_報告_v2.0.0.md"
+  },
+  "skill_manifest_version": "3.08",
+  "last_updated": "2026-07-02"
+}

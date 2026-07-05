@@ -217,6 +217,15 @@ def _get_gemini_key() -> str:
                     return _line.split("api_key:", 1)[1].strip()
                 elif _in_gemini and _line.strip() and not _line.startswith(" ") and ":" in _line:
                     _in_gemini = False
+
+        import subprocess
+        out = subprocess.run(
+            ["grep", "-A1", "gemini:", cfg_path],
+            capture_output=True, text=True, timeout=5,
+        ).stdout
+        for line in out.split("\n"):
+            if "api_key" in line:
+                return line.split("api_key:")[1].strip()
     except Exception:
         pass
     return ""
@@ -258,6 +267,8 @@ def validate_output(result: str, task: str = "QC") -> str:
         return result
 
     matched = sum(1 for p in checks["patterns"] if re.search(p, result))
+
+    matched = sum(1 for p in checks["patterns"] if p in result)
     threshold = max(1, len(checks["patterns"]) // 3)
 
     if matched < threshold:
@@ -388,6 +399,41 @@ class ZhiyanEngine:
         self._system_prompt = None
         self._docs_loaded = False
         self._doc_cache.clear()
+
+    def load_docs(self) -> str:
+        """Load docs/ spec documents into a composed system prompt."""
+        if self._system_prompt and self._docs_loaded:
+            return self._system_prompt
+
+        parts: list[str] = []
+        load_order = [
+            "10_核心控制層",
+            "20_模式與引用層",
+            "40_模組與人格層",
+        ]
+        for category in load_order:
+            cat_dir = DOCS_DIR / category
+            if not cat_dir.exists():
+                logger.warning("目錄不存在: %s", cat_dir)
+                continue
+            files = sorted(cat_dir.glob("*.md"))
+            for f in files:
+                try:
+                    content = f.read_text(encoding="utf-8")
+                    parts.append(f"<!-- {f.name} -->\n{content}")
+                except Exception as e:
+                    logger.error("讀取失敗 %s: %s", f.name, e)
+
+        self._system_prompt = "\n\n---\n\n".join(parts)
+        self._docs_loaded = True
+        logger.info("已載入 %d 份規格文件，共 %d 字元",
+                    len(parts), len(self._system_prompt))
+        return self._system_prompt
+
+    def reload(self):
+        """Force reload documents."""
+        self._system_prompt = None
+        self._docs_loaded = False
         return self.load_docs()
 
     # ── Core async query ─────────────────────────────
@@ -531,6 +577,8 @@ class ZhiyanEngine:
             }
 
         result = asyncio.run(self.query_async(
+
+        coro = self.query_async(
             user_message=user_message,
             model=model,
             temperature=temperature,
@@ -538,6 +586,14 @@ class ZhiyanEngine:
             conversation_history=conversation_history,
             task=task,
         ))
+
+        )
+
+        if loop and loop.is_running():
+            result = asyncio.run(coro)
+        else:
+            result = asyncio.run(coro)
+
         return {
             "content": result.content,
             "model": result.model,
@@ -820,6 +876,11 @@ class ZhiyanEngine:
             )
             content = resp.choices[0].message.content or ""
             return validate_output(content, task)
+
+            # Already in an event loop — run directly
+            return existing_loop.run_until_complete(
+                self._run_one_shot(model_name, messages, temperature, max_tokens, task)
+            )
 
         # No running loop — create one
         loop = asyncio.new_event_loop()

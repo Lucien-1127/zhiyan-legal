@@ -105,6 +105,35 @@ def _match_status(text: str) -> Optional[ClaimStatus]:
     status, _ = _match_status_with_confidence(text)
     return status
 
+def _match_status(text: str) -> Optional[ClaimStatus]:
+    """對一段文字進行用語正規化，判別其狀態。
+
+    優先序：ERROR > DELETED > NONEXISTENT > AMENDED > SAFETY_UNKNOWN
+    """
+    # 1. 空文字 → 直接 ERROR
+    if not text or len(text.strip()) < 5:
+        return ClaimStatus.ERROR
+
+    # 2. API 錯誤 → ERROR
+    for pat in API_ERROR_PATTERNS:
+        if re.search(pat, text, re.IGNORECASE):
+            return ClaimStatus.ERROR
+
+    # 3. 實質判定
+    for pat in STATUS_DELETED_PATTERNS:
+        if re.search(pat, text):
+            return ClaimStatus.DELETED
+    for pat in STATUS_NONEXISTENT_PATTERNS:
+        if re.search(pat, text):
+            return ClaimStatus.NONEXISTENT
+    for pat in STATUS_AMENDED_PATTERNS:
+        if re.search(pat, text):
+            return ClaimStatus.AMENDED
+    for pat in SAFETY_UNKNOWN_PATTERNS:
+        if re.search(pat, text, re.IGNORECASE):
+            return ClaimStatus.SAFETY_UNKNOWN
+    return None
+
 
 # ═══════════════════════════════════════════════════════════════
 # Layer B — 條號正規化
@@ -156,12 +185,23 @@ def normalize_citation(text: str) -> str:
     def _normalize_precedent(m: re.Match) -> str:
         full = m.group(0).strip()
         m2 = re.match(r"(\d+)(?:年度)?\s*([^\d\s]+?)\s*(?:字第)?(\d+)", full)
+
+    # 1. 判決字號正規化
+    def _normalize_precedent(m: re.Match) -> str:
+        year = m.group(1).replace("年度", "")
+        case_type = m.group(2)  # This doesn't work right, let me fix
+        # Actually the regex is complex. Let me do it differently.
+        full = m.group(0).strip()
+        # Try to parse: XXX年度XX字第XXXX號
+        m2 = re.match(r"(\d+)(?:年度)?\s*(\D+?)\s*(?:字第)?(\d+)", full)
         if m2:
             y, ct, n = m2.group(1), m2.group(2), m2.group(3)
             return f"{y}年度{ct}字第{n}號"
         return full
 
     # 正規化流程
+
+    # For now, simple regex-based normalization
     # 釋字第XXX號
     result = INTERPRETATION_RE.sub(r"釋字第\1號", result)
     # 院字/院解字 XXX 號
@@ -172,6 +212,15 @@ def normalize_citation(text: str) -> str:
 
     # Apply precedent normalization: "112台上9999號" → "112年度台上字第9999號"
     result = PRECEDENT_RE.sub(lambda m: _normalize_precedent(m), result)
+
+    # §123 → 民法第123條
+    result = re.sub(r"§(\d+)", r"民法第\1條", result)
+
+    # 第XXX條 (already fine)
+    result = re.sub(r"第(\d+(?:之\d+)?)條", r"民法第\1條", result)
+
+    # 重複的「民法」去除
+    result = re.sub(r"民法民法", "民法", result)
 
     return result
 
@@ -242,6 +291,10 @@ def normalize_response(
     status, confidence = _match_status_with_confidence(text)
     for i, ref in enumerate(refs):
         full_ref = f"民法第{ref}條" if not ref.startswith("民法") else ref
+
+    for i, ref in enumerate(refs):
+        full_ref = f"民法第{ref}條" if not ref.startswith("民法") else ref
+        status = _match_status(text)
         claims.append(LegalClaim(
             claim_id=f"{model_name}_{full_ref}_{i}",
             article_ref=full_ref,
