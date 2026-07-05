@@ -45,8 +45,9 @@ CORE_LAYERS = [
     Layer("Citation Policy",       "20_模式與引用層", ["30_引用政策_CITATION_POLICY_v2.0.0.md"]),
 ]
 
-# ── Task layers (loaded based on routed task) ───────────────────────
+# ── Task layers (loaded based on routed task) ─────────────────────
 TASK_LAYERS: Dict[str, List[Layer]] = {
+    # ── 原夷6 模式 ──
     "QC": [
         Layer("QC Mode",           "20_模式與引用層", ["22_模式_QC_查核_v2.0.1.md"]),
     ],
@@ -75,9 +76,22 @@ TASK_LAYERS: Dict[str, List[Layer]] = {
     "SAFETY": [
         Layer("Safety Module",     "40_模組與人格層", ["41_模組_安全風險對話處理_v1.0.0.md"]),
     ],
+    # ── v3.9.1 新增 4 模式（修復 H3）──
+    "COURTROOM": [
+        Layer("Courtroom Module",  "40_模組與人格層", ["43_模組_法庭模擬_v1.1.0.md"]),
+    ],
+    "WRITER": [
+        Layer("Writer Persona",    "40_模組與人格層", ["40_模組_訴訟策略_v2.2.0.md"]),
+    ],
+    "PROMPT_ENGINEER": [
+        Layer("Prompt Engineer",   "10_核心控制層", ["09_AGENT_SYSTEM_PROMPT_v1.0.0.md"]),
+    ],
+    "CONTRACT": [
+        Layer("Contract Risk",     "40_模組與人格層", ["50_人格_顧問_v1.1.0.md"]),
+    ],
 }
 
-# ── Exclusion rules (files NEVER loaded into the live prompt) ───────
+# ── Exclusion rules (files NEVER loaded into the live prompt) ─────────
 EXCLUDED_DIRS = {"80_封存參考", "90_維運治理"}
 EXCLUDED_FILES = {
     "目錄索引_INDEX.md",
