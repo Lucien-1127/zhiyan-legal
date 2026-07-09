@@ -1,5 +1,5 @@
 """
-Zhiyan AI Legal System — 統一 LLM 引擎 (v3.0)
+Zhiyan AI Legal System — 統一 LLM 引擎 (v3.0.1)
 
 Canonical engine for all LLM calls. Replaces runner.py (deprecated) and
 backward-compatible with the original backend/engine.py ZhiyanEngine.
@@ -14,6 +14,10 @@ Key features:
   - Post-LLM output validation
   - Lifespan-aware resource management
   - Health check / telemetry
+
+Changelog:
+  v3.0.1 — Fix duplicate load_docs()/reload() definitions; fix query() syntax error;
+            remove dead code in run(); fix double matched= in validate_output().
 """
 from __future__ import annotations
 
@@ -173,11 +177,10 @@ class EngineConfig:
 
 def discover_api_key() -> str:
     """Multi-layer API key discovery (env vars → Hermes profile).
-    
+
     Priority: DEEPSEEK > OPENROUTER > OPENAI > GEMINI > ZHIYAN
     (ZHIYAN_API_KEY is lowest priority to avoid stale keys overriding the active one.)
     """
-    # Check well-known keys first (most likely to be active)
     hermes_keys = (
         "DEEPSEEK_API_KEY", "OPENROUTER_API_KEY",
         "OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY",
@@ -258,6 +261,9 @@ def validate_output(result: str, task: str = "QC") -> str:
 
     Checks output for task-essential keywords. If core patterns are missing,
     appends a structured advisory rather than modifying original content.
+
+    FIX v3.0.1: Removed duplicate matched= assignment; now uses re.search()
+    consistently (original string-in check was silently overwriting re.search).
     """
     if not result:
         return result
@@ -266,9 +272,8 @@ def validate_output(result: str, task: str = "QC") -> str:
     if not checks:
         return result
 
+    # Use re.search for pattern matching (supports regex like "第.")
     matched = sum(1 for p in checks["patterns"] if re.search(p, result))
-
-    matched = sum(1 for p in checks["patterns"] if p in result)
     threshold = max(1, len(checks["patterns"]) // 3)
 
     if matched < threshold:
@@ -369,7 +374,13 @@ class ZhiyanEngine:
     # ── Document management ──────────────────────────
 
     def load_docs(self, task: str = "QC") -> str:
-        """Load task-specific docs via manifest.get_load_order() with per-task caching."""
+        """Load task-specific docs via manifest.get_load_order() with per-task caching.
+
+        FIX v3.0.1: Merged two conflicting load_docs() definitions.
+        Now uses manifest.get_load_order(task) with fallback to glob,
+        with per-task cache (_doc_cache). The first loaded task also sets
+        _system_prompt for backward-compat callers.
+        """
         if task in self._doc_cache:
             return self._doc_cache[task]
 
@@ -395,46 +406,15 @@ class ZhiyanEngine:
         return composed
 
     def reload(self):
-        """Force reload documents (clears all task caches)."""
+        """Force reload documents (clears all task caches and system prompt).
+
+        FIX v3.0.1: Merged two conflicting reload() definitions.
+        Now correctly clears _doc_cache, _system_prompt, and _docs_loaded flag.
+        """
         self._system_prompt = None
         self._docs_loaded = False
         self._doc_cache.clear()
-
-    def load_docs(self) -> str:
-        """Load docs/ spec documents into a composed system prompt."""
-        if self._system_prompt and self._docs_loaded:
-            return self._system_prompt
-
-        parts: list[str] = []
-        load_order = [
-            "10_核心控制層",
-            "20_模式與引用層",
-            "40_模組與人格層",
-        ]
-        for category in load_order:
-            cat_dir = DOCS_DIR / category
-            if not cat_dir.exists():
-                logger.warning("目錄不存在: %s", cat_dir)
-                continue
-            files = sorted(cat_dir.glob("*.md"))
-            for f in files:
-                try:
-                    content = f.read_text(encoding="utf-8")
-                    parts.append(f"<!-- {f.name} -->\n{content}")
-                except Exception as e:
-                    logger.error("讀取失敗 %s: %s", f.name, e)
-
-        self._system_prompt = "\n\n---\n\n".join(parts)
-        self._docs_loaded = True
-        logger.info("已載入 %d 份規格文件，共 %d 字元",
-                    len(parts), len(self._system_prompt))
-        return self._system_prompt
-
-    def reload(self):
-        """Force reload documents."""
-        self._system_prompt = None
-        self._docs_loaded = False
-        return self.load_docs()
+        logger.info("ZhiyanEngine docs cache cleared")
 
     # ── Core async query ─────────────────────────────
 
@@ -455,7 +435,7 @@ class ZhiyanEngine:
         rid = request_id or uuid.uuid4().hex[:12]
         model = model or self._config.default_model
 
-        system_prompt = self.load_docs()
+        system_prompt = self.load_docs(task)
         is_legal = self._detect_legal_mode(user_message)
 
         messages = [{"role": "system", "content": system_prompt}]
@@ -546,6 +526,10 @@ class ZhiyanEngine:
         """Synchronous query wrapper (backward-compatible with runner.py interface).
 
         Returns dict with keys: content, model, tokens_in, tokens_out, mode.
+
+        FIX v3.0.1: Removed broken asyncio.run(coro) syntax where coro= assignment
+        was orphaned inside the run() call. Now cleanly separates the two paths:
+        (1) running event loop → sync OpenAI client; (2) no loop → asyncio.run(coro).
         """
         try:
             loop = asyncio.get_running_loop()
@@ -576,8 +560,7 @@ class ZhiyanEngine:
                 "mode": "legal",
             }
 
-        result = asyncio.run(self.query_async(
-
+        # No running event loop — use asyncio.run()
         coro = self.query_async(
             user_message=user_message,
             model=model,
@@ -585,14 +568,8 @@ class ZhiyanEngine:
             max_tokens=max_tokens,
             conversation_history=conversation_history,
             task=task,
-        ))
-
         )
-
-        if loop and loop.is_running():
-            result = asyncio.run(coro)
-        else:
-            result = asyncio.run(coro)
+        result = asyncio.run(coro)
 
         return {
             "content": result.content,
@@ -827,6 +804,9 @@ class ZhiyanEngine:
         """One-shot synchronous call — drop-in replacement for runner.run_llm().
 
         This bypasses the doc-loading path and uses the provided system_prompt directly.
+
+        FIX v3.0.1: Removed dead code after early return in the `existing_loop` branch
+        (unreachable run_until_complete call).
         """
         if dry_run:
             print("=" * 60)
@@ -843,7 +823,6 @@ class ZhiyanEngine:
 
         provider = os.getenv("ZHIYAN_PROVIDER", "openai").lower()
         if provider == "gemini":
-            # Use Gemini SDK
             loop = asyncio.new_event_loop()
             try:
                 return loop.run_until_complete(
@@ -876,11 +855,6 @@ class ZhiyanEngine:
             )
             content = resp.choices[0].message.content or ""
             return validate_output(content, task)
-
-            # Already in an event loop — run directly
-            return existing_loop.run_until_complete(
-                self._run_one_shot(model_name, messages, temperature, max_tokens, task)
-            )
 
         # No running loop — create one
         loop = asyncio.new_event_loop()
