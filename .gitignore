@@ -35,3 +35,7 @@ data/zhiyan.db
 # Generated docs
 *.docx
 *.pdf
+
+# Database
+*.db
+*.sqlite
