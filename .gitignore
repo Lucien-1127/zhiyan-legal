@@ -28,3 +28,10 @@ site/
 # Data artifacts
 data/regulation_tracker.db
 data/exports/
+
+# Database
+data/zhiyan.db
+
+# Generated docs
+*.docx
+*.pdf
