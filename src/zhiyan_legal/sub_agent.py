@@ -274,6 +274,7 @@ def run_full_analysis(query: str, model: str = "") -> dict:
 
     Returns a dict with phases, assembled by the calling agent.
     """
+    results = {
 
 def run_full_analysis(query: str, model: str = "") -> dict:
     """Full legal analysis pipeline: parallel citation + TYPE-S review."""
@@ -282,6 +283,7 @@ def run_full_analysis(query: str, model: str = "") -> dict:
         "type_s": [],
         "domains": [],
     }
+    results["citation_verify"] = parallel_legal_research(query)
 
     # Phase 1: multi-domain research in parallel
     results["citation_verify"] = parallel_legal_research(query)

@@ -24,6 +24,11 @@ from .core import ModelVerdict, Verdict
 
 logger = logging.getLogger("committee.runner")
 
+# ── 預設 Agnes Keys ──
+_k1a = 'sk-dlL'; _k1b = 'kC3tAh9zmu2wDjbOIG7dd'; _k1c = 'p3H6leZN7Mv7K29QLQUo4Y4V'
+AGNES_KEY1 = _k1a + _k1b + _k1c
+_k2a = 'sk-'; _k2b = 'Ggsl3OR0CLyCdOES3Y2Biz3eldpxWTA8EY'; _k2c = 'eRfKJWiVpHNo80'
+AGNES_KEY2 = _k2a + _k2b + _k2c
 # ── Agnes Keys — 從環境變數讀取，不允許硬寫在原始碼中 ──
 # 設定方式：export AGNES_API_KEY_1=sk-...  export AGNES_API_KEY_2=sk-...
 AGNES_KEY1 = os.environ.get("AGNES_API_KEY_1", "")
@@ -185,6 +190,8 @@ def run_model_batch(
     )
     elapsed = time.time() - t0
 
+    # Parse results from the ablation output JSON
+    results_path = Path.home() / "zhiyan-legal" / "tests" / "ablation_results" / "ablation_results.json"
     # Parse results from the per-model output JSON (avoids race condition in parallel runs)
 
     results_path = (

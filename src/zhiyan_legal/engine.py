@@ -1,4 +1,5 @@
 """
+Zhiyan AI Legal System — 統一 LLM 引擎 (v3.0)
 Zhiyan AI Legal System — 統一 LLM 引擎 (v3.0.1)
 
 Canonical engine for all LLM calls. Replaces runner.py (deprecated) and
@@ -177,6 +178,11 @@ class EngineConfig:
 
 def discover_api_key() -> str:
     """Multi-layer API key discovery (env vars → Hermes profile).
+    
+    Priority: DEEPSEEK > OPENROUTER > OPENAI > GEMINI > ZHIYAN
+    (ZHIYAN_API_KEY is lowest priority to avoid stale keys overriding the active one.)
+    """
+    # Check well-known keys first (most likely to be active)
 
     Priority: DEEPSEEK > OPENROUTER > OPENAI > GEMINI > ZHIYAN
     (ZHIYAN_API_KEY is lowest priority to avoid stale keys overriding the active one.)
@@ -272,6 +278,7 @@ def validate_output(result: str, task: str = "QC") -> str:
     if not checks:
         return result
 
+    matched = sum(1 for p in checks["patterns"] if p in result)
     # Use re.search for pattern matching (supports regex like "第.")
     matched = sum(1 for p in checks["patterns"] if re.search(p, result))
     threshold = max(1, len(checks["patterns"]) // 3)
@@ -373,6 +380,41 @@ class ZhiyanEngine:
 
     # ── Document management ──────────────────────────
 
+    def load_docs(self) -> str:
+        """Load docs/ spec documents into a composed system prompt."""
+        if self._system_prompt and self._docs_loaded:
+            return self._system_prompt
+
+        parts: list[str] = []
+        load_order = [
+            "10_核心控制層",
+            "20_模式與引用層",
+            "40_模組與人格層",
+        ]
+        for category in load_order:
+            cat_dir = DOCS_DIR / category
+            if not cat_dir.exists():
+                logger.warning("目錄不存在: %s", cat_dir)
+                continue
+            files = sorted(cat_dir.glob("*.md"))
+            for f in files:
+                try:
+                    content = f.read_text(encoding="utf-8")
+                    parts.append(f"<!-- {f.name} -->\n{content}")
+                except Exception as e:
+                    logger.error("讀取失敗 %s: %s", f.name, e)
+
+        self._system_prompt = "\n\n---\n\n".join(parts)
+        self._docs_loaded = True
+        logger.info("已載入 %d 份規格文件，共 %d 字元",
+                    len(parts), len(self._system_prompt))
+        return self._system_prompt
+
+    def reload(self):
+        """Force reload documents."""
+        self._system_prompt = None
+        self._docs_loaded = False
+        return self.load_docs()
     def load_docs(self, task: str = "QC") -> str:
         """Load task-specific docs via manifest.get_load_order() with per-task caching.
 
@@ -435,6 +477,7 @@ class ZhiyanEngine:
         rid = request_id or uuid.uuid4().hex[:12]
         model = model or self._config.default_model
 
+        system_prompt = self.load_docs()
         system_prompt = self.load_docs(task)
         is_legal = self._detect_legal_mode(user_message)
 
@@ -569,6 +612,11 @@ class ZhiyanEngine:
             conversation_history=conversation_history,
             task=task,
         )
+
+        if loop and loop.is_running():
+            result = asyncio.run(coro)
+        else:
+            result = asyncio.run(coro)
         result = asyncio.run(coro)
 
         return {
@@ -823,6 +871,7 @@ class ZhiyanEngine:
 
         provider = os.getenv("ZHIYAN_PROVIDER", "openai").lower()
         if provider == "gemini":
+            # Use Gemini SDK
             loop = asyncio.new_event_loop()
             try:
                 return loop.run_until_complete(
@@ -843,6 +892,10 @@ class ZhiyanEngine:
             existing_loop = None
 
         if existing_loop:
+            # Already in an event loop — run directly
+            return existing_loop.run_until_complete(
+                self._run_one_shot(model_name, messages, temperature, max_tokens, task)
+            )
             # run_until_complete() cannot be called on a running event loop — use sync client
             if not self._sync_openai:
                 self._sync_openai = OpenAI(

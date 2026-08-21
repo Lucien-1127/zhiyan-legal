@@ -162,6 +162,7 @@ class JudgmentDocument(BaseModel):
                     f"expected {self.meta.doc_id}"
                 )
         return self
+        return self
 
 # ⚠️  此檔案已廢棄，請改用 src/zhiyan_legal/schemas/judgment.py
 # Deprecated since v3.9.4 — will be removed in v4.0
