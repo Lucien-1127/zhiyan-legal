@@ -30,7 +30,7 @@ tags:
 （給忙碌的人 5 秒讀完的核心訊息）
 
 【本段資料來源】  
-[1] 主要依據 — URL / 位置
+ 主要依據 — URL / 位置
 
 ---
 
@@ -38,26 +38,26 @@ tags:
 
 **3-6 點關鍵依據**（每點至少 1 個來源）：
 
-1. **現況面**：當前狀況怎樣？有什麼數據支持？[2]
+1. **現況面**：當前狀況怎樣？有什麼數據支持？
 
-2. **趨勢面**：未來會怎樣？基於什麼預測？[3][4]
+2. **趨勢面**：未來會怎樣？基於什麼預測？
 
-3. **風險面**：有什麼風險？容易被忽視？[5]
+3. **風險面**：有什麼風險？容易被忽視？
 
-4. **可行性面**：有可行方案嗎？成本如何？[6]
+4. **可行性面**：有可行方案嗎？成本如何？
 
-5. **對標面**：同業怎麼做？有什麼案例？[7]
+5. **對標面**：同業怎麼做？有什麼案例？
 
-6. **法規/限制面**：有什麼法規障礙？[8]
+6. **法規/限制面**：有什麼法規障礙？
 
 【本段資料來源】  
-[2] 現況數據 — 機構 | https://example.com | 信度：[Official]  
-[3] 趨勢預測 1 — 機構 | https://example.com | 信度：[Industry]  
-[4] 趨勢預測 2 — 機構 | https://example.com | 信度：[Academic]  
-[5] 風險警示 — 報告 | https://example.com | 信度：[Official]  
-[6] 方案評估 — 顧問 | https://example.com | 信度：[Industry]  
-[7] 同業案例 — 報導 | https://example.com | 信度：[Media]  
-[8] 法規資訊 — 政府 | https://example.com | 信度：[Official]
+ 現況數據 — 機構 | https://example.com | 信度：[Official]  
+ 趨勢預測 1 — 機構 | https://example.com | 信度：[Industry]  
+ 趨勢預測 2 — 機構 | https://example.com | 信度：[Academic]  
+ 風險警示 — 報告 | https://example.com | 信度：[Official]  
+ 方案評估 — 顧問 | https://example.com | 信度：[Industry]  
+ 同業案例 — 報導 | https://example.com | 信度：[Media]  
+ 法規資訊 — 政府 | https://example.com | 信度：[Official]
 
 ---
 
@@ -71,8 +71,8 @@ tags:
 - 建議採用版本：基於最新/最可信來源，應採用…
 
 【本段資料來源】  
-[9] 衝突來源 1 — https://example.com  
-[10] 衝突來源 2 — https://example.com
+ 衝突來源 1 — https://example.com  
+ 衝突來源 2 — https://example.com
 
 ---
 
@@ -93,16 +93,16 @@ tags:
 
 【完整資料來源清單】
 
-[1] 主要依據 — 機構名 | https://example.com | 發布時間：2026-01-15 | 信度：[Official]  
-[2] 現況數據 — 統計機構 | https://example.com | 發布時間：2026-01 | 信度：[Official]  
-[3] 趨勢預測 1 — 咨詢公司 | https://example.com | 發布時間：2025-12 | 信度：[Industry]  
-[4] 趨勢預測 2 — 研究院 | https://example.com | 發布時間：2025-12 | 信度：[Academic]  
-[5] 風險警示 — 行業報告 | https://example.com | 發布時間：2026-01 | 信度：[Official]  
-[6] 方案評估 — 管理咨詢 | https://example.com | 發布時間：2025-11 | 信度：[Industry]  
-[7] 同業案例 — 新聞報導 | https://example.com | 發布時間：2026-01 | 信度：[Media]  
-[8] 法規資訊 — 政府網站 | https://example.com | 發布時間：2025-12 | 信度：[Official]  
-[9] 衝突來源 1 — 報告 | https://example.com | 信度：[Industry]  
-[10] 衝突來源 2 — 評論 | https://example.com | 信度：[Media]
+ 主要依據 — 機構名 | https://example.com | 發布時間：2026-01-15 | 信度：[Official]  
+ 現況數據 — 統計機構 | https://example.com | 發布時間：2026-01 | 信度：[Official]  
+ 趨勢預測 1 — 咨詢公司 | https://example.com | 發布時間：2025-12 | 信度：[Industry]  
+ 趨勢預測 2 — 研究院 | https://example.com | 發布時間：2025-12 | 信度：[Academic]  
+ 風險警示 — 行業報告 | https://example.com | 發布時間：2026-01 | 信度：[Official]  
+ 方案評估 — 管理咨詢 | https://example.com | 發布時間：2025-11 | 信度：[Industry]  
+ 同業案例 — 新聞報導 | https://example.com | 發布時間：2026-01 | 信度：[Media]  
+ 法規資訊 — 政府網站 | https://example.com | 發布時間：2025-12 | 信度：[Official]  
+ 衝突來源 1 — 報告 | https://example.com | 信度：[Industry]  
+ 衝突來源 2 — 評論 | https://example.com | 信度：[Media]
 
 ---
 
@@ -112,42 +112,42 @@ tags:
 
 ```
 1) 核心結論
-建議投入 AI 人才培訓計畫[1]。預期 18 個月內提升員工 AI 技能，實現 30% 效率提升。
+建議投入 AI 人才培訓計畫。預期 18 個月內提升員工 AI 技能，實現 30% 效率提升。
 
 【本段資料來源】
-[1] 企業轉型白皮書 — https://example.com
+ 企業轉型白皮書 — https://example.com
 
 2) 依據
 
-1. **現況面**：貴公司 AI 人才缺口達 25%，低於業界平均 18%[2]
+1. **現況面**：貴公司 AI 人才缺口達 25%，低於業界平均 18%
 
-2. **趨勢面**：未來 2 年，AI 技能將成為招聘必需條件，人才競爭激烈[3][4]
+2. **趨勢面**：未來 2 年，AI 技能將成為招聘必需條件，人才競爭激烈
 
-3. **風險面**：若不投入培訓，恐面臨人才流失、競爭力下滑[5]
+3. **風險面**：若不投入培訓，恐面臨人才流失、競爭力下滑
 
-4. **可行性面**：內部培訓成本較低（較外聘 40%），ROI 預期 2 年[6]
+4. **可行性面**：內部培訓成本較低（較外聘 40%），ROI 預期 2 年
 
-5. **對標面**：同業 Microsoft、Google 已啟動大規模培訓[7]
+5. **對標面**：同業 Microsoft、Google 已啟動大規模培訓
 
-6. **法規面**：政府提供員工培訓補助，可降低成本 20%[8]
+6. **法規面**：政府提供員工培訓補助，可降低成本 20%
 
 【本段資料來源】
-[2] 行業人才調查 — Gartner | https://example.com | 信度：[Industry]
-[3] AI 人才趨勢 2026 — McKinsey | https://example.com | 信度：[Industry]
-[4] 招聘預測 — LinkedIn | https://example.com | 信度：[Industry]
-[5] 人才流失風險 — Harvard Business Review | https://example.com | 信度：[Media]
-[6] 培訓 ROI 分析 — Deloitte | https://example.com | 信度：[Industry]
-[7] 同業案例 — 新聞報導 | https://example.com | 信度：[Media]
-[8] 政策補助 — 經濟部網站 | https://example.com | 信度：[Official]
+ 行業人才調查 — Gartner | https://example.com | 信度：[Industry]
+ AI 人才趨勢 2026 — McKinsey | https://example.com | 信度：[Industry]
+ 招聘預測 — LinkedIn | https://example.com | 信度：[Industry]
+ 人才流失風險 — Harvard Business Review | https://example.com | 信度：[Media]
+ 培訓 ROI 分析 — Deloitte | https://example.com | 信度：[Industry]
+ 同業案例 — 新聞報導 | https://example.com | 信度：[Media]
+ 政策補助 — 經濟部網站 | https://example.com | 信度：[Official]
 
 3) 衝突檢查
 結論：未檢出重大衝突
 檢查範圍：AI 人才培訓投資效益（3 個獨立咨詢機構）
 
-結論一致性：三份獨立報告都確認「員工培訓 ROI 為 1.8-2.2 倍」[9]
+結論一致性：三份獨立報告都確認「員工培訓 ROI 為 1.8-2.2 倍」
 
 【本段資料來源】
-[9] ROI 對標 — 三家咨詢公司彙總 | https://example.com
+ ROI 對標 — 三家咨詢公司彙總 | https://example.com
 
 4) 風險與邊界
 ⚠️ 培訓實施假設：本 ROI 計算基於「員工留職率 85%」的假設。若人才流失加速，ROI 會下降。
@@ -155,8 +155,8 @@ tags:
 ⚠️ 市場變化：AI 技術日新月異，培訓課程需持續更新（年度成本額外 +15%）。
 
 5) 完整資料來源清單
-[1] 企業轉型白皮書 — 行業協會 | https://example.com | 信度：[Official]
-[2] 行業人才調查 — Gartner | https://example.com | 信度：[Industry]
+ 企業轉型白皮書 — 行業協會 | https://example.com | 信度：[Official]
+ 行業人才調查 — Gartner | https://example.com | 信度：[Industry]
 ...（完整列表）
 ```
 
@@ -164,29 +164,29 @@ tags:
 
 ```
 1) 核心結論
-建議於 2026 年進入東南亞市場，重點鎖定越南與泰國[1]。
-預期 3 年內實現年收 5 億人民幣、市占率 12%[2]。
+建議於 2026 年進入東南亞市場，重點鎖定越南與泰國。
+預期 3 年內實現年收 5 億人民幣、市占率 12%。
 
 【本段資料來源】
-[1] 東南亞市場研究 2025 — BCG | https://example.com
-[2] 財務預測模型 — 內部報告
+ 東南亞市場研究 2025 — BCG | https://example.com
+ 財務預測模型 — 內部報告
 
 2) 依據
 
-1. **市場現況**：東南亞電商市場年增速 25%，遠高全球 8%[3]
+1. **市場現況**：東南亞電商市場年增速 25%，遠高全球 8%
 
-2. **地區選擇**：越南、泰國互聯網滲透率 75%+，消費升級快速[4]
+2. **地區選擇**：越南、泰國互聯網滲透率 75%+，消費升級快速
 
-3. **競爭格局**：本地玩家弱化，國際巨頭尚未全面覆蓋，窗口期 18-24 個月[5]
+3. **競爭格局**：本地玩家弱化，國際巨頭尚未全面覆蓋，窗口期 18-24 個月
 
-4. **投入成本**：初期投入 1.2 億人民幣（較預期下浮 15%）[6]
+4. **投入成本**：初期投入 1.2 億人民幣（較預期下浮 15%）
 
-5. **風險評估**：政策風險中等、匯率風險可控、人才短缺可解決[7]
+5. **風險評估**：政策風險中等、匯率風險可控、人才短缺可解決
 
-6. **政策支持**：中國對東南亞投資有優惠稅制，可節省成本 8-12%[8]
+6. **政策支持**：中國對東南亞投資有優惠稅制，可節省成本 8-12%
 
 【本段資料來源】
-[3] 東南亞電商市場 — 阿里研究院 | https://example.com | 信度：[Industry]
+ 東南亞電商市場 — 阿里研究院 | https://example.com | 信度：[Industry]
 ...（完整列表）
 
 ...以此類推
@@ -198,30 +198,30 @@ tags:
 
 ### ❌ 舊格式（禁用）
 ```
-根據分析[1]、行業報告[2]、政策文件[3]…
+根據分析、行業報告、政策文件…
 
 【來源】
-[1] URL
-[2] URL
-[3] URL
+ URL
+ URL
+ URL
 ```
 
 ### ✅ 新格式（使用中）
 ```
-根據分析[1]…行業報告指出[2]…政策支持[3]…
+根據分析…行業報告指出…政策支持…
 
 【本段資料來源】
-[1] 分析報告 — https://example.com
-[2] 行業報告 — https://example.com
-[3] 政策文件 — https://example.com
+ 分析報告 — https://example.com
+ 行業報告 — https://example.com
+ 政策文件 — https://example.com
 
-結論是[4]…
+結論是…
 
 【本段資料來源】
-[4] 結論依據 — https://example.com
+ 結論依據 — https://example.com
 
 【完整資料來源清單】
-[1][2][3][4]… 彙總表
+… 彙總表
 ```
 
 ---

@@ -130,5 +130,7 @@ def compose(
 
 
 def count_tokens(text: str) -> int:
-    """Rough token estimate (4 chars per token)."""
-    return len(text) // 4
+    """Rough token estimate: CJK chars ~1.5 tokens each, Latin ~0.25 tokens/char."""
+    cjk = sum(1 for c in text if '一' <= c <= '鿿' or '㐀' <= c <= '䶿')
+    latin = len(text) - cjk
+    return int(cjk * 1.5 + latin * 0.25)

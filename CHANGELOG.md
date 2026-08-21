@@ -12,12 +12,16 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - **助教人格 v1.2.0**：啟動前檢查拆分兩層、新增換算公式與範例、合併全域約束、新增不確定退路（⚠️ 需核查不計扣分）、用語修正、重疊規則合併
 
+- **助教人格 v1.2.0**：啟動前檢查拆分兩層、新增換算公式與範例、合併全域約束、新增不確定退路（⚠️ 需核查不計口分）、用語修正、重疊規則合併
+
 ### 🟡 Improvements
 
 - **版本號三方對齊**：pyproject.toml → v3.7.2，CITATION.cff → v3.07.2，與 git tag 一致
 - **依賴管理補強**：新增 committee/test 兩個 optional group（google-genai, PyYAML, requests, pytest, pytest-cov）
 - **Badge 一致化**：Tests 122→123
 - **清理已追蹤的實驗殘檔**：移除 7 個 results/exp-citation-ablation-* 目錄（.gitignore 無法處理已追蹤檔案）
+
+- **清理已追蹤的實驗殘檔**：移除 7 個 results/exp-citation-ablation-* 目錄
 - **committee/README.md 路徑修正**：絕對路徑改為相對路徑
 
 ### 🧪 Testing
@@ -56,6 +60,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 |:----|------|
 | `ae536a5` | Round 2: CHANGELOG 忠於git史、§127措辭、judicial_api 6 edge cases |
 | `d742244` | TYPE-S audit — 10 fixes applied |
+
+- **judicial_api parser 重構**：`parse_case_number` 改為「劑 court name → 劑年度 → parse 字別號次」三步驟，解決連續格式（無空格案號）下 regex 貪婪吞食法院名和年度的問題。
+- **test_judicial_api.py**：`test_parse_full_case` assertion 配合 COURT_CODES 鍵値修正 + 新增 6 個 edge case。
+
+### 🟡 Improvements — P2 (High)
+
+- 文件數與版本號統一、測試 badge 更新 81→122、README layout 更新、CHANGELOG 規範化。
+
+### 🧪 Testing
+
+- 測試總數：56 → 81 → 106 → **122**（全數通過）
 
 ---
 
@@ -101,6 +116,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 | `7b1d62a` | feat: 書狀格式規範 + doc_generator.py |
 | `3156a65` | feat: 司法院裁判書開放 API 整合 |
 
+
+- 新增 `src/zhiyan_legal/sub_agent.py`：Hermes delegate_task 子代理排程模組，支援五種平行化模式。
+- 新增 `docs/10_核心控制層/17_子代理並行策略.md`
+
+#### 書狀格式規範與產生器
+- 新增 `src/zhiyan_legal/doc_generator.py`、`docs/60_概念詞條/書狀格式規範.md`、`templates/民事書狀範本.docx`
+
+#### 司法院裁判書開放 API 整合
+- 新增 `src/zhiyan_legal/judicial_api.py`、對應文件與測試
+
+### 🧪 Testing
+
+- 測試總數：56 → **81 → 106**
+
 ---
 
 ## [3.06.1] — 2026-06-25
@@ -128,6 +157,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 | `05510d8` | v3.06.1: fix: 架構審查 6 項修正 |
 | `9ae2e86` | v3.06: feat: 新增 L0.8 實務案例驗證層 (previous) |
 
+- RESEARCH.md §3.1 架構層數修正、Citation Policy v2.1 對齊、manifest.py FIXME 標註
+
+### 🟡 Improvements — P2 (High)
+
+- runner.py MODEL_DEFAULT 更新、router.py RESEARCH 關鍵字新增「查詢」
+
 ---
 
 ## [3.06] — 2026-06-25
@@ -154,6 +189,10 @@ See [3.06.1] — this release was immediately followed by the patch. The v3.06 t
 | SHA | 說明 |
 |:----|------|
 | `55b1ee1` | v3.05: feat: 新增 L0.7 白話 RAG 層 + Citation v2.1 |
+
+### 🟢 Features
+
+- SKILL.md v3.05：新增 L0.7 白話 RAG 優先檢索層（47,001 條，SQLite FTS5）、Citation v2.1 RAG 引用編號體系
 
 ---
 
@@ -227,6 +266,23 @@ All changes were reviewed, implemented, and verified on the `main` branch.
 
 ### 📊 Coverage Milestone
 
+
+### 🔴 Bug Fixes — P1 (Critical)
+
+- router.py 關鍵字衝突修正、單字邊界保護、LEGAL_WRITER 任務新增、預設 fallback 修正
+- pyproject.toml build-backend 修正
+- loader.py 遺失文件靜默忽略修正
+
+### 🟡 Improvements — P2 (High)
+
+- runner.py API 錯誤處理、dry-run token 估算、setup.sh cd 路徑修正、全域 print() → logging
+
+### 🟢 Features — P3 (Enhancement)
+
+- router.py describe_route() LEGAL_WRITER 描述、manifest.py ZHIYAN_SKILL_DIR 環境變數、cli.py --list-tasks 、__main__.py
+
+### 🧪 Testing
+
 | Milestone | Tests | Passed |
 |-----------|-------|--------|
 | Before audit | 14 | 14 |
@@ -248,3 +304,7 @@ Covered modules: `router`, `loader`, `manifest`.
 ---
 
 *Generated on 2026-06-26 · zhiyan-legal*
+
+---
+
+*Generated on 2026-07-05 · zhiyan-legal v3.09*

@@ -1,0 +1,877 @@
+{
+  "nodes": [
+    {
+      "id": "stat-civil",
+      "label": "民法",
+      "type": "Statute",
+      "metadata": {}
+    },
+    {
+      "id": "part-obligation",
+      "label": "債編",
+      "type": "Part",
+      "metadata": {
+        "sub": "第二編"
+      }
+    },
+    {
+      "id": "part-obligation-general",
+      "label": "債編總論",
+      "type": "Part",
+      "metadata": {}
+    },
+    {
+      "id": "part-obligation-specific",
+      "label": "債編各論",
+      "type": "Part",
+      "metadata": {}
+    },
+    {
+      "id": "ch-sale",
+      "label": "買賣",
+      "type": "Chapter",
+      "metadata": {
+        "articles": "§345-§397"
+      }
+    },
+    {
+      "id": "art-345",
+      "label": "§345 買賣之定義",
+      "type": "Article",
+      "metadata": {
+        "text": "稱買賣者，謂當事人約定一方移轉財產權於他方，他方支付價金之契約。"
+      }
+    },
+    {
+      "id": "art-346",
+      "label": "§346 價金之決定",
+      "type": "Article",
+      "metadata": {
+        "text": "價金雖未具體約定，而依情形可得而定者，視為定有價金。"
+      }
+    },
+    {
+      "id": "art-347",
+      "label": "§347 買賣之成立",
+      "type": "Article",
+      "metadata": {
+        "text": "本節規定，於買賣契約成立及效力，除另有規定外，準用之。"
+      }
+    },
+    {
+      "id": "art-348",
+      "label": "§348 物之出賣人義務",
+      "type": "Article",
+      "metadata": {
+        "text": "物之出賣人，負交付其物於買受人，並使其取得該物所有權之義務。"
+      }
+    },
+    {
+      "id": "art-349",
+      "label": "§349 權利瑕疵擔保",
+      "type": "Article",
+      "metadata": {
+        "text": "出賣人應擔保第三人就買賣之標的物，對於買受人不得主張任何權利。"
+      }
+    },
+    {
+      "id": "art-350",
+      "label": "§350 權利瑕疵擔保之免除",
+      "type": "Article",
+      "metadata": {
+        "text": "債權或其他權利之出賣人，應擔保其權利確係存在。"
+      }
+    },
+    {
+      "id": "art-354",
+      "label": "§354 物之瑕疵擔保",
+      "type": "Article",
+      "metadata": {
+        "text": "物之出賣人，對於買受人應擔保其物依民法第三百七十三條之規定危險移轉於買受人時，無滅失或減少其價值之瑕疵。"
+      }
+    },
+    {
+      "id": "art-355",
+      "label": "§355 瑕疵擔保責任之免除",
+      "type": "Article",
+      "metadata": {
+        "text": "買受人於契約成立時，知其物有瑕疵者，出賣人不負擔保之責。"
+      }
+    },
+    {
+      "id": "art-356",
+      "label": "§356 買受人之檢查通知義務",
+      "type": "Article",
+      "metadata": {
+        "text": "買受人應按物之性質，依通常程序從速檢查其所受領之物。"
+      }
+    },
+    {
+      "id": "art-359",
+      "label": "§359 瑕疵擔保之效力",
+      "type": "Article",
+      "metadata": {
+        "text": "買賣因物有瑕疵，而出賣人依前五條之規定，應負擔保之責者，買受人得解除其契約或請求減少其價金。"
+      }
+    },
+    {
+      "id": "art-360",
+      "label": "§360 瑕疵擔保之請求損害賠償",
+      "type": "Article",
+      "metadata": {
+        "text": "買賣之物，缺少出賣人所保證之品質者，買受人得不解除契約或請求減少價金，而請求不履行之損害賠償。"
+      }
+    },
+    {
+      "id": "art-364",
+      "label": "§364 種類買賣之瑕疵擔保",
+      "type": "Article",
+      "metadata": {
+        "text": "買賣之物，僅指定種類者，其物有瑕疵時，買受人得請求另行交付無瑕疵之物。"
+      }
+    },
+    {
+      "id": "art-365",
+      "label": "§365 瑕疵擔保請求權之除斥期間",
+      "type": "Article",
+      "metadata": {
+        "text": "買受人因物有瑕疵，而得解除契約或請求減少價金者，其解除權或請求權，於買受人依第三百五十六條規定為通知後六個月間不行使或自物之交付時起經過五年而消滅。"
+      }
+    },
+    {
+      "id": "art-367",
+      "label": "§367 買受人之義務",
+      "type": "Article",
+      "metadata": {
+        "text": "買受人對於出賣人，有交付約定價金及受領標的物之義務。"
+      }
+    },
+    {
+      "id": "art-373",
+      "label": "§373 危險負擔",
+      "type": "Article",
+      "metadata": {
+        "text": "買賣標的物之利益及危險，自交付時起，均由買受人承受負擔。"
+      }
+    },
+    {
+      "id": "ch-lease",
+      "label": "租賃",
+      "type": "Chapter",
+      "metadata": {
+        "articles": "§421-§463"
+      }
+    },
+    {
+      "id": "art-421",
+      "label": "§421 租賃之定義",
+      "type": "Article",
+      "metadata": {
+        "text": "稱租賃者，謂當事人約定，一方以物租與他方使用收益，他方支付租金之契約。"
+      }
+    },
+    {
+      "id": "art-422",
+      "label": "§422 不動產租賃之方式",
+      "type": "Article",
+      "metadata": {
+        "text": "不動產之租賃契約，其期限逾一年者，應以字據訂立之。"
+      }
+    },
+    {
+      "id": "art-423",
+      "label": "§423 出租人之交付義務",
+      "type": "Article",
+      "metadata": {
+        "text": "出租人應以合於所約定使用收益之租賃物，交付承租人。"
+      }
+    },
+    {
+      "id": "art-429",
+      "label": "§429 出租人之修繕義務",
+      "type": "Article",
+      "metadata": {
+        "text": "租賃物之修繕，除契約另有訂定或另有習慣外，由出租人負擔。"
+      }
+    },
+    {
+      "id": "art-430",
+      "label": "§430 修繕義務不履行之效力",
+      "type": "Article",
+      "metadata": {
+        "text": "租賃關係存續中，租賃物如有修繕之必要，應由出租人負擔者，承租人得定相當期限，催告出租人修繕。"
+      }
+    },
+    {
+      "id": "art-431",
+      "label": "§431 有益費用之償還",
+      "type": "Article",
+      "metadata": {
+        "text": "承租人就租賃物支出有益費用，因而增加該物之價值者，如出租人知其情事而不為反對之表示，於租賃關係終止時，應償還其費用。"
+      }
+    },
+    {
+      "id": "art-432",
+      "label": "§432 承租人之保管義務",
+      "type": "Article",
+      "metadata": {
+        "text": "承租人應以善良管理人之注意，保管租賃物。"
+      }
+    },
+    {
+      "id": "art-433",
+      "label": "§433 失火責任",
+      "type": "Article",
+      "metadata": {
+        "text": "因承租人之同居人或因承租人允許為租賃物之使用收益之第三人應負責之事由，致租賃物毀損滅失者，承租人負損害賠償責任。"
+      }
+    },
+    {
+      "id": "art-440",
+      "label": "§440 租金遲延之效力",
+      "type": "Article",
+      "metadata": {
+        "text": "承租人租金支付有遲延者，出租人得定相當期限，催告承租人支付租金，如承租人於其期限內不為支付，出租人得終止契約。"
+      }
+    },
+    {
+      "id": "art-443",
+      "label": "§443 轉租之效力",
+      "type": "Article",
+      "metadata": {
+        "text": "承租人非經出租人承諾，不得將租賃物轉租於他人。"
+      }
+    },
+    {
+      "id": "art-450",
+      "label": "§450 租賃之消滅",
+      "type": "Article",
+      "metadata": {
+        "text": "租賃定有期限者，其租賃關係，於期限屆滿時消滅。"
+      }
+    },
+    {
+      "id": "art-451",
+      "label": "§451 默示更新",
+      "type": "Article",
+      "metadata": {
+        "text": "租賃期限屆滿後，承租人仍為租賃物之使用收益，而出租人不即表示反對之意思者，視為以不定期限繼續契約。"
+      }
+    },
+    {
+      "id": "ch-tort",
+      "label": "侵權行為",
+      "type": "Chapter",
+      "metadata": {
+        "articles": "§184-§198"
+      }
+    },
+    {
+      "id": "art-184",
+      "label": "§184 一般侵權行為",
+      "type": "Article",
+      "metadata": {
+        "text": "因故意或過失，不法侵害他人之權利者，負損害賠償責任。故意以背於善良風俗之方法，加損害於他人者亦同。"
+      }
+    },
+    {
+      "id": "art-185",
+      "label": "§185 共同侵權行為",
+      "type": "Article",
+      "metadata": {
+        "text": "數人共同不法侵害他人之權利者，連帶負損害賠償責任。"
+      }
+    },
+    {
+      "id": "art-186",
+      "label": "§186 公務員侵權責任",
+      "type": "Article",
+      "metadata": {
+        "text": "公務員因故意違背對於第三人應執行之職務，致第三人受損害者，負賠償責任。"
+      }
+    },
+    {
+      "id": "art-187",
+      "label": "§187 法定代理人之責任",
+      "type": "Article",
+      "metadata": {
+        "text": "無行為能力人或限制行為能力人，不法侵害他人之權利者，以行為時有識別能力為限，與其法定代理人連帶負損害賠償責任。"
+      }
+    },
+    {
+      "id": "art-188",
+      "label": "§188 僱用人責任",
+      "type": "Article",
+      "metadata": {
+        "text": "受僱人因執行職務，不法侵害他人之權利者，由僱用人與行為人連帶負損害賠償責任。"
+      }
+    },
+    {
+      "id": "art-189",
+      "label": "§189 定作人責任",
+      "type": "Article",
+      "metadata": {
+        "text": "承攬人因執行承攬事項，不法侵害他人之權利者，定作人不負損害賠償責任。"
+      }
+    },
+    {
+      "id": "art-190",
+      "label": "§190 動物占有人責任",
+      "type": "Article",
+      "metadata": {
+        "text": "動物加損害於他人者，由其占有人負損害賠償責任。"
+      }
+    },
+    {
+      "id": "art-191",
+      "label": "§191 工作物所有人責任",
+      "type": "Article",
+      "metadata": {
+        "text": "土地上之建築物或其他工作物所致他人權利之損害，由工作物之所有人負賠償責任。"
+      }
+    },
+    {
+      "id": "art-191-3",
+      "label": "§191-3 危險事業責任",
+      "type": "Article",
+      "metadata": {
+        "text": "經營一定事業或從事其他工作或活動之人，其工作或活動之性質或其使用之工具或方法有生損害於他人之危險者，對他人之損害應負賠償責任。"
+      }
+    },
+    {
+      "id": "art-192",
+      "label": "§192 侵害生命權之損害賠償",
+      "type": "Article",
+      "metadata": {
+        "text": "不法侵害他人致死者，對於支出醫療及增加生活上需要之費用或殯葬費之人，亦應負損害賠償責任。"
+      }
+    },
+    {
+      "id": "art-193",
+      "label": "§193 侵害身體健康之損害賠償",
+      "type": "Article",
+      "metadata": {
+        "text": "不法侵害他人之身體或健康者，對於被害人因此喪失或減少勞動能力或增加生活上之需要時，應負損害賠償責任。"
+      }
+    },
+    {
+      "id": "art-194",
+      "label": "§194 侵害生命權之慰撫金",
+      "type": "Article",
+      "metadata": {
+        "text": "不法侵害他人致死者，被害人之父、母、子、女及配偶，雖非財產上之損害，亦得請求賠償相當之金額。"
+      }
+    },
+    {
+      "id": "art-195",
+      "label": "§195 侵害人格權之慰撫金",
+      "type": "Article",
+      "metadata": {
+        "text": "不法侵害他人之身體、健康、名譽、自由、信用、隱私、貞操，或不法侵害其他人格法益而情節重大者，被害人雖非財產上之損害，亦得請求賠償相當之金額。"
+      }
+    },
+    {
+      "id": "art-196",
+      "label": "§196 物之毀損賠償",
+      "type": "Article",
+      "metadata": {
+        "text": "不法毀損他人之物者，被害人得請求賠償其物因毀損所減少之價額。"
+      }
+    },
+    {
+      "id": "art-197",
+      "label": "§197 侵權行為請求權之消滅時效",
+      "type": "Article",
+      "metadata": {
+        "text": "因侵權行為所生之損害賠償請求權，自請求權人知有損害及賠償義務人時起，二年間不行使而消滅。"
+      }
+    },
+    {
+      "id": "art-198",
+      "label": "§198 時效完成後之拒絕給付權",
+      "type": "Article",
+      "metadata": {
+        "text": "因侵權行為對於被害人取得債權者，被害人對該債權之廢止請求權，雖因時效而消滅，仍得拒絕履行。"
+      }
+    },
+    {
+      "id": "art-227",
+      "label": "§227 不完全給付",
+      "type": "Article",
+      "metadata": {
+        "text": "因可歸責於債務人之事由，致為不完全給付者，債權人得依關於給付遲延或給付不能之規定行使其權利。"
+      }
+    },
+    {
+      "id": "ch-general-performance",
+      "label": "債之效力",
+      "type": "Chapter",
+      "metadata": {}
+    },
+    {
+      "id": "con-warranty",
+      "label": "物之瑕疵擔保",
+      "type": "Concept",
+      "metadata": {}
+    },
+    {
+      "id": "con-right-warranty",
+      "label": "權利瑕疵擔保",
+      "type": "Concept",
+      "metadata": {}
+    },
+    {
+      "id": "con-tort",
+      "label": "侵權行為",
+      "type": "Concept",
+      "metadata": {}
+    },
+    {
+      "id": "con-lease",
+      "label": "租賃",
+      "type": "Concept",
+      "metadata": {}
+    },
+    {
+      "id": "con-sale",
+      "label": "買賣契約",
+      "type": "Concept",
+      "metadata": {}
+    },
+    {
+      "id": "con-imputation",
+      "label": "歸責事由",
+      "type": "Concept",
+      "metadata": {}
+    },
+    {
+      "id": "con-limiting",
+      "label": "消滅時效",
+      "type": "Concept",
+      "metadata": {}
+    },
+    {
+      "id": "con-damages",
+      "label": "損害賠償",
+      "type": "Concept",
+      "metadata": {}
+    }
+  ],
+  "edges": [
+    {
+      "source": "stat-civil",
+      "target": "part-obligation",
+      "type": "has_part"
+    },
+    {
+      "source": "part-obligation",
+      "target": "part-obligation-general",
+      "type": "has_part"
+    },
+    {
+      "source": "part-obligation",
+      "target": "part-obligation-specific",
+      "type": "has_part"
+    },
+    {
+      "source": "part-obligation-specific",
+      "target": "ch-sale",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-345",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-346",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-347",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-348",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-349",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-350",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-354",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-355",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-356",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-359",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-360",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-364",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-365",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-367",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-sale",
+      "target": "art-373",
+      "type": "has_part"
+    },
+    {
+      "source": "art-354",
+      "target": "art-347",
+      "type": "references"
+    },
+    {
+      "source": "art-359",
+      "target": "art-354",
+      "type": "references"
+    },
+    {
+      "source": "art-360",
+      "target": "art-354",
+      "type": "references"
+    },
+    {
+      "source": "art-365",
+      "target": "art-356",
+      "type": "references"
+    },
+    {
+      "source": "art-354",
+      "target": "art-373",
+      "type": "references"
+    },
+    {
+      "source": "art-355",
+      "target": "art-354",
+      "type": "exception_to"
+    },
+    {
+      "source": "part-obligation-specific",
+      "target": "ch-lease",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-421",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-422",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-423",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-429",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-430",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-431",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-432",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-433",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-440",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-443",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-450",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-lease",
+      "target": "art-451",
+      "type": "has_part"
+    },
+    {
+      "source": "art-430",
+      "target": "art-429",
+      "type": "references"
+    },
+    {
+      "source": "art-440",
+      "target": "art-421",
+      "type": "references"
+    },
+    {
+      "source": "art-451",
+      "target": "art-450",
+      "type": "exception_to"
+    },
+    {
+      "source": "part-obligation-general",
+      "target": "ch-tort",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-184",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-185",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-186",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-187",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-188",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-189",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-190",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-191",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-191-3",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-192",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-193",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-194",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-195",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-196",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-197",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-tort",
+      "target": "art-198",
+      "type": "has_part"
+    },
+    {
+      "source": "art-185",
+      "target": "art-184",
+      "type": "references"
+    },
+    {
+      "source": "art-187",
+      "target": "art-184",
+      "type": "references"
+    },
+    {
+      "source": "art-188",
+      "target": "art-184",
+      "type": "references"
+    },
+    {
+      "source": "art-190",
+      "target": "art-184",
+      "type": "references"
+    },
+    {
+      "source": "art-191",
+      "target": "art-184",
+      "type": "references"
+    },
+    {
+      "source": "art-191-3",
+      "target": "art-184",
+      "type": "references"
+    },
+    {
+      "source": "art-197",
+      "target": "art-184",
+      "type": "references"
+    },
+    {
+      "source": "art-184",
+      "target": "art-191",
+      "type": "conflicts_with"
+    },
+    {
+      "source": "art-227",
+      "target": "art-354",
+      "type": "supplements"
+    },
+    {
+      "source": "part-obligation-general",
+      "target": "ch-general-performance",
+      "type": "has_part"
+    },
+    {
+      "source": "ch-general-performance",
+      "target": "art-227",
+      "type": "has_part"
+    },
+    {
+      "source": "con-warranty",
+      "target": "art-354",
+      "type": "references"
+    },
+    {
+      "source": "con-warranty",
+      "target": "art-359",
+      "type": "references"
+    },
+    {
+      "source": "con-right-warranty",
+      "target": "art-349",
+      "type": "references"
+    },
+    {
+      "source": "con-tort",
+      "target": "art-184",
+      "type": "references"
+    },
+    {
+      "source": "con-tort",
+      "target": "art-185",
+      "type": "references"
+    },
+    {
+      "source": "con-tort",
+      "target": "art-188",
+      "type": "references"
+    },
+    {
+      "source": "con-lease",
+      "target": "art-421",
+      "type": "references"
+    },
+    {
+      "source": "con-sale",
+      "target": "art-345",
+      "type": "references"
+    },
+    {
+      "source": "con-imputation",
+      "target": "art-184",
+      "type": "references"
+    },
+    {
+      "source": "con-limiting",
+      "target": "art-197",
+      "type": "references"
+    },
+    {
+      "source": "con-damages",
+      "target": "art-192",
+      "type": "references"
+    },
+    {
+      "source": "con-damages",
+      "target": "art-193",
+      "type": "references"
+    },
+    {
+      "source": "con-damages",
+      "target": "art-194",
+      "type": "references"
+    },
+    {
+      "source": "con-damages",
+      "target": "art-195",
+      "type": "references"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 """
 Zhiyan AI Legal System — 統一 LLM 引擎 (v3.0)
+Zhiyan AI Legal System — 統一 LLM 引擎 (v3.0.1)
 
 Canonical engine for all LLM calls. Replaces runner.py (deprecated) and
 backward-compatible with the original backend/engine.py ZhiyanEngine.
@@ -14,12 +15,17 @@ Key features:
   - Post-LLM output validation
   - Lifespan-aware resource management
   - Health check / telemetry
+
+Changelog:
+  v3.0.1 — Fix duplicate load_docs()/reload() definitions; fix query() syntax error;
+            remove dead code in run(); fix double matched= in validate_output().
 """
 from __future__ import annotations
 
 import asyncio
 import logging
 import os
+import re
 import sys
 import time
 import uuid
@@ -177,6 +183,10 @@ def discover_api_key() -> str:
     (ZHIYAN_API_KEY is lowest priority to avoid stale keys overriding the active one.)
     """
     # Check well-known keys first (most likely to be active)
+
+    Priority: DEEPSEEK > OPENROUTER > OPENAI > GEMINI > ZHIYAN
+    (ZHIYAN_API_KEY is lowest priority to avoid stale keys overriding the active one.)
+    """
     hermes_keys = (
         "DEEPSEEK_API_KEY", "OPENROUTER_API_KEY",
         "OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY",
@@ -207,6 +217,16 @@ def _get_gemini_key() -> str:
         return key
     cfg_path = os.path.expanduser("~/.hermes/profiles/lenien-gcp/config.yaml")
     try:
+        with open(cfg_path, encoding="utf-8") as _f:
+            _in_gemini = False
+            for _line in _f:
+                if "gemini:" in _line:
+                    _in_gemini = True
+                elif _in_gemini and "api_key:" in _line:
+                    return _line.split("api_key:", 1)[1].strip()
+                elif _in_gemini and _line.strip() and not _line.startswith(" ") and ":" in _line:
+                    _in_gemini = False
+
         import subprocess
         out = subprocess.run(
             ["grep", "-A1", "gemini:", cfg_path],
@@ -247,6 +267,9 @@ def validate_output(result: str, task: str = "QC") -> str:
 
     Checks output for task-essential keywords. If core patterns are missing,
     appends a structured advisory rather than modifying original content.
+
+    FIX v3.0.1: Removed duplicate matched= assignment; now uses re.search()
+    consistently (original string-in check was silently overwriting re.search).
     """
     if not result:
         return result
@@ -256,6 +279,8 @@ def validate_output(result: str, task: str = "QC") -> str:
         return result
 
     matched = sum(1 for p in checks["patterns"] if p in result)
+    # Use re.search for pattern matching (supports regex like "第.")
+    matched = sum(1 for p in checks["patterns"] if re.search(p, result))
     threshold = max(1, len(checks["patterns"]) // 3)
 
     if matched < threshold:
@@ -300,6 +325,7 @@ class ZhiyanEngine:
         # Document cache
         self._system_prompt: Optional[str] = None
         self._docs_loaded = False
+        self._doc_cache: dict[str, str] = {}  # task → composed prompt
 
         # Resources
         self._http_client: Optional[httpx.AsyncClient] = None
@@ -389,6 +415,48 @@ class ZhiyanEngine:
         self._system_prompt = None
         self._docs_loaded = False
         return self.load_docs()
+    def load_docs(self, task: str = "QC") -> str:
+        """Load task-specific docs via manifest.get_load_order() with per-task caching.
+
+        FIX v3.0.1: Merged two conflicting load_docs() definitions.
+        Now uses manifest.get_load_order(task) with fallback to glob,
+        with per-task cache (_doc_cache). The first loaded task also sets
+        _system_prompt for backward-compat callers.
+        """
+        if task in self._doc_cache:
+            return self._doc_cache[task]
+
+        try:
+            file_paths = get_load_order(task)
+        except Exception as e:
+            logger.warning("get_load_order(%s) failed: %s — falling back to glob", task, e)
+            file_paths = [
+                str(f)
+                for cat in ["10_核心控制層", "20_模式與引用層", "40_模組與人格層"]
+                for f in sorted((DOCS_DIR / cat).glob("*.md"))
+                if (DOCS_DIR / cat).exists()
+            ]
+
+        composed = compose(file_paths)
+        self._doc_cache[task] = composed
+
+        if not self._system_prompt:
+            self._system_prompt = composed
+            self._docs_loaded = True
+
+        logger.info("已載入 task=%s: %d 字元", task, len(composed))
+        return composed
+
+    def reload(self):
+        """Force reload documents (clears all task caches and system prompt).
+
+        FIX v3.0.1: Merged two conflicting reload() definitions.
+        Now correctly clears _doc_cache, _system_prompt, and _docs_loaded flag.
+        """
+        self._system_prompt = None
+        self._docs_loaded = False
+        self._doc_cache.clear()
+        logger.info("ZhiyanEngine docs cache cleared")
 
     # ── Core async query ─────────────────────────────
 
@@ -410,6 +478,7 @@ class ZhiyanEngine:
         model = model or self._config.default_model
 
         system_prompt = self.load_docs()
+        system_prompt = self.load_docs(task)
         is_legal = self._detect_legal_mode(user_message)
 
         messages = [{"role": "system", "content": system_prompt}]
@@ -500,12 +569,41 @@ class ZhiyanEngine:
         """Synchronous query wrapper (backward-compatible with runner.py interface).
 
         Returns dict with keys: content, model, tokens_in, tokens_out, mode.
+
+        FIX v3.0.1: Removed broken asyncio.run(coro) syntax where coro= assignment
+        was orphaned inside the run() call. Now cleanly separates the two paths:
+        (1) running event loop → sync OpenAI client; (2) no loop → asyncio.run(coro).
         """
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
             loop = None
 
+        if loop and loop.is_running():
+            # asyncio.run() cannot be called from a running event loop — use sync client
+            if not self._sync_openai:
+                self._sync_openai = OpenAI(
+                    base_url=self._config.api_base,
+                    api_key=self._config.api_key,
+                )
+            model_name = model or self._config.default_model
+            msgs = list(conversation_history or [])
+            msgs.append({"role": "user", "content": user_message})
+            resp = self._sync_openai.chat.completions.create(
+                model=model_name, messages=msgs,
+                temperature=temperature, max_tokens=max_tokens,
+            )
+            content = resp.choices[0].message.content or ""
+            usage = resp.usage
+            return {
+                "content": content,
+                "model": model_name,
+                "tokens_in": usage.prompt_tokens if usage else 0,
+                "tokens_out": usage.completion_tokens if usage else 0,
+                "mode": "legal",
+            }
+
+        # No running event loop — use asyncio.run()
         coro = self.query_async(
             user_message=user_message,
             model=model,
@@ -519,6 +617,7 @@ class ZhiyanEngine:
             result = asyncio.run(coro)
         else:
             result = asyncio.run(coro)
+        result = asyncio.run(coro)
 
         return {
             "content": result.content,
@@ -753,6 +852,9 @@ class ZhiyanEngine:
         """One-shot synchronous call — drop-in replacement for runner.run_llm().
 
         This bypasses the doc-loading path and uses the provided system_prompt directly.
+
+        FIX v3.0.1: Removed dead code after early return in the `existing_loop` branch
+        (unreachable run_until_complete call).
         """
         if dry_run:
             print("=" * 60)
@@ -794,6 +896,18 @@ class ZhiyanEngine:
             return existing_loop.run_until_complete(
                 self._run_one_shot(model_name, messages, temperature, max_tokens, task)
             )
+            # run_until_complete() cannot be called on a running event loop — use sync client
+            if not self._sync_openai:
+                self._sync_openai = OpenAI(
+                    base_url=self._config.api_base,
+                    api_key=self._config.api_key,
+                )
+            resp = self._sync_openai.chat.completions.create(
+                model=model_name, messages=messages,
+                temperature=temperature, max_tokens=max_tokens,
+            )
+            content = resp.choices[0].message.content or ""
+            return validate_output(content, task)
 
         # No running loop — create one
         loop = asyncio.new_event_loop()

@@ -1,0 +1,110 @@
+[
+  {
+    "area": "部署與DevOps",
+    "severity": "high",
+    "finding": "Dockerfile 中 uvicorn CMD 使用 'api_server:app' 但 PYTHONPATH 未設定為包含 src/ 目錄。zhiyan_legal 模組位於 src/zhiyan_legal/，Docker 容器內將無法匯入該模組。",
+    "suggestion": "在 Dockerfile 中添加 'ENV PYTHONPATH=/app/src' 或在 CMD 中使用 'PYTHONPATH=/app/src uvicorn ...'。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "high",
+    "finding": "docker/api_server.py 的 /query 和 /analyze 端點包含 TODO 註解，目前僅返回假資料。/analyze 直接回傳 'not_implemented'。",
+    "suggestion": "若此 API 已對外部署，應將 stub 端點標記為 501 Not Implemented 或明確回傳錯誤訊息。優先完成 /query 端點的實際邏輯串接。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "high",
+    "finding": "docker/README.md 提到 'docker-compose.yml' 和 'nginx/' 目錄，但實際上不存在 docker-compose.yml，nginx/ 目錄也僅有 .gitkeep 空檔案。",
+    "suggestion": "更新 docker/README.md 以反映真實狀態，或補充缺失的 docker-compose.yml 和 nginx 反向代理設定。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "high",
+    "finding": "Caddyfile 使用 Tailscale IP (100.68.234.34) 作為入口，未設定 HTTPS，所有流量都是明文 HTTP。",
+    "suggestion": "設定 'tls internal' 或使用 'https://' 前綴讓 Caddy 自動取得 TLS 憑證。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "high",
+    "finding": "backend/.env.example 中的 APP_SECRET_KEY 預設值為 'change-this-to-a-random-secret'，是弱金鑰。若未更改即部署，所有 JWT/session 簽名可被偽造。",
+    "suggestion": "使用佔位符（如 'REPLACE_WITH_RANDOM_SECRET_HERE'）而非真實可執行的預設值，並在 setup.sh 中強制檢查該值是否已被修改。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "high",
+    "finding": "scripts/gcp-setup.sh 硬編碼了 GCP Project ID、VM 名稱、區域等敏感資訊，會暴露在 Git 歷史中。",
+    "suggestion": "將 GCP 專案 ID、區域等配置移至環境變數或參數傳遞，並在 .gitignore 中排除包含真實專案 ID 的設定檔。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "medium",
+    "finding": "scripts/start_api.sh 硬編碼了特定使用者的路徑 '/home/hsieh89t_gmail_com/zhiyan-legal'，無法在其他機器上使用。",
+    "suggestion": "改用相對路徑或環境變數（如 $ZHIYAN_ROOT），使腳本具備可移植性。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "medium",
+    "finding": "scripts/run_exp_logged.sh 硬編碼使用者路徑，且引用 'scripts/run_ablation_v2.py' 但實際檔案是 'scripts/run_ablation_experiment.py'。",
+    "suggestion": "修正腳本路徑指向正確的實驗腳本檔案，並移除硬編碼的使用者路徑。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "medium",
+    "finding": "requirements.txt 僅包含 openai 和 python-dotenv，但 backend/requirements.txt 包含 fastapi、uvicorn、pydantic 等多個套件。根目錄與後端依賴不一致。",
+    "suggestion": "統一依賴管理：讓根目錄 requirements.txt 指向 backend/requirements.txt（'-r backend/requirements.txt'），或全部集中於 pyproject.toml。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "medium",
+    "finding": "pyproject.toml 的 dependencies 缺少 fastapi、uvicorn、pydantic、jinja2、websockets、httpx、slowapi 等 backend/requirements.txt 中的關鍵依賴。",
+    "suggestion": "更新 pyproject.toml 的 dependencies 以包含所有核心運行時依賴，確保 'pip install .' 能安裝完整環境。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "medium",
+    "finding": "start.bat 的 .env 載入邏輯與 start.sh 的 'set -a; source .env; set +a' 行為不一致。bat 版本不會自動將 .env 變數匯出到 uvicorn 子進程。",
+    "suggestion": "在 start.bat 的 .env 載入後加入 export 語法確保變數傳遞給 uvicorn 子進程。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "medium",
+    "finding": "start.sh 和 start.bat 都依賴 backend/requirements.txt，但 scripts/setup.sh 依賴根目錄 requirements.txt。三個啟動/安裝路徑使用不同的依賴來源。",
+    "suggestion": "統一為單一來源，建議使用 pyproject.toml 作為主要依賴定義，並透過 lock file 確保一致性。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "medium",
+    "finding": "Dockerfile 複製了 knowledge/, prompts/, agents/ 等目錄，但 pyproject.toml 的 setuptools.packages.find 設定 for src/，造成映像內可能有重複資料和路徑混淆。",
+    "suggestion": "清理 Dockerfile 中的 COPY 指令，只保留必要的資料夾，移除與 src/ 重疊的部分。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "low",
+    "finding": ".github/workflows/test.yml 使用硬編碼的 pip install 命令安裝依賴，而非透過 requirements.txt 或 pyproject.toml。CI 和實際部署可能不同步。",
+    "suggestion": "改為 'pip install -r requirements.txt' 或 'pip install -e .' 以保持一致性。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "low",
+    "finding": "start.sh 使用 --reload 模式啟動 uvicorn（開發模式），但腳本文字描述為 'SaaS 版'，易讓使用者誤以為這是生產環境啟動方式。",
+    "suggestion": "區分開發與生產啟動腳本：start.sh 保留 --reload，新增 start-prod.sh 不使用 reload 並設定多 workers。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "low",
+    "finding": "mkdocs.yml 使用了 git-revision-date-localized 和 minify 插件，但本地開發若未安裝這些插件會報錯。",
+    "suggestion": "添加 mkdocs-requirements.txt 或在 dev 依賴中明確列出 mkdocs 相關插件。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "low",
+    "finding": "Dockerfile 使用 python:3.11-slim，但 pyproject.toml 宣告 requires-python='>=3.10'，CI 也測試 3.10/3.11/3.12。Docker 映像版本覆蓋不完整。",
+    "suggestion": "提供多版本 Docker 映像或在 CI 中添加 Docker build 測試步驟確保相容性。"
+  },
+  {
+    "area": "部署與DevOps",
+    "severity": "low",
+    "finding": ".github/workflows/gh-pages.yml 未設定 custom_domain，mkdocs.yml 中 site_url 指向 GitHub Pages 預設域名。",
+    "suggestion": "若需要自訂網域，在 gh-pages.yml 中新增 CNAME 檔案生成步驟。"
+  }
+]

@@ -26,6 +26,8 @@ from zhiyan_legal.manifest import (
 
 # ── Layer dataclass ─────────────────────────────────────────────────
 
+# ── Layer dataclass ───────────────────────────────────────────────────────────────────
+
 class TestLayer:
     def test_basic_fields(self):
         """Layer 應正確儲存 name / path / files / always_load"""
@@ -51,6 +53,12 @@ class TestLayer:
 class TestCoreLayers:
     def test_core_layers_count(self):
         """CORE_LAYERS 應有 8 個條目"""
+
+# ── CORE_LAYERS ───────────────────────────────────────────────────────────────────
+
+class TestCoreLayers:
+    def test_core_layers_count(self):
+        """CORE_LAYERS 應有8 個條目"""
         assert len(CORE_LAYERS) == 8
 
     def test_core_layers_have_names(self):
@@ -75,6 +83,8 @@ class TestCoreLayers:
 
 # ── TASK_LAYERS ─────────────────────────────────────────────────────
 
+# ── TASK_LAYERS ───────────────────────────────────────────────────────────────────
+
 class TestTaskLayers:
     def test_legal_writer_present(self):
         """LEGAL_WRITER 應存在於 TASK_LAYERS（新增功能）"""
@@ -85,6 +95,17 @@ class TestTaskLayers:
         expected_tasks = {
             "QC", "RESEARCH", "REPORT", "CONSULTANT",
             "TA", "TUTOR", "LEGAL_WRITER", "LITIGATION", "SAFETY",
+
+        """所有 router.py 定義的任務都應有對應 TASK_LAYERS
+
+        v3.9.1: MODE_ROUTER 擴展為 13 個模式，同步更新 expected_tasks。
+        """
+        expected_tasks = {
+            # ─ 原夷6 模式 ─
+            "QC", "RESEARCH", "REPORT", "CONSULTANT",
+            "TA", "TUTOR", "LEGAL_WRITER", "LITIGATION", "SAFETY",
+            # ─ v3.9.1 新增 4 模式 ─
+            "COURTROOM", "WRITER", "PROMPT_ENGINEER", "CONTRACT",
         }
         actual = set(TASK_LAYERS.keys())
         missing = expected_tasks - actual
@@ -109,6 +130,25 @@ class TestTaskLayers:
 
 # ── EXCLUDED_DIRS / EXCLUDED_FILES ─────────────────────────────────
 
+    def test_courtroom_present(self):
+        """COURTROOM 應存在於 TASK_LAYERS（v3.9.1 新增）"""
+        assert "COURTROOM" in TASK_LAYERS, "COURTROOM missing from TASK_LAYERS"
+
+    def test_contract_present(self):
+        """CONTRACT 應存在於 TASK_LAYERS（v3.9.1 新增）"""
+        assert "CONTRACT" in TASK_LAYERS, "CONTRACT missing from TASK_LAYERS"
+
+    def test_prompt_engineer_present(self):
+        """PROMPT_ENGINEER 應存在於 TASK_LAYERS（v3.9.1 新增）"""
+        assert "PROMPT_ENGINEER" in TASK_LAYERS, "PROMPT_ENGINEER missing from TASK_LAYERS"
+
+    def test_writer_present(self):
+        """WRITER 應存在於 TASK_LAYERS（v3.9.1 新增）"""
+        assert "WRITER" in TASK_LAYERS, "WRITER missing from TASK_LAYERS"
+
+
+# ── EXCLUDED_DIRS / EXCLUDED_FILES ───────────────────────────────────────────────
+
 class TestExclusions:
     def test_excluded_dirs_format(self):
         """EXCLUDED_DIRS 應為字串集合"""
@@ -124,6 +164,8 @@ class TestExclusions:
 
 
 # ── resolve_doc() ───────────────────────────────────────────────────
+
+# ── resolve_doc() ───────────────────────────────────────────────────────────────────────
 
 class TestResolveDoc:
     def test_resolve_doc_found(self, monkeypatch):
@@ -148,6 +190,8 @@ class TestResolveDoc:
 
 # ── get_load_order() ────────────────────────────────────────────────
 
+# ── get_load_order() ────────────────────────────────────────────────────────────────────
+
 class TestGetLoadOrder:
     def _setup_docs(self, tmp_root: Path):
         """Helper: create minimal doc structure in a temp directory"""
@@ -171,6 +215,10 @@ class TestGetLoadOrder:
             "# Citation Policy"
         )
         # QC task file
+
+        ]:
+            (core_dir / fname).write_text(f"# {fname}")
+        (mode_dir / "30_引用政策_CITATION_POLICY_v2.0.0.md").write_text("# Citation Policy")
         (mode_dir / "22_模式_QC_查核_v2.0.1.md").write_text("# QC Mode")
 
     def test_get_load_order_returns_paths(self, monkeypatch):
@@ -178,6 +226,10 @@ class TestGetLoadOrder:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_root = Path(tmp)
             # Create docs/ inside the temp root (matches ROOT logic)
+
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_root = Path(tmp)
             docs_dir = tmp_root / "docs"
             self._setup_docs(docs_dir)
             monkeypatch.setattr("zhiyan_legal.manifest.DOCS_DIR", str(docs_dir))
@@ -197,6 +249,8 @@ class TestGetLoadOrder:
 
             paths = get_load_order("QC")
             # Core files contain "09_AGENT_SYSTEM_PROMPT", "10_主人格"
+
+            paths = get_load_order("QC")
             core_filenames = {os.path.basename(p) for p in paths}
             assert "09_AGENT_SYSTEM_PROMPT_v1.0.0.md" in core_filenames
             assert "10_主人格_MASTER_v2.0.0.md" in core_filenames
@@ -239,6 +293,12 @@ class TestGetLoadOrder:
 
 # ── DOCS_DIR path sanity ────────────────────────────────────────────
 
+            paths = get_load_order("UNKNOWN_TASK")
+            assert len(paths) >= 1
+
+
+# ── DOCS_DIR path sanity ─────────────────────────────────────────────────────────────────
+
 class TestDocsDir:
     def test_docs_dir_points_to_project_docs(self):
         """DOCS_DIR 應指向專案中的 docs/ 目錄"""
@@ -256,6 +316,11 @@ class TestDocsDir:
 
     def test_task_layer_files_exist(self):
         """TASK_LAYERS 中所有參考的檔案在 docs/ 下應存在"""
+
+        """TASK_LAYERS 中所有參考的檔案在 docs/ 下應存在
+
+        v3.9.1: 新增 COURTROOM/WRITER/PROMPT_ENGINEER/CONTRACT 四個模式的檔案均指向已存在檔案。
+        """
         missing = []
         for task, layers in TASK_LAYERS.items():
             for layer in layers:

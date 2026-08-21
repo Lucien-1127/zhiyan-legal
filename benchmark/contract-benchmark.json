@@ -1,0 +1,126 @@
+{
+  "meta": {
+    "title": "智研法律 AI Benchmark — 合約能力測驗集",
+    "source": "太陽 (2026-07-02)",
+    "total_tests": 7,
+    "scoring_rubric": {
+      "clause_comprehension": { "weight": 15, "description": "條款理解" },
+      "risk_identification": { "weight": 25, "description": "風險辨識" },
+      "legal_application": { "weight": 20, "description": "法律適用" },
+      "logical_consistency": { "weight": 15, "description": "邏輯一致性" },
+      "correction_quality": { "weight": 15, "description": "修正能力" },
+      "completeness": { "weight": 10, "description": "完整性" }
+    },
+    "critical_issues_expected": 6,
+    "high_issues_expected": 9,
+    "medium_issues_expected": 15
+  },
+  "tests": [
+    {
+      "id": "contract-01",
+      "difficulty": "★★★★★",
+      "title": "合約漏洞 (Contract Gap Analysis)",
+      "type": "risk_identification",
+      "description": "5條合約找出所有法律漏洞、履約困難、解釋爭議",
+      "ai_common_errors": [
+        "沒發現付款期限不存在",
+        "沒發現解除權無催告程序",
+        "沒發現沒有準據法",
+        "沒發現沒有管轄法院",
+        "沒發現沒有違約金",
+        "沒發現「收到貨物」定義不清"
+      ]
+    },
+    {
+      "id": "contract-02",
+      "difficulty": "★★★★★",
+      "title": "矛盾條款 (Contradictory Clauses)",
+      "type": "conflict_detection",
+      "description": "付款期限矛盾(7日vs60日)+違約金矛盾(有vs無)",
+      "ai_common_errors": [
+        "沒發現§1與§2付款期限直接衝突",
+        "沒發現§3與§4違約金直接衝突",
+        "沒引用民法§98探求當事人真意",
+        "沒引用民法§250違約金性質"
+      ]
+    },
+    {
+      "id": "contract-03",
+      "difficulty": "★★★★★",
+      "title": "智慧財產權歸屬矛盾",
+      "type": "ip_conflict",
+      "description": "所有權歸甲 vs 乙得自由販售—著作權法衝突",
+      "ai_common_errors": [
+        "沒發現「所有權」與「授權使用」的衝突",
+        "沒引用著作權法§11/§12出資聘人",
+        "沒區分核心程式碼vs衍生模組",
+        "沒提出競業禁止或限制期間配套"
+      ]
+    },
+    {
+      "id": "contract-04",
+      "difficulty": "★★★★★",
+      "title": "NDA保密契約缺漏",
+      "type": "gap_analysis",
+      "description": "僅一句「雙方應保密」—找出至少8項缺漏",
+      "expected_min_findings": 8,
+      "ai_common_errors": [
+        "未提出秘密定義、保密期間、違約金",
+        "未提出例外條款(法律要求/公開資訊)",
+        "未提出返還義務與銷毀證明",
+        "未引用營業秘密法§2三要件"
+      ]
+    },
+    {
+      "id": "contract-05",
+      "difficulty": "★★★★★",
+      "title": "合作契約缺漏",
+      "type": "risk_analysis",
+      "description": "僅約定利潤五五分—找出重大風險並提出公司化建議",
+      "ai_common_errors": [
+        "沒指出欠缺出資比例約定",
+        "沒指出欠缺退夥機制(民法§686)",
+        "沒指出欠缺決策僵局解決機制",
+        "沒建議公司化(股公司vs合夥)"
+      ]
+    },
+    {
+      "id": "contract-06",
+      "difficulty": "★★★★★",
+      "title": "AI修約能力（商標授權）",
+      "type": "redrafting",
+      "description": "4行簡約找出10+問題並提出完整修正版",
+      "expected_min_findings": 10,
+      "required_elements": [
+        "授權範圍(獨家/非獨家)",
+        "授權地區",
+        "授權期間",
+        "權利金計算方式",
+        "付款時程",
+        "終止條件",
+        "屆滿後處理",
+        "商標品質控制",
+        "管轄法院",
+        "準據法"
+      ]
+    },
+    {
+      "id": "contract-ultimate",
+      "difficulty": "★★★★★",
+      "title": "終極壓力測試（AI開發契約）",
+      "type": "comprehensive_review",
+      "description": "8條合約全面審閱：風險辨識、矛盾偵測、缺漏補充、完整修約",
+      "critical_issues_expected": 6,
+      "high_issues_expected": 9,
+      "medium_issues_expected": 15,
+      "critical_issues_list": [
+        "§1工作範圍完全不明確",
+        "§2報酬期限不存在",
+        "§3智財歸屬完全矛盾",
+        "§5驗收標準完全主觀",
+        "§6違約效果完全空泛",
+        "§7無償終止權違反誠信"
+      ]
+    }
+  ]
+}

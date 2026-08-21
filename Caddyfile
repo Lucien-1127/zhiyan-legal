@@ -3,4 +3,20 @@
 
 http://100.68.234.34:80 {
 	reverse_proxy 127.0.0.1:7850
+
+# 手機連 https://100.68.234.34/docs 即可開 Swagger
+
+https://100.68.234.34:443 {
+    # Caddy 自動 Let's Encrypt HTTPS（需要公開 DNS，Tailscale 使用自簽憑證）
+    # 正式網域時取消註解下一行：
+    # tls your@email.com
+    
+    reverse_proxy 127.0.0.1:7850
+
+    # 強制 HTTP → HTTPS 跳轉
+    redir / https://{host}{uri} permanent
+}
+
+http://100.68.234.34:80 {
+    redir / https://{host}{uri} permanent
 }

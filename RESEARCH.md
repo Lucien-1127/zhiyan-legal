@@ -90,6 +90,9 @@ L1     PERSONA_ROUTER    6 personas (consultant, tutor, TA, etc.)    ✅ Complet
 L2     MODULE_ROUTER     LITIGATION, CONTRACT_RISK (gated)           ✅ Complete
        CITATION_POLICY   Citation v2.1 (RAG [T] + web [1] + judge   ✅ v3.06.1
                           [2] + academic [3])
+
+       CITATION_POLICY   Citation v2.1 (RAG [T] + web  + judge   ✅ v3.06.1
+                           + academic )
 ```
 
 ### 3.2 Specification Scale
