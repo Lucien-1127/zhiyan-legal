@@ -13,7 +13,7 @@ from .core import (
     LegalClaim, ModelVerdict, ClaimCluster, ClaimStatus, ClaimType,
     CommitteeReport, Disagreement, ConsensusLabel, Verdict,
 )
-from .normalizer import normalize_response, are_semantically_equivalent
+from .normalizer import normalize_response
 
 
 def _cluster_claims(all_claims: Dict[str, List[LegalClaim]]) -> List[ClaimCluster]:

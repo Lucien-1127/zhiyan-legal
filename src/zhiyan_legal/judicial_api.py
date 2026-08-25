@@ -23,7 +23,6 @@
   doc = await get_judgment(jid="TPSM,114,台上,3753,20251112,1")
 """
 
-import json
 import os
 import logging
 import tempfile

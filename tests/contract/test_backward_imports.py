@@ -42,23 +42,18 @@ DEPRECATED_IMPORTS = {
         "committee.policies",
         ("GovernanceContract", "GovernanceViolationError", "PolicyViolation"),
     ),
-    "committee_core.policies.governance_contract": (
-        "committee.policies.governance_contract",
-        ("GovernanceContract", "GovernanceViolationError", "PolicyViolation"),
-    ),
     "committee_core.reasoning": (
         "committee.reasoning",
         ("DebateEngine", "JudicialScraper"),
     ),
-    "committee_core.reasoning.debate_engine": (
-        "committee.reasoning.debate_engine",
-        ("DebateEngine",),
-    ),
-    "committee_core.reasoning.scraping_engine": (
-        "committee.reasoning.scraping_engine",
-        ("JudicialScraper",),
-    ),
 }
+
+
+REMOVED_IMPORTS = (
+    "committee_core.policies.governance_contract",
+    "committee_core.reasoning.debate_engine",
+    "committee_core.reasoning.scraping_engine",
+)
 
 
 @pytest.mark.parametrize("legacy_path", DEPRECATED_IMPORTS)
@@ -90,6 +85,12 @@ def test_committee_root_reexports_its_canonical_submodules():
         assert getattr(legacy, symbol) is getattr(policies, symbol)
     for symbol in ("DebateEngine", "JudicialScraper"):
         assert getattr(legacy, symbol) is getattr(reasoning, symbol)
+
+
+@pytest.mark.parametrize("removed_path", REMOVED_IMPORTS)
+def test_removed_duplicate_modules_are_not_importable(removed_path: str):
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module(removed_path)
 
 
 def test_compatibility_imports_do_not_write_to_stdout(capsys):

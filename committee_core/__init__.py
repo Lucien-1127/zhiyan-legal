@@ -7,15 +7,13 @@ warnings.warn(
     stacklevel=2,
 )
 
-from committee.policies import (  # noqa: F401
+from committee.policies.governance_contract import (  # noqa: F401
     GovernanceContract,
     GovernanceViolationError,
     PolicyViolation,
 )
-from committee.reasoning import (  # noqa: F401
-    DebateEngine,
-    JudicialScraper,
-)
+from committee.reasoning.debate_engine import DebateEngine  # noqa: F401
+from committee.reasoning.scraping_engine import JudicialScraper  # noqa: F401
 
 __all__ = [
     "GovernanceContract",

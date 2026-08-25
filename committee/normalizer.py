@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import re
 import difflib
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from .core import LegalClaim, ClaimType, ClaimStatus
 

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import importlib.util
 from pathlib import Path
 
 import pytest
@@ -54,15 +53,9 @@ def _judgment() -> JudgmentDocument:
     return JudgmentDocument(meta=meta, links=JudgmentLinks(), chunks=[chunk])
 
 
-def test_legacy_judgment_path_reexports_canonical_classes() -> None:
+def test_legacy_judgment_path_is_removed() -> None:
     legacy_path = Path(__file__).parents[2] / "zhiyan_legal/schemas/judgment.py"
-    spec = importlib.util.spec_from_file_location("legacy_judgment", legacy_path)
-    assert spec and spec.loader
-    legacy_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(legacy_module)
-
-    assert legacy_module.JudgmentDocument is JudgmentDocument
-    assert legacy_module.JudgmentMeta is JudgmentMeta
+    assert not legacy_path.exists()
 
 
 def test_judgment_validators_and_evidence_adapter() -> None:

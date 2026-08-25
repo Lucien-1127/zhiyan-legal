@@ -15,7 +15,6 @@ from ..domain import (
     ClaimMateriality,
     ClaimStatus,
     DeliveryDecision,
-    EvidenceLevel,
     Evidence,
     ExecutionContext,
     GateId,

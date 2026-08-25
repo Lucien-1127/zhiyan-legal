@@ -24,7 +24,6 @@ from dataclasses import dataclass
 from typing import Optional
 
 from .prompt_quality import ReviewerModel, PromptReviewReport, PromptCommitteeReport
-from .prompt_normalizer import PromptNormalizer
 from .consensus import generate_report
 from .dispatch import ConsensusDispatcher
 from .reviewer_client import ReviewerClient

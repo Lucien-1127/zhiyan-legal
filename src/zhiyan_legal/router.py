@@ -6,7 +6,7 @@ Mirrors the MODE_ROUTER logic from the specification (docs/20_*).
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
+from typing import Dict
 
 # ── Keyword → task mappings ────────────────────────────────────────
 KEYWORD_MAP: Dict[str, str] = {

@@ -13,13 +13,12 @@ from __future__ import annotations
 import json
 import time
 import logging
-from typing import Optional
 
 import httpx
 
 from .models import QueryRequest, QueryResponse, CommitteeResponse, CommitteeVote
 from .exceptions import ZhiyanAPIError, ZhiyanAuthError, ZhiyanTimeoutError, ZhiyanRouterError
-from .provider_registry import PROVIDER_REGISTRY, ProviderConfig, get_primary, get_committee_providers
+from .provider_registry import PROVIDER_REGISTRY, ProviderConfig
 from zhiyan_legal.router import route as task_route
 from zhiyan_legal.committee import CommitteeEngine, ConsensusStatus
 from zhiyan_legal.providers import ProviderRegistry as CanonicalProviderRegistry

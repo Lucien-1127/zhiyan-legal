@@ -9,7 +9,6 @@ When running standalone, falls back to sequential LLM calls via ZhiyanEngine.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 logger = logging.getLogger("zhiyan_legal.sub_agent")
 
@@ -46,7 +45,7 @@ def _run_fallback(tasks: list[dict]) -> list[dict]:
     """
 
     """Fallback: run each task locally using ZhiyanEngine."""
-    from zhiyan_legal.engine import ZhiyanEngine, EngineConfig
+    from zhiyan_legal.engine import ZhiyanEngine
 
     results: list[dict] = []
     engine = ZhiyanEngine()
