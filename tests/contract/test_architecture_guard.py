@@ -15,6 +15,10 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SRC_ROOT = PROJECT_ROOT / "src"
 DOMAIN_ROOT = SRC_ROOT / "zhiyan_legal" / "domain"
+ZHIYAN_ROOT = SRC_ROOT / "zhiyan_legal"
+PIPELINE_ROOT = ZHIYAN_ROOT / "pipeline"
+TOOLS_ROOT = ZHIYAN_ROOT / "tools"
+VERIFICATION_ROOT = ZHIYAN_ROOT / "verification"
 
 CANONICAL_TYPES = frozenset(
     {
@@ -46,6 +50,34 @@ FORBIDDEN_DOMAIN_IMPORTS = frozenset(
         "backend",
         "frontend",
         "committee",
+    }
+)
+
+# Phase 2 is a lower-layer boundary.  The two provider modules are explicit
+# adapter boundaries used by the existing tool implementations; the adapter
+# may call them, but no other Phase 2 layer may depend on an application
+# module.  Keeping this exception named makes any future provider coupling
+# visible in this contract rather than silently widening the allow-list.
+TOOL_PROVIDER_BOUNDARIES = frozenset(
+    {
+        "zhiyan_legal.judicial_api",
+        "zhiyan_legal.regulation_tracker",
+    }
+)
+PHASE2_LAYER_ROOTS = {
+    "domain": DOMAIN_ROOT,
+    "pipeline": PIPELINE_ROOT,
+    "tools": TOOLS_ROOT,
+    "verification": VERIFICATION_ROOT,
+}
+FORBIDDEN_APPLICATION_ROOTS = frozenset(
+    {
+        "backend",
+        "frontend",
+        "committee",
+        "agents",
+        "deployment",
+        "docker",
     }
 )
 
@@ -95,6 +127,16 @@ def _is_domain_file(path: Path) -> bool:
     return True
 
 
+def _phase2_layer(path: Path) -> str | None:
+    for layer, root in PHASE2_LAYER_ROOTS.items():
+        try:
+            path.relative_to(root)
+        except ValueError:
+            continue
+        return layer
+    return None
+
+
 def _import_names(node: ast.AST) -> list[str]:
     """Return the import targets represented by one import statement."""
     if isinstance(node, ast.Import):
@@ -137,6 +179,17 @@ def _resolved_from_import(path: Path, node: ast.ImportFrom, alias: str) -> str:
         base_parts.extend(node.module.split("."))
     base_parts.append(alias)
     return ".".join(base_parts)
+
+
+def _resolved_targets(path: Path, node: ast.AST) -> list[str]:
+    if isinstance(node, ast.Import):
+        return [alias.name for alias in node.names]
+    if isinstance(node, ast.ImportFrom):
+        return [
+            _resolved_from_import(path, node, alias.name)
+            for alias in node.names
+        ]
+    return []
 
 
 def _parse_errors(modules: list[ParsedModule]) -> list[str]:
@@ -247,5 +300,72 @@ def test_dependency_direction_is_one_way() -> None:
                         violations.append(
                             f"Rule C: {_location(module.path, node.lineno)} imports {imported}"
                         )
+
+    assert violations == [], "\n".join(violations)
+
+
+def test_phase2_layers_only_use_domain_and_their_own_layer() -> None:
+    """Pipeline, tools, and verification cannot acquire sibling app imports."""
+
+    violations: list[str] = []
+    for module in _parse_modules():
+        layer = _phase2_layer(module.path)
+        if module.tree is None or layer is None:
+            continue
+
+        own_prefix = f"zhiyan_legal.{layer}"
+        for node in ast.walk(module.tree):
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                continue
+            for target in _resolved_targets(module.path, node):
+                if not target.startswith("zhiyan_legal"):
+                    continue
+                if (
+                    target.startswith("zhiyan_legal.domain")
+                    or target.startswith(own_prefix)
+                    or any(
+                        target == boundary or target.startswith(f"{boundary}.")
+                        for boundary in TOOL_PROVIDER_BOUNDARIES
+                    )
+                ):
+                    continue
+                violations.append(
+                    f"Rule D: {_location(module.path, node.lineno)} {layer} imports {target}; "
+                    "Phase 2 layers may depend only on domain, themselves, and named provider boundaries"
+                )
+
+    assert violations == [], "\n".join(violations)
+
+
+def test_high_level_or_forbidden_application_modules_cannot_enter_phase2_layers() -> None:
+    """No application/compatibility layer may become a Phase 2 dependency."""
+
+    violations: list[str] = []
+    for module in _parse_modules():
+        source_layer = _phase2_layer(module.path)
+        if module.tree is None or not module.path.is_relative_to(SRC_ROOT):
+            continue
+        for node in ast.walk(module.tree):
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                continue
+            for target in _resolved_targets(module.path, node):
+                root = target.split(".", 1)[0]
+                if root in FORBIDDEN_APPLICATION_ROOTS:
+                    violations.append(
+                        f"Rule E: {_location(module.path, node.lineno)} "
+                        f"{source_layer or 'high-level'} imports {target}"
+                    )
+                    continue
+
+                # Root application modules may consume canonical domain data,
+                # but they must not pull execution into a Phase 2 lower layer.
+                if (
+                    target.startswith("zhiyan_legal.pipeline")
+                    or target.startswith("zhiyan_legal.tools")
+                    or target.startswith("zhiyan_legal.verification")
+                ) and source_layer is None:
+                    violations.append(
+                        f"Rule E: {_location(module.path, node.lineno)} high-level module imports {target}"
+                    )
 
     assert violations == [], "\n".join(violations)
