@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import logging, time, uuid
 
-from .adapter import run_parallel, normalize, build_synthesis
+from .adapter import build_synthesis, normalize, run_committee
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("committee.api")
@@ -73,6 +73,10 @@ class CommitteeResponse(BaseModel):
     synthesis_mode: str
     elapsed_total_s: float
     quota: dict[str, int] = {}
+    report_status: str = "CONSENSUS"
+    recommended_decision: str = "DELIVER"
+    recommended_strictness: int = 0
+    report: dict = {}
 
 
 # ── Endpoints ──
@@ -80,7 +84,7 @@ class CommitteeResponse(BaseModel):
 @app.get("/health")
 def health():
     return {"status": "ok", "version": "0.1.0",
-            "modules": ["runner", "normalizer", "mapper"]}
+            "modules": ["CommitteeEngine", "CommitteeReportVNext"]}
 
 
 @app.post("/api/committee/run", response_model=CommitteeResponse)
@@ -91,32 +95,46 @@ async def committee_run(req: CommitteeRequest):
 
     # 1. 平行呼叫
     try:
-        raw = await run_parallel(
+        report = await run_committee(
             query=req.query, models=req.models,
             temperature=req.temperature, max_tokens=req.max_tokens,
+            task_id=qid,
         )
     except Exception as e:
-        logger.error("[%s] runner: %s", qid, e)
+        logger.error("[%s] committee engine: %s", qid, e)
         raise HTTPException(502, detail=str(e))
 
     # 2. 正規化
     norm_layers = []
     if req.normalization.citation:
-        raw = normalize(raw, layer="L1"); norm_layers.append("L1")
+        report = normalize(report, layer="L1"); norm_layers.append("L1")
     if req.normalization.terminology:
-        raw = normalize(raw, layer="L2"); norm_layers.append("L2")
+        report = normalize(report, layer="L2"); norm_layers.append("L2")
     if req.normalization.semantic:
-        raw = normalize(raw, layer="L3"); norm_layers.append("L3")
+        report = normalize(report, layer="L3"); norm_layers.append("L3")
 
     # 3. 合議庭標示
-    syn = build_synthesis(results=raw, mode=req.synthesis, threshold=req.agree_threshold)
+    syn = build_synthesis(report=report, mode=req.synthesis, threshold=req.agree_threshold)
+
+    models: dict[str, ModelResult] = {}
+    for index, member in enumerate(report.member_verdicts):
+        key = member.provider_name
+        if key in models:
+            key = f"{key}-{index + 1}"
+        models[key] = ModelResult(
+            status=member.verdict,
+            response=member.model_dump_json(exclude={"claims"}),
+            elapsed_s=0.0,
+            tokens_in=None,
+            tokens_out=None,
+        )
 
     elapsed = round(time.time() - t0, 3)
     logger.info("[%s] done %.3fs norm=%s", qid, elapsed, norm_layers)
 
     return CommitteeResponse(
         query_id=qid, query=req.query,
-        models={m: ModelResult(**raw[m]) for m in req.models if m in raw},
+        models=models,
         synthesis=SynthesisResult(
             consensus=[ConsensusItem(**i) for i in syn.get("consensus", [])],
             divergence=[DivergenceItem(**i) for i in syn.get("divergence", [])],
@@ -126,6 +144,10 @@ async def committee_run(req: CommitteeRequest):
         synthesis_mode=req.synthesis,
         elapsed_total_s=elapsed,
         quota=syn.get("quota", {}),
+        report_status=report.status.value,
+        recommended_decision=report.recommended_decision.value,
+        recommended_strictness=int(report.recommended_strictness),
+        report=report.model_dump(mode="json"),
     )
 
 

@@ -57,10 +57,21 @@ class ZhiyanApplicationEngine:
         gate_pipeline: GatePipeline | None = None,
         provider_registry: ProviderRegistry | None = None,
         tool_adapters: list[BaseToolAdapter] | None = None,
+        committee_engine: Any | None = None,
+        committee_task_modes: Iterable[TaskMode | str] | None = None,
     ) -> None:
         self.pipeline = gate_pipeline or GatePipeline()
         self.registry = provider_registry or ProviderRegistry.from_env()
         self.tools = list(tool_adapters or [])
+        self.committee_engine = committee_engine
+        self._committee_task_modes = (
+            frozenset(self._task_mode(item) for item in committee_task_modes)
+            if committee_task_modes is not None
+            else None
+        )
+        # A report is deliberately kept outside ExecutionContext: it is a
+        # candidate-analysis artifact, not verified domain evidence.
+        self.last_committee_report: Any | None = None
 
     async def execute(
         self,
@@ -75,6 +86,7 @@ class ZhiyanApplicationEngine:
 
         pipeline_result = self.pipeline.run(context)
         working_context, answer_meta = self._unpack_pipeline_result(pipeline_result)
+        self.last_committee_report = None
 
         if answer_meta.decision in _CONTROLLED_DECISIONS:
             return (
@@ -90,6 +102,35 @@ class ZhiyanApplicationEngine:
                 answer_meta,
                 self._controlled_response(working_context, answer_meta),
             )
+
+        if self._should_run_committee(working_context):
+            try:
+                report = await self._run_committee(working_context)
+            except Exception as exc:  # an optional analysis must fail closed
+                logger.exception("committee execution failed")
+                failed_meta = self._committee_meta(
+                    answer_meta,
+                    DeliveryDecision.STOP,
+                    f"committee: {type(exc).__name__}: {exc}",
+                )
+                return (
+                    working_context,
+                    failed_meta,
+                    self._controlled_response(working_context, failed_meta),
+                )
+
+            self.last_committee_report = report
+            answer_meta = self._merge_committee_decision(answer_meta, report)
+            if answer_meta.decision is not DeliveryDecision.DELIVER:
+                return (
+                    working_context,
+                    answer_meta,
+                    self._controlled_response(
+                        working_context,
+                        answer_meta,
+                        committee_report=report,
+                    ),
+                )
 
         request = self._provider_request(working_context)
         try:
@@ -223,10 +264,81 @@ class ZhiyanApplicationEngine:
             output_schema="legal_answer",
         )
 
+    def _should_run_committee(self, context: ExecutionContext) -> bool:
+        return (
+            self.committee_engine is not None
+            and (
+                self._committee_task_modes is None
+                or context.task_mode in self._committee_task_modes
+            )
+        )
+
+    async def _run_committee(self, context: ExecutionContext) -> Any:
+        request = self._provider_request(context)
+        engine = self.committee_engine
+        if engine is None:  # guarded by _should_run_committee
+            raise RuntimeError("committee engine is not configured")
+        report = await engine.run(
+            context.execution_id,
+            request.instructions,
+            evidence_ids=request.evidence_ids,
+            output_schema="committee",
+            citations=context.citations,
+            evidence=context.evidence,
+        )
+        return report
+
+    @staticmethod
+    def _committee_meta(
+        meta: AnswerMeta,
+        decision: DeliveryDecision,
+        reason: str,
+    ) -> AnswerMeta:
+        conflicts = [*meta.conflicts, reason]
+        return meta.model_copy(
+            update={
+                "decision": decision,
+                "strictness_level": decision.strictness,
+                "conflicts": conflicts,
+                "human_review_required": (
+                    meta.human_review_required
+                    or decision is DeliveryDecision.HUMAN_REVIEW
+                ),
+            }
+        )
+
+    @classmethod
+    def _merge_committee_decision(
+        cls,
+        meta: AnswerMeta,
+        report: Any,
+    ) -> AnswerMeta:
+        # Statuses are safety invariants, even if a custom evaluator supplies
+        # an inconsistent recommendation.
+        status = getattr(report.status, "value", report.status)
+        if status == "BLIND_SPOT":
+            committee_decision = DeliveryDecision.STOP
+        elif status == "DISAGREEMENT":
+            committee_decision = DeliveryDecision.HUMAN_REVIEW
+        else:
+            committee_decision = report.recommended_decision
+            if not isinstance(committee_decision, DeliveryDecision):
+                committee_decision = DeliveryDecision(str(committee_decision))
+
+        if committee_decision.strictness <= meta.strictness_level:
+            return meta
+        return cls._committee_meta(
+            meta,
+            committee_decision,
+            f"committee: {status}",
+        )
+
     @staticmethod
     def _controlled_response(
         context: ExecutionContext,
         meta: AnswerMeta,
+        *,
+        committee_report: Any | None = None,
     ) -> str:
         reasons = [
             result.reason
@@ -235,6 +347,9 @@ class ZhiyanApplicationEngine:
         ]
         if not reasons:
             reasons = ["請求未獲准進入模型產生階段"]
+        if committee_report is not None:
+            status = getattr(committee_report.status, "value", committee_report.status)
+            reasons.append(f"合議庭候選分析：{status}")
         payload = {
             "type": "controlled_response",
             "execution_id": meta.execution_id,

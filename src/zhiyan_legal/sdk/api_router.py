@@ -10,7 +10,7 @@ zhiyan_legal.sdk.api_router — 統一 API 路由器
 """
 from __future__ import annotations
 
-import asyncio
+import json
 import time
 import logging
 from typing import Optional
@@ -21,6 +21,8 @@ from .models import QueryRequest, QueryResponse, CommitteeResponse, CommitteeVot
 from .exceptions import ZhiyanAPIError, ZhiyanAuthError, ZhiyanTimeoutError, ZhiyanRouterError
 from .provider_registry import PROVIDER_REGISTRY, ProviderConfig, get_primary, get_committee_providers
 from zhiyan_legal.router import route as task_route
+from zhiyan_legal.committee import CommitteeEngine, ConsensusStatus
+from zhiyan_legal.providers import ProviderRegistry as CanonicalProviderRegistry
 
 logger = logging.getLogger("zhiyan_legal.sdk.api_router")
 
@@ -134,63 +136,51 @@ async def route_query(req: QueryRequest) -> QueryResponse:
 
 async def route_committee(req: QueryRequest) -> CommitteeResponse:
     """
-    合議庭模式：所有提供商平行發送，返回投票結果。
+    合議庭模式：交由 canonical CommitteeEngine 平行發送，返回 vNext 結果。
     """
     task = _resolve_task(req)
     t0 = time.monotonic()
 
-    # 平行呼叫所有提供商
-    tasks = [
-        _call_provider(p, req, task)
-        for p in PROVIDER_REGISTRY
-    ]
-    results = await asyncio.gather(*tasks, return_exceptions=True)
+    if req.dry_run:
+        return CommitteeResponse(
+            task=task,
+            verdict="consensus",
+            merged_content=f"[DRY-RUN] 不呼叫 CommitteeEngine：{req.message}",
+            latency_ms=(time.monotonic() - t0) * 1000,
+        )
 
-    votes: list[CommitteeVote] = []
-    for provider, result in zip(PROVIDER_REGISTRY, results):
-        if isinstance(result, Exception):
-            votes.append(CommitteeVote(
-                provider=provider.name,
-                model=provider.default_model,
-                content="",
-                error=str(result),
-            ))
-        else:
-            votes.append(CommitteeVote(
-                provider=provider.name,
-                model=result.model,
-                content=result.content,
-                citations=result.citations,
-            ))
-
-    # 評測 verdict
-    valid_votes = [v for v in votes if not v.error]
-    if not valid_votes:
-        verdict = "blind_spot"
-        merged = ""
-    elif len(valid_votes) == 1:
-        verdict = "dissensus"
-        merged = valid_votes[0].content
-    else:
-        # 簡化共識判斷：最長公共子串 > 50 字則為 consensus
-        contents = [v.content for v in valid_votes]
-        common = _longest_common_fragment(contents)
-        verdict = "consensus" if len(common) > 50 else "dissensus"
-        merged = valid_votes[0].content  # 主應商作為主要回應
-
-    disagreements: list[str] = []
-    if verdict == "dissensus" and len(valid_votes) > 1:
-        for v in valid_votes[1:]:
-            if v.content[:100] != valid_votes[0].content[:100]:
-                disagreements.append(f"{v.provider}: 回應與主應商差異")
+    report = await CommitteeEngine(
+        provider_registry=CanonicalProviderRegistry.from_env()
+    ).run(
+        task_id=f"sdk-{time.time_ns()}",
+        instructions=req.message,
+        output_schema="committee",
+    )
+    verdict = (
+        "consensus" if report.status is ConsensusStatus.CONSENSUS
+        else "blind_spot" if report.status is ConsensusStatus.BLIND_SPOT
+        else "dissensus"
+    )
+    votes = [CommitteeVote(
+        provider=member.provider_name,  # type: ignore[arg-type]
+        model=member.model,
+        content=json.dumps(member.model_dump(mode="json"), ensure_ascii=False),
+        error=member.error,
+    ) for member in report.member_verdicts]
+    disagreements = [claim.text for claim in report.divergent_claims]
+    report_payload = report.model_dump(mode="json")
 
     return CommitteeResponse(
         task=task,
         verdict=verdict,
         votes=votes,
-        merged_content=merged,
+        merged_content=json.dumps(report_payload, ensure_ascii=False),
         disagreements=disagreements,
         latency_ms=(time.monotonic() - t0) * 1000,
+        status=report.status.value,
+        recommended_decision=report.recommended_decision.value,
+        recommended_strictness=int(report.recommended_strictness),
+        report=report_payload,
     )
 
 
