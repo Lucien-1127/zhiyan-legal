@@ -51,19 +51,17 @@ class ZhiyanSettings:
 
     # ── 主模型 API ──────────────────────────────────────────────────
     api_key: str = field(default_factory=lambda: _get(
-        "ZHIYAN_API_KEY",
-        "OPENAI_API_KEY", "OPENROUTER_API_KEY",
-        "GEMINI_API_KEY", "GOOGLE_API_KEY",
+        "OPENAI_API_KEY",
     ))
     api_base_url: str = field(default_factory=lambda: _get(
-        "ZHIYAN_API_BASE_URL",
+        "OPENAI_BASE_URL",
         default="https://api.openai.com/v1",
     ))
     model: str = field(default_factory=lambda: _get(
-        "ZHIYAN_MODEL", default="gpt-4o-mini",
+        "OPENAI_MODEL", default="gpt-4o-mini",
     ))
     provider: str = field(default_factory=lambda: _get(
-        "ZHIYAN_PROVIDER", default="openai",
+        "OPENAI_PROVIDER", default="openai",
     ))
 
     # ── 合議庭 Agnes Keys ────────────────────────────────────────────
@@ -83,7 +81,7 @@ class ZhiyanSettings:
 
     # ── Gemini (合議庭第三席) ────────────────────────────────────────
     gemini_api_key: str = field(default_factory=lambda: _get(
-        "GEMINI_API_KEY", "GOOGLE_API_KEY",
+        "GEMINI_API_KEY",
     ))
     gemini_model: str = field(default_factory=lambda: _get(
         "GEMINI_MODEL", default="gemini-2.5-flash",
@@ -128,7 +126,7 @@ class ZhiyanSettings:
         warnings: list[str] = []
         if not self.api_key:
             warnings.append(
-                "ZHIYAN_API_KEY 未設定 — 主模型查詢將失敗。"
+                "OPENAI_API_KEY 未設定 — 主模型查詢將失敗。"
                 " 請在 .env 設定或匯出環境變數。"
             )
         if not self.agnes_key_1 and not self.agnes_key_2:

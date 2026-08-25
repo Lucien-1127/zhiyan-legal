@@ -51,6 +51,9 @@ class QueryResponse:
     citations: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     is_dry_run: bool = False
+    decision: str = "DELIVER"
+    execution_id: str = ""
+    answer_meta: dict = field(default_factory=dict)
 
     @classmethod
     def from_domain(
@@ -66,6 +69,7 @@ class QueryResponse:
         citations: list[str] | None = None,
         warnings: list[str] | None = None,
         is_dry_run: bool = False,
+        decision: str | None = None,
     ) -> "QueryResponse":
         """Adapt canonical execution and answer metadata to the SDK response.
 
@@ -102,6 +106,9 @@ class QueryResponse:
             citations=response_citations,
             warnings=response_warnings,
             is_dry_run=is_dry_run,
+            decision=decision or answer_meta.decision.value,
+            execution_id=context.execution_id,
+            answer_meta=answer_meta.model_dump(mode="json"),
         )
 
     @classmethod

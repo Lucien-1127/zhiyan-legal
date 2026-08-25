@@ -1,57 +1,40 @@
-"""
-zhiyan_legal.sdk.client — 主實體客戶端
+"""Public SDK adapter over the canonical application engine."""
 
-同時提供：
-  - 同步介面（query / committee）— 適合 CLI 、腳本
-  - 非同步介面（aquery / acommittee）— 適合 FastAPI / async 环境
-"""
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
+import os
 from typing import Optional
 
-from .models import QueryRequest, QueryResponse, CommitteeResponse
-from .api_router import route_query, route_committee
+from ..application import ZhiyanApplicationEngine
+from ..domain import TaskMode
+from ..providers import ProviderRegistry
+from .api_router import _resolve_task
+from .models import CommitteeResponse, CommitteeVote, QueryRequest, QueryResponse
+
+
+_TASK_ALIASES = {
+    "LEGAL_WRITER": TaskMode.LEGAL_DRAFT,
+    "CONTRACT": TaskMode.CONTRACT_REVIEW,
+}
 
 
 class ZhiyanClient:
-    """
-    Zhiyan Legal AI SDK 主客戶端。
+    """Synchronous and asynchronous SDK access to one application engine."""
 
-    使用範例：
+    def __init__(
+        self,
+        application_engine: ZhiyanApplicationEngine | None = None,
+    ) -> None:
+        self._application = application_engine or ZhiyanApplicationEngine(
+            provider_registry=ProviderRegistry.from_env()
+        )
 
-    .. code-block:: python
-
-        from zhiyan_legal.sdk import ZhiyanClient
-
-        # 基本查詢（自動路由）
-        client = ZhiyanClient()
-        result = client.query("什麼是公然侮辱？")
-        print(result.content)
-
-        # 指定任務
-        result = client.query("分析這份合約風險", task="QC")
-
-        # 合議庭模式（三模型交叉驗證）
-        committee = client.committee("正當防衛的構成要件？")
-        print(committee.verdict)      # "consensus" / "dissensus" / "blind_spot"
-        print(committee.merged_content)
-    """
-
-    def __init__(self) -> None:
-        """Client 初始化，自動讀取 settings singleton。"""
-        # 驗證至少有一個提供商可用
-        from .provider_registry import PROVIDER_REGISTRY
-        if not PROVIDER_REGISTRY:
-            raise RuntimeError(
-                "\u6c92有可用的 API 提供商。\n"
-                "\u8acb設定至少一個 API 金鑰：\n"
-                "  ZHIYAN_API_KEY  — Zhiyan/OpenAI 相容 API\n"
-                "  AGNES_API_KEY_1 — Agnes AI\n"
-                "  GEMINI_API_KEY  — Google Gemini"
-            )
-
-    # ── 同步介面 ────────────────────────────────────────────────────
+    @property
+    def application_engine(self) -> ZhiyanApplicationEngine:
+        """Expose the injected boundary for integrations and test doubles."""
+        return self._application
 
     def query(
         self,
@@ -63,26 +46,11 @@ class ZhiyanClient:
         max_tokens: int = 4096,
         dry_run: bool = False,
     ) -> QueryResponse:
-        """
-        單次法律查詢（同步介面）。
-
-        :param message:     使用者詢問內容。
-        :param task:        指定任務標籤（None = 自動路由）。
-        :param model:       覆寫模型名稱（None = 使用提供商預設）。
-        :param temperature: 輸出隨機性（預設 0.3）。
-        :param max_tokens:  最大輸出 token 數（預設 4096）。
-        :param dry_run:     若為 True，不發送真實 API 呼叫。
-        :returns:           QueryResponse 物件。
-        """
         req = QueryRequest(
-            message=message,
-            task=task,
-            model=model,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            dry_run=dry_run,
+            message=message, task=task, model=model, temperature=temperature,
+            max_tokens=max_tokens, dry_run=dry_run,
         )
-        return asyncio.run(route_query(req))
+        return _run_sync(self.aquery_request(req))
 
     def committee(
         self,
@@ -93,30 +61,83 @@ class ZhiyanClient:
         max_tokens: int = 4096,
         dry_run: bool = False,
     ) -> CommitteeResponse:
-        """
-        合議庭模式（同步介面）。
-
-        :param message:  使用者詢問內容。
-        :param task:     指定任務標籤（None = 自動路由）。
-        :returns:        CommitteeResponse 。
-        """
-        req = QueryRequest(
-            message=message,
-            task=task,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            dry_run=dry_run,
-        )
-        return asyncio.run(route_committee(req))
-
-    # ── 非同步介面 ─────────────────────────────────────────────────
+        return _run_sync(self.acommittee(
+            message, task=task, temperature=temperature,
+            max_tokens=max_tokens, dry_run=dry_run,
+        ))
 
     async def aquery(self, message: str, **kwargs) -> QueryResponse:
-        """Non-blocking 查詢（用於 FastAPI / async 环境）。"""
-        req = QueryRequest(message=message, **kwargs)
-        return await route_query(req)
+        return await self.aquery_request(QueryRequest(message=message, **kwargs))
+
+    async def aquery_request(self, req: QueryRequest) -> QueryResponse:
+        task = _resolve_task(req)
+        if req.dry_run:
+            return self._dry_run_response(req, task)
+
+        context, meta, content = await self._application.query_async(
+            req.message,
+            task=_to_task_mode(task),
+        )
+        return QueryResponse.from_domain(
+            context,
+            meta,
+            content=content,
+            model=req.model or self._default_model,
+        )
 
     async def acommittee(self, message: str, **kwargs) -> CommitteeResponse:
-        """Non-blocking 合議庭（用於 FastAPI / async 环境）。"""
-        req = QueryRequest(message=message, **kwargs)
-        return await route_committee(req)
+        """Run one canonical execution and expose it as a one-vote committee.
+
+        Committee fan-out belongs to a separate orchestration product. The
+        SDK still offers the historical shape, but its underlying answer is
+        now produced by the application engine rather than a raw HTTP call.
+        """
+        response = await self.aquery(message, **kwargs)
+        return CommitteeResponse(
+            task=response.task,
+            verdict="consensus" if response.decision == "DELIVER" else "blind_spot",
+            votes=[CommitteeVote(
+                provider=response.provider,
+                model=response.model,
+                content=response.content,
+                citations=response.citations,
+                error=("decision: " + response.decision) if response.decision != "DELIVER" else None,
+            )],
+            merged_content=response.content,
+            disagreements=list(response.warnings),
+            latency_ms=response.latency_ms,
+        )
+
+    @property
+    def _default_model(self) -> str:
+        if self._application.registry.providers:
+            return self._application.registry.providers[0].default_model
+        return os.getenv("ZHIYAN_MODEL", "canonical-application-engine")
+
+    @staticmethod
+    def _dry_run_response(req: QueryRequest, task: str) -> QueryResponse:
+        return QueryResponse(
+            content=f"[DRY-RUN] 不呼叫 provider：{req.message}",
+            task=task,  # type: ignore[arg-type]
+            model=req.model or "dry-run",
+            provider="zhiyan",
+            is_dry_run=True,
+        )
+
+
+def _to_task_mode(task: str) -> TaskMode:
+    if task in _TASK_ALIASES:
+        return _TASK_ALIASES[task]
+    try:
+        return TaskMode(task)
+    except ValueError:
+        return TaskMode.QC
+
+
+def _run_sync(awaitable):
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(awaitable)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, awaitable).result()
