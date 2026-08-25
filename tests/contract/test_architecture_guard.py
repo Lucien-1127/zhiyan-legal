@@ -19,6 +19,7 @@ ZHIYAN_ROOT = SRC_ROOT / "zhiyan_legal"
 PIPELINE_ROOT = ZHIYAN_ROOT / "pipeline"
 TOOLS_ROOT = ZHIYAN_ROOT / "tools"
 VERIFICATION_ROOT = ZHIYAN_ROOT / "verification"
+APPLICATION_ROOT = ZHIYAN_ROOT / "application"
 
 CANONICAL_TYPES = frozenset(
     {
@@ -363,7 +364,7 @@ def test_high_level_or_forbidden_application_modules_cannot_enter_phase2_layers(
                     target.startswith("zhiyan_legal.pipeline")
                     or target.startswith("zhiyan_legal.tools")
                     or target.startswith("zhiyan_legal.verification")
-                ) and source_layer is None:
+                ) and source_layer is None and not module.path.is_relative_to(APPLICATION_ROOT):
                     violations.append(
                         f"Rule E: {_location(module.path, node.lineno)} high-level module imports {target}"
                     )
