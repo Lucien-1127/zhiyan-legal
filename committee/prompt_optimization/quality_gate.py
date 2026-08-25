@@ -34,6 +34,12 @@ class GateResult:
         return f"{self.emoji()} {self.name}: {self.detail}"
 
 
+# Explicit name for this prompt-specific result type.  ``GateResult`` is
+# retained for callers of the original API and for compatibility with the
+# canonical domain's similarly named model.
+PromptGateResult = GateResult
+
+
 # ── Gate functions ──────────────────────────────────────
 # Each takes the prompt text as input, returns (bool, str).
 

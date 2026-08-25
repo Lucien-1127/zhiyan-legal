@@ -19,12 +19,17 @@ from .prompt_quality import (
 )
 from .prompt_normalizer import PromptNormalizer, are_claims_equivalent
 from .dispatch import ConsensusDispatcher, DispatchAction, ActionType
-from .quality_gate import run_all as run_quality_gates, format_report, GateResult
+from .quality_gate import (
+    run_all as run_quality_gates,
+    format_report,
+    GateResult,
+    PromptGateResult,
+)
 
 __all__ = [
     "PromptClaim", "PromptDimension", "Severity", "ReviewerModel", "ConsensusLabel",
     "ClaimCluster", "PromptReviewReport", "PromptCommitteeReport",
     "PromptNormalizer", "are_claims_equivalent",
     "ConsensusDispatcher", "DispatchAction", "ActionType",
-    "run_quality_gates", "format_report", "GateResult",
+    "run_quality_gates", "format_report", "GateResult", "PromptGateResult",
 ]

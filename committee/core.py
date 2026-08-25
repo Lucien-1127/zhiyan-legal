@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field, asdict
 from enum import Enum
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
+
+if TYPE_CHECKING:
+    from zhiyan_legal.domain import Claim
 
 
 # ── 列舉 ──
@@ -65,6 +68,70 @@ class LegalClaim:
 
     def to_dict(self) -> dict:
         return asdict(self)
+
+    def to_canonical_claim(self) -> "Claim":
+        """Adapt this committee claim to the canonical domain Claim.
+
+        The committee schema has a richer, legacy status vocabulary.  The
+        adapter deliberately maps it to the canonical four-state vocabulary;
+        the original object remains available to callers that need the legacy
+        audit fields such as ``raw_snippet``.
+        """
+        from zhiyan_legal.domain import (
+            Claim,
+            ClaimKind,
+            ClaimMateriality,
+            ClaimStatus as CanonicalClaimStatus,
+        )
+
+        kind_by_type = {
+            ClaimType.STATUTE_EXISTENCE: ClaimKind.LAW,
+            ClaimType.PRECEDENT_EXISTENCE: ClaimKind.LAW,
+            ClaimType.FACT_STATEMENT: ClaimKind.FACT,
+            ClaimType.LEGAL_INTERPRETATION: ClaimKind.INFERENCE,
+        }
+        status_by_legacy = {
+            ClaimStatus.EXISTS: CanonicalClaimStatus.VERIFIED,
+            ClaimStatus.DELETED: CanonicalClaimStatus.CONFLICT,
+            ClaimStatus.NONEXISTENT: CanonicalClaimStatus.CONFLICT,
+            ClaimStatus.AMENDED: CanonicalClaimStatus.STALE,
+            ClaimStatus.UNKNOWN: CanonicalClaimStatus.UNVERIFIED,
+            ClaimStatus.ERROR: CanonicalClaimStatus.UNVERIFIED,
+            ClaimStatus.SAFETY_UNKNOWN: CanonicalClaimStatus.UNVERIFIED,
+        }
+        return Claim(
+            claim_id=self.claim_id,
+            text=self.summary or self.raw_snippet or self.article_ref,
+            kind=kind_by_type[self.claim_type],
+            materiality=ClaimMateriality.SUPPORTING,
+            status=status_by_legacy[self.status or ClaimStatus.UNKNOWN],
+        )
+
+    @classmethod
+    def from_canonical_claim(cls, claim: "Claim") -> "LegalClaim":
+        """Build a legacy ``LegalClaim`` from a canonical domain Claim."""
+        from zhiyan_legal.domain import ClaimKind, ClaimStatus as CanonicalClaimStatus
+
+        type_by_kind = {
+            ClaimKind.FACT: ClaimType.FACT_STATEMENT,
+            ClaimKind.LAW: ClaimType.STATUTE_EXISTENCE,
+            ClaimKind.INFERENCE: ClaimType.LEGAL_INTERPRETATION,
+            ClaimKind.PROCEDURE: ClaimType.FACT_STATEMENT,
+            ClaimKind.RISK: ClaimType.LEGAL_INTERPRETATION,
+        }
+        status_by_canonical = {
+            CanonicalClaimStatus.UNVERIFIED: ClaimStatus.UNKNOWN,
+            CanonicalClaimStatus.VERIFIED: ClaimStatus.EXISTS,
+            CanonicalClaimStatus.CONFLICT: ClaimStatus.NONEXISTENT,
+            CanonicalClaimStatus.STALE: ClaimStatus.AMENDED,
+        }
+        return cls(
+            claim_id=str(claim.claim_id),
+            article_ref=claim.text,
+            claim_type=type_by_kind[claim.kind],
+            status=status_by_canonical[claim.status],
+            summary=claim.text,
+        )
 
 
 @dataclass
