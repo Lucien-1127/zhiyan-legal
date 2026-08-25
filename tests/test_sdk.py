@@ -5,7 +5,7 @@ tests/test_sdk.py — SDK 單元測試 + 統一路由器測試
 """
 from __future__ import annotations
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from src.zhiyan_legal.sdk import ZhiyanClient, ZhiyanAPIError, ZhiyanAuthError
 from src.zhiyan_legal.sdk.models import QueryRequest, QueryResponse, CommitteeResponse
 from src.zhiyan_legal.sdk.provider_registry import ProviderConfig
@@ -42,7 +42,7 @@ class TestDryRun:
     def test_query_dry_run(self, mock_registry):
         """Dry-run 不發送真實 API，回應應標記 is_dry_run。"""
         with patch(
-            "src.zhiyan_legal.sdk.client.PROVIDER_REGISTRY",
+            "src.zhiyan_legal.sdk.provider_registry.PROVIDER_REGISTRY",
             [ProviderConfig(
                 name="zhiyan", base_url="x", api_key="sk-x",
                 default_model="gpt-4o-mini", priority=0, is_primary=True,
@@ -67,7 +67,7 @@ class TestProviderCall:
     @pytest.mark.asyncio
     async def test_call_provider_success(self, mock_provider):
         """Mock httpx 回應成功。"""
-        fake_response = AsyncMock()
+        fake_response = MagicMock()
         fake_response.status_code = 200
         fake_response.json.return_value = {
             "choices": [{"message": {"content": "公然侮辱需公然場所"}}],
@@ -86,7 +86,7 @@ class TestProviderCall:
     @pytest.mark.asyncio
     async def test_call_provider_auth_error(self, mock_provider):
         """401 應拋出 ZhiyanAuthError，不重試。"""
-        fake_response = AsyncMock()
+        fake_response = MagicMock()
         fake_response.status_code = 401
         with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__ = AsyncMock(return_value=mock_client.return_value)

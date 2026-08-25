@@ -1,0 +1,298 @@
+{
+  "meta": {
+    "task_id": "Z0-NORMALIZE",
+    "repo": "Lucien-1127/zhiyan-legal @ main b68c75f",
+    "generated_at": "2026-08-24T23:10:00Z",
+    "inputs": {
+      "Z0-A": "Repository Inventory & Static Analysis（DeepSeek 任務書，agy 之外 API 子代理執行）",
+      "Z0-B": "Contract Gap & Architecture Consistency（Drive 規格 ↔ GitHub Traceability Matrix，alignment 22/100）",
+      "Z0-C1": "Independent Architecture Reviewer（architecture_status: FRAGMENTED；完整 JSON 因 log 截斷部分回收，標 NEEDS_VERIFICATION 項目由 C2 補強）",
+      "Z0-C2": "Adversarial Architecture Reviewer（15 檢查命中 9；對 a-d 主張全 AGREE，零 false positive；4 新 critical）",
+      "Z0-D": "AGY Senior Architecture Review（經 agy CLI / Gemini Pro 會員會話執行；判定 NOT_READY）"
+    },
+    "normalization_rules": [
+      "同一問題多 agent 命中 → 合併為單一 finding，合併 evidence，不是增加票數",
+      "禁止模型投票：任何單一來源的 finding 只要證據充分即保留",
+      "CONFIRMED 必須有可重現證據（檔案:行號或可重跑命令）",
+      "Agent 意見衝突 → status=NEEDS_VERIFICATION + conflict 物件 + 最小 verification task",
+      "severity 取合併前最高值"
+    ],
+    "registry_id_prefix": "ZHIYAN-F-",
+    "raw_finding_counts": {"Z0-A": 13, "Z0-B": "24項matrix+5清單", "Z0-C1": "4C/5H/M若干", "Z0-C2": "4新critical+9命中", "Z0-D": "A-J結構化報告"},
+    "deduplicated_total": 18
+  },
+  "findings": [
+    {
+      "finding_id": "ZHIYAN-F-0001",
+      "title": "五個 Python 檔語法錯誤，主套件完全無法載入（含核心 engine.py 與測試檔本身）",
+      "severity": "CRITICAL", "status": "CONFIRMED", "category": "static_integrity",
+      "paths": ["src/zhiyan_legal/engine.py:311", "src/zhiyan_legal/router.py:108-110", "src/zhiyan_legal/sub_agent.py:112-114", "committee/runner.py:187", "tests/test_manifest.py:219"],
+      "symbols": ["ZhiyanEngine", "route", "parallel_citation_verify"],
+      "evidence": [
+        "engine.py:311 — engine.py:180-189 docstring 未閉合衝突，U+2014 落入 code 層（ast.parse SyntaxError）",
+        "router.py — 重複殘留的 for kw, task in sorted_kw: 迴圈頭（L108），_SORTED_KW 版本為存活版",
+        "sub_agent.py:114 — tasks 列表未閉合即接 def",
+        "committee/runner.py:187 — subprocess.run 引數列表殘留重複 ]",
+        "tests/test_manifest.py:219 — ] 不匹配 L95 {",
+        "Z0-A/Z0-C1/Z0-C2/D 四方獨立 ast.parse 全數重現"
+      ],
+      "reported_by": ["Z0-A/F1-F3,F9,F11", "Z0-B/findings", "Z0-C1/critical", "Z0-C2/comparison-a", "Z0-D/F節"],
+      "impact": "backend/main.py import chain 即 SyntaxError，FastAPI service 無法啟動；所有依賴測試必敗；CI 紅燈根因",
+      "contract_affected": ["Execution Contract", "Regression Guard"],
+      "recommended_phase": "Phase 0.5 止血（F節 Safe First Refactor）",
+      "blocking": true
+    },
+    {
+      "finding_id": "ZHIYAN-F-0002",
+      "title": "Decision strictness 階層（ALLOW<ABSTAIN<HUMAN_REVIEW<BLOCK）在程式碼中不存在；唯一 Verdict 列舉是 PASS/FAIL/ERROR",
+      "severity": "CRITICAL", "status": "CONFIRMED", "category": "contract_gap",
+      "paths": ["committee/core.py:32-36", "backend/main.py:66-74"],
+      "symbols": ["Verdict", "ChatResponse"],
+      "evidence": [
+        "committee/core.py:32-36 class Verdict 僅 PASS/FAIL/ERROR",
+        "grep ALLOW|ABSTAIN|BLOCK 列舉零命中；HUMAN_REVIEW 僅 prompt_optimization/dispatch.py:34（非法律主流程）",
+        "ChatResponse 直接回文字，無決策狀態欄位"
+      ],
+      "reported_by": ["Z0-A/canonical_model_candidates(缺失)", "Z0-B/matrix(Decision MISSING)", "Z0-C1", "Z0-C2/comparison-c AGREE", "Z0-D/D節"],
+      "impact": "總任務第四節的嚴格度階層無承載點；無法實施 strictness 不可降級規則",
+      "contract_affected": ["Canonical Domain Model", "Gate Pipeline", "Human Review State"],
+      "recommended_phase": "Phase 1/2",
+      "blocking": true
+    },
+    {
+      "finding_id": "ZHIYAN-F-0003",
+      "title": "backend /api/chat 直連 LLM 零 gate；且 error path 回 HTTP 200 空內容（fake-success）。目前僅因語法錯誤『意外』被擋",
+      "severity": "CRITICAL", "status": "CONFIRMED", "category": "security_architecture",
+      "paths": ["backend/main.py:237-265", "backend/main.py:259-263"],
+      "symbols": ["chat handler", "query_async"],
+      "evidence": [
+        "main.py:237-265 chat handler 直接 await engine.query_async()，前方無 committee verdict/governance/citation gate",
+        "main.py:259-263 if result.error: 僅 log warning，仍回 200 ChatResponse(content=result.content)；query_async 全 key 耗盡時 content=''",
+        "修好 F-0001 後此路徑立即裸奔"
+      ],
+      "reported_by": ["Z0-B/highest_priority_gaps(P0)", "Z0-C1/critical(fake-success)", "Z0-C2/gate_bypass+fail_open", "Z0-D/C節"],
+      "impact": "任何 API 使用者完全繞過契約；provider 失敗被包裝成成功空回應",
+      "contract_affected": ["Interface Boundary", "Tool Adapter Contract", "Output Contract"],
+      "recommended_phase": "Phase 0.5/3",
+      "blocking": true
+    },
+    {
+      "finding_id": "ZHIYAN-F-0004",
+      "title": "真實格式 API key 以拼接方式硬編碼於 committee/runner.py 並進入 git 歷史",
+      "severity": "CRITICAL", "status": "CONFIRMED", "category": "security_secret",
+      "paths": ["committee/runner.py:28-30"],
+      "symbols": ["_k1a/_k1b/_k1c", "_k2a/_k2b/_k2c"],
+      "evidence": [
+        "runner.py:28 _k1a='sk-dlL'; _k1b/_k1c 續接；:30 _k2 系列——'sk-'+base62 格式符合有效金鑰",
+        "Z0-A 先行發現；Z0-C2 獨立複驗確認為真實格式金鑰而非佔位符（雖 :34-36 隨即被 os.environ 覆蓋成死碼，但金鑰已永久存在於 git 歷史 b68c75f 可見）"
+      ],
+      "reported_by": ["Z0-A/F5", "Z0-C2/security_risks"],
+      "impact": "憑證外洩；違反硬性規則13（Secret detection 阻止 Merge）",
+      "contract_affected": ["Security"],
+      "recommended_phase": "立即（輪換 key + filter-repo 清歷史）；本報告不記錄完整 key 內容",
+      "blocking": true
+    },
+    {
+      "finding_id": "ZHIYAN-F-0005",
+      "title": "Drive 四契約（execution/output/tool-adapters/SKILL v2）與 9 Gate 完全未落地：alignment score 22/100，IMPLEMENTED 0 項",
+      "severity": "HIGH", "status": "CONFIRMED", "category": "contract_gap",
+      "paths": ["references/(execution-contract.md 缺)", "src/zhiyan_legal/", "backend/"],
+      "symbols": [],
+      "evidence": [
+        "24 項 Traceability：MISSING 10、CONFLICTING 3、LEGACY 2、PARTIAL 8、IMPLEMENTED 0",
+        "ExecutionContext/Evidence/GateResult(契約語意)/Decision/ToolResult/EvidenceLevel/ExecutionStatus grep 全部零命中",
+        "G-SAFETY…G-OUTPUT 九個 Gate 名稱 py 全部 0 命中"
+      ],
+      "reported_by": ["Z0-B/matrix", "Z0-A/canonical_model_candidates", "Z0-D/D節"],
+      "impact": "法律正確性仍由 prompt 文字承擔；fail-closed 無程式化保證",
+      "contract_affected": ["Execution Contract", "Evidence Contract", "Gate Pipeline", "Human Review State", "Provider Abstraction"],
+      "recommended_phase": "Phase 1/2 主體工作",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0006",
+      "title": "GovernanceContract（I001-I006）全 repo 零呼叫點，從未在生產路徑執行 = 結構性 fail-open",
+      "severity": "HIGH", "status": "CONFIRMED", "category": "policy_gap",
+      "paths": ["committee/policies/governance_contract.py:45,55,68", "committee_core/__init__.py:8-9"],
+      "symbols": ["GovernanceContract.enforce/enforce_all"],
+      "evidence": [
+        "grep .enforce( 與 GovernanceContract( 僅命中自身 docstring/self-call 與 committee_core re-export",
+        "engine.py/main.py/adapter.py 均未調用"
+      ],
+      "reported_by": ["Z0-C1/high", "Z0-C2/fail_open+comparison-d AGREE", "Z0-B/G4", "Z0-D/D節"],
+      "impact": "治理不變量形同虛設",
+      "contract_affected": ["Gate Pipeline", "Policy"],
+      "recommended_phase": "Phase 2",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0007",
+      "title": "governance_contract policy marker 含亂碼（諞詢/誱詟等），regex 永遠匹配失敗 → 即使接線也永遠放行",
+      "severity": "HIGH", "status": "CONFIRMED", "category": "policy_defect",
+      "paths": ["committee/policies/governance_contract.py"],
+      "symbols": ["_enforce_*"],
+      "evidence": ["marker 字串亂碼致 regex 匹配失敗（fail-open）；Z0-B 亦觀察到同檔註釋亂字佐證複製品漂移"],
+      "reported_by": ["Z0-C1/high"],
+      "impact": "治理層即使接入也是 no-op",
+      "contract_affected": ["Gate Pipeline"],
+      "recommended_phase": "Phase 2",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0008",
+      "title": "雙套 judgment schema 分叉互指廢棄，根目錄版有自相循環引用",
+      "severity": "HIGH", "status": "CONFIRMED", "category": "duplicate_domain",
+      "paths": ["src/zhiyan_legal/schemas/judgment.py(116L)", "zhiyan_legal/schemas/judgment.py(169L):169"],
+      "symbols": ["JudgmentDocument", "JudgmentMeta", "JudgmentChunk"],
+      "evidence": [
+        "兩份行號偏移、內容已漂移（field_validator/import re 差異）",
+        "根目錄版 :169 from zhiyan_legal.schemas.judgment import * 自相循環引用",
+        "compute_doc_id/auto_char_count AST 相同其餘漂移"
+      ],
+      "reported_by": ["Z0-A/duplicate_models", "Z0-C1/critical", "Z0-D/C節表格"],
+      "impact": "同一核心概念兩個可寫定義，違反 Source of Truth 規則4",
+      "contract_affected": ["Canonical Domain Model"],
+      "recommended_phase": "Phase 1（吸收差異後收斂至 src/，deletion_manifest）",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0009",
+      "title": "runner.py 已掏空為 stub 但仍有活躍消費者（adapter.py/docker/scripts）→ ImportError 必現；屬破損契約而非單純死碼",
+      "severity": "HIGH", "status": "CONFIRMED", "category": "broken_contract",
+      "paths": ["src/zhiyan_legal/runner.py(310B stub)", "committee/api/adapter.py:27", "docker/api_server.py", "scripts/run_ablation_experiment.py:39"],
+      "symbols": ["run_llm"],
+      "evidence": ["from zhiyan_legal.runner import run_llm 而 runner.py 無 run_llm 定義；engine.py:852 自述 query_sync 為 drop-in replacement"],
+      "reported_by": ["Z0-A/F4", "Z0-C1", "Z0-C2/gate_bypass", "Z0-D/H節"],
+      "impact": "committee FastAPI 與 docker 入口不可啟動",
+      "contract_affected": ["Provider Abstraction", "Interface Boundary"],
+      "recommended_phase": "Phase 0.5（補 shim）→ Phase 3（遷移消費者）",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0010",
+      "title": "key discovery 三套互不知情；engine 版讀取開發者個人 ~/.hermes/profiles 並以 subprocess grep 抓 key（跨 boundary 憑證共用＋shell 注入面）；跨 provider fallback 配固定 base_url",
+      "severity": "HIGH", "status": "CONFIRMED", "category": "provider_config",
+      "paths": ["src/zhiyan_legal/engine.py:179-240(203-209,218-237)", "src/zhiyan_legal/config.py:53-70", "src/zhiyan_legal/sdk/provider_registry.py:23-56"],
+      "symbols": ["discover_api_key", "_get_gemini_key", "_get", "ProviderConfig"],
+      "evidence": ["三處各自解析 env/profiles/registry；config.py fallback 順序 DEEPSEEK>OPENROUTER>...>ZHIYAN 配固定 OpenAI base_url 可能錯誤路由"],
+      "reported_by": ["Z0-A/dependency_violations", "Z0-C1/critical+medium", "Z0-C2/security_risks", "Z0-D/C節"],
+      "impact": "provider fallback 可能改變語意（硬性規則17風險面）；不可攜；注入面",
+      "contract_affected": ["Provider Abstraction", "Tool Adapter Contract"],
+      "recommended_phase": "Phase 3（Step 4 金鑰組態整合）",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0011",
+      "title": "engine 內部多處執行路徑分裂：load_docs/reload 重複定義、query() 同步 running-loop 分支繞過 validate_output 且 mode 硬編碼 legal、conversation_history 未過濾 role 可被注入 system 指令、key rotation 為空操作、startup() 非原子",
+      "severity": "HIGH", "status": "CONFIRMED", "category": "engine_defects",
+      "paths": ["src/zhiyan_legal/engine.py(187-188,203-240,311,421,453,495-547)"],
+      "symbols": ["load_docs", "reload", "query", "query_async", "discover_api_key", "startup"],
+      "evidence": [
+        "load_docs 兩定義後者覆蓋前者但 query_async 連續呼叫兩次（token 浪費）；reload 同樣重複",
+        "query() loop.is_running 分支直呼 openai SDK 不經 validate_output，mode 硬編碼 legal",
+        "messages.extend(recent) 未過濾 role → user 可升級 system 指令",
+        "429 換 key 但 _get_client(key_num>=2) 無 fallback → api_key='' 必敗",
+        "_initialized 檢查非原子，並發 startup 可能建多個 httpx client"
+      ],
+      "reported_by": ["Z0-C2/new_critical N1-N4+production_failure_modes", "Z0-D/E節(engine 重試機制高風險)"],
+      "impact": "即使修好語法，執行行為仍取決於覆蓋順序；安全上允許指令提升；retry 保護裝飾性",
+      "contract_affected": ["Execution Contract", "Provider Abstraction", "Regression Guard"],
+      "recommended_phase": "Phase 3（含端到端 mock 測試先行）",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0012",
+      "title": "validate_output 為 advisory-only（永不 block）+ committee 失敗遮罩成空清單污染 blind_spot 判定 → empty evidence 仍生成答案、citation verification 生產上不存在",
+      "severity": "HIGH", "status": "CONFIRMED", "category": "verification_gap",
+      "paths": ["src/zhiyan_legal/engine.py(validate_output)", "committee/runner.py:263-267", "committee/policies/governance_contract.py(regex 未接線)"],
+      "symbols": ["validate_output"],
+      "evidence": ["缺關鍵詞僅附加⚠️警示字串後原樣放行；_run_one_shot/query_gemini 失敗回 ''，上游當合法內容"],
+      "reported_by": ["Z0-C2/fail_open+findings#6#8", "Z0-B/matrix(Citation validation LEGACY_IMPLEMENTATION)"],
+      "impact": "Evidence Contract 與 Citation validation 實質不存在",
+      "contract_affected": ["Evidence Contract", "Verification"],
+      "recommended_phase": "Phase 2",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0013",
+      "title": "committee_core/ 全目錄零引用死拷貝（內部分叉且 governance_contract.py:16 語法損壞）；頂層 zhiyan_legal/ 為第二 namespace",
+      "severity": "MEDIUM", "status": "CONFIRMED", "category": "legacy_duplicate",
+      "paths": ["committee_core/", "zhiyan_legal/"],
+      "symbols": [],
+      "evidence": ["全庫無 import committee_core；debate_engine 369B vs 236B、governance_contract diff 非空；頂層 zhiyan_legal 僅一份舊 judgment.py"],
+      "reported_by": ["Z0-A/X1,D2", "Z0-C1/critical(第二核心)", "Z0-D/H節"],
+      "impact": "誤導編輯舊檔；namespace 分裂",
+      "contract_affected": ["Architecture Guard"],
+      "recommended_phase": "Phase 5（先 deletion_manifest；committee_core 可提前）",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0014",
+      "title": "12 處 sys.path hack 取代正確打包；src/ 缺 __init__.py 造成 src.zhiyan_legal vs zhiyan_legal 雙 namespace；backend/main.py 裸 import 依賴 cwd",
+      "severity": "MEDIUM", "status": "CONFIRMED", "category": "packaging",
+      "paths": ["backend/engine.py:30-34", "scripts/*", "tests/test_sdk.py", "tests/test_c54_validation.py", "src/zhiyan_legal/regulation_api.py:27", "regulation_tracker.py:714"],
+      "symbols": [],
+      "evidence": ["pyproject packages.find where=['src']；tests 混用兩種匯入路徑產生不同 module 物件"],
+      "reported_by": ["Z0-A/F6,I1,compatibility_risks", "Z0-C2/#13", "Z0-D/J節驗收條件2"],
+      "impact": "部署行為取決於安裝方式；Public API 斷裂風險",
+      "contract_affected": ["Interface Boundary", "Architecture Guard"],
+      "recommended_phase": "Phase 3/5",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0015",
+      "title": "CI workflow 本身是複製貼上事故（install/pytest 各重複、第三組再現）且 main 全紅仍持續 merge；無分支保護",
+      "severity": "MEDIUM", "status": "CONFIRMED", "category": "ci_process",
+      "paths": [".github/workflows/test.yml:24-80"],
+      "symbols": [],
+      "evidence": ["gh run list：run 32509832869 等 failure 對應最新 commit；workflow 內 pip install 逐字重複、pytest 同指令兩次且 --ignore 位置錯置"],
+      "reported_by": ["Z0-A(summary)", "Z0-C1/A-3", "Z0-D/B節+F節"],
+      "impact": "沒有任何綠燈基準線；重構盲飛",
+      "contract_affected": ["Regression Guard", "Architecture Guard"],
+      "recommended_phase": "Phase 0.5（清理 workflow + 啟用 branch protection）",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0016",
+      "title": "版本號三方不一致（pyproject 3.7.2 vs CITATION.cff v3.07.2 vs docs 三套體系）；CHANGELOG Unreleased 條目重複；README.md 為兩版草稿直接拼接（中英各一）",
+      "severity": "LOW", "status": "CONFIRMED", "category": "documentation_drift",
+      "paths": ["pyproject.toml:7", "CITATION.cff:9", "CHANGELOG.md:13-16", "README.md:1-285"],
+      "symbols": [],
+      "evidence": ["semver 上 3.7.2≠3.07.2；README 中文 1-76 vs 77-174、英文 180-205 vs 206-285 重複貼上"],
+      "reported_by": ["Z0-B/G7,G10", "Z0-D/D節4,5"],
+      "impact": "文件不可信；違反 Provider/Model/Prompt Version 可追蹤精神的文件面",
+      "contract_affected": ["Documentation"],
+      "recommended_phase": "Phase 5",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0017",
+      "title": "domain 層反向依賴 web framework：regulation_api.py 在 domain 套件內 import fastapi 並 sys.path.insert",
+      "severity": "MEDIUM", "status": "CONFIRMED", "category": "dependency_violation",
+      "paths": ["src/zhiyan_legal/regulation_api.py:27"],
+      "symbols": [],
+      "evidence": ["import fastapi 位於 src/zhiyan_legal/ 內"],
+      "reported_by": ["Z0-A/I1,F10"],
+      "impact": "分層違反；未來 domain 收斂阻礙",
+      "contract_affected": ["Interface Boundary"],
+      "recommended_phase": "Phase 3（移至 INTERFACE 層）",
+      "blocking": false
+    },
+    {
+      "finding_id": "ZHIYAN-F-0018",
+      "title": "疑似死碼與空殼群：agents/* 空 .gitkeep、prompts/personas|workflows 空、knowledge/* 空、6 個 gen_nda_* 變體（pro 自述取代其他）、root run_arch_health_check.py hardcode 他人家目錄、regulation_tracker.db 二進位被追蹤（移除 commit 未生效）、scripts hardcode 個人 Windows 路徑",
+      "severity": "LOW", "status": "CONFIRMED", "category": "dead_code_artifacts",
+      "paths": ["agents/", "prompts/", "knowledge/", "scripts/gen_nda_*.py", "run_arch_health_check.py", "regulation_tracker.db", "scripts/gen_nda_docx.py:9"],
+      "symbols": [],
+      "evidence": ["commit 2bc7267 聲稱移除 db 追蹤但未 git rm --cached；gen_nda_pro.py:10 自述取代前述版本"],
+      "reported_by": ["Z0-A/dead_or_legacy_candidates,X2", "Z0-C1/D-1", "Z0-D/H節"],
+      "impact": "倉庫噪音；可攜性死路",
+      "contract_affected": ["Repository Hygiene"],
+      "recommended_phase": "Phase 5（deletion_manifest 前置）",
+      "blocking": false
+    }
+  ],
+  "conflicts": [],
+  "conflict_note": "五份審計間無事實衝突。Z0-C1 完整 JSON 因 transcript 顯示截斷僅部分回收，其核心主張已被 Z0-C2 獨立複驗（comparison a-d 全 AGREE），故未產生 NEEDS_VERIFICATION conflict 物件；唯 C1 的 medium 級細節 evidence 以重建版為準。",
+  "summary_stats": {"total": 18, "CRITICAL": 4, "HIGH": 8, "MEDIUM": 5, "LOW": 1, "blocking": 4, "CONFIRMED": 18}
+}
