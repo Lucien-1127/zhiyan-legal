@@ -10,12 +10,8 @@
 """
 from __future__ import annotations
 
-import logging
 import warnings
 
-logger = logging.getLogger(__name__)
-
-# Emit deprecation warning once on import
 warnings.warn(
     "backend/engine.py 已棄用，請改為 from zhiyan_legal.engine import ZhiyanEngine",
     DeprecationWarning,
@@ -43,4 +39,15 @@ from zhiyan_legal.engine import (        # noqa: E402, F401
     discover_api_key,
 )
 
-logger.info("backend/engine.py → re-exported from zhiyan_legal.engine (deprecated path)")
+__all__ = [
+    "ZhiyanEngine",
+    "EngineConfig",
+    "QueryResult",
+    "EngineError",
+    "LLMConnectionError",
+    "LLMTimeoutError",
+    "LLMRateLimitError",
+    "LLMResponseError",
+    "validate_output",
+    "discover_api_key",
+]
