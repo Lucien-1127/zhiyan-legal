@@ -18,7 +18,7 @@ logger = logging.getLogger("quality_gate")
 
 
 @dataclass
-class GateResult:
+class PromptGateResult:
     """Single gate result."""
     name: str
     passed: bool
@@ -34,10 +34,10 @@ class GateResult:
         return f"{self.emoji()} {self.name}: {self.detail}"
 
 
-# Explicit name for this prompt-specific result type.  ``GateResult`` is
-# retained for callers of the original API and for compatibility with the
-# canonical domain's similarly named model.
-PromptGateResult = GateResult
+# ``GateResult`` is retained as a compatibility alias for callers of the
+# original prompt-quality API.  The concrete class has a prompt-specific
+# name so it cannot be mistaken for the canonical domain GateResult.
+GateResult = PromptGateResult
 
 
 # ── Gate functions ──────────────────────────────────────
