@@ -193,6 +193,35 @@ class CommitteeReport:
     blind_spot_count: int = 0
     unique_insight_count: int = 0
 
+    def to_vnext(self, task_id: Optional[str] = None):
+        """Adapt this legacy report to the canonical vNext report."""
+        from datetime import datetime, timezone
+        from zhiyan_legal.committee.evaluator import ConsensusEvaluator
+        from zhiyan_legal.committee.models import CommitteeMemberVerdict
+        from zhiyan_legal.providers import ProviderRole
+
+        members = [
+            CommitteeMemberVerdict(
+                provider_name=verdict.model_name,
+                model=verdict.model_name,
+                role=ProviderRole.DRAFTER,
+                claims=[claim.to_canonical_claim() for claim in verdict.claims],
+                verdict=verdict.verdict.value,
+                confidence=max(
+                    (claim.confidence for claim in verdict.claims), default=1.0
+                ),
+                error=verdict.error,
+            )
+            for verdict in self.model_verdicts
+        ]
+        return ConsensusEvaluator().evaluate(
+            task_id or self.query_id,
+            members,
+            evaluated_at=datetime.now(timezone.utc),
+        )
+
+    as_vnext = to_vnext
+
     def to_dict(self) -> dict:
         return {
             "query_id": self.query_id,

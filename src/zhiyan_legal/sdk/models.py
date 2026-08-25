@@ -4,7 +4,7 @@ zhiyan_legal.sdk.models — SDK 資料模型
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional, Literal
+from typing import Any, TYPE_CHECKING, Optional, Literal
 
 if TYPE_CHECKING:
     from ..domain import AnswerMeta, ExecutionContext
@@ -150,3 +150,7 @@ class CommitteeResponse:
     merged_content: str = ""
     disagreements: list[str] = field(default_factory=list)
     latency_ms: float = 0.0
+    status: str = "CONSENSUS"
+    recommended_decision: str = "DELIVER"
+    recommended_strictness: int = 0
+    report: dict[str, Any] = field(default_factory=dict)

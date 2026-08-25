@@ -22,6 +22,9 @@ VERIFICATION_ROOT = ZHIYAN_ROOT / "verification"
 APPLICATION_ROOT = ZHIYAN_ROOT / "application"
 PROVIDERS_ROOT = ZHIYAN_ROOT / "providers"
 INTERFACES_ROOT = ZHIYAN_ROOT / "interfaces"
+COMMITTEE_ROOT = ZHIYAN_ROOT / "committee"
+LEGACY_COMMITTEE_ROOT = PROJECT_ROOT / "committee"
+LEGACY_COMMITTEE_ADAPTER = LEGACY_COMMITTEE_ROOT / "api" / "adapter.py"
 
 CANONICAL_TYPES = frozenset(
     {
@@ -140,6 +143,15 @@ def _location(path: Path, lineno: int = 1) -> str:
 def _is_domain_file(path: Path) -> bool:
     try:
         path.relative_to(DOMAIN_ROOT)
+    except ValueError:
+        return False
+    return True
+
+
+def _is_committee_file(path: Path) -> bool:
+    """Return whether a source file belongs to the canonical vNext committee."""
+    try:
+        path.relative_to(COMMITTEE_ROOT)
     except ValueError:
         return False
     return True
@@ -404,6 +416,106 @@ def test_phase3_layers_have_explicit_one_way_dependency_cones() -> None:
                         f"Rule D: {_location(module.path, node.lineno)} {layer} imports {target}; "
                         "allowed dependencies are application: domain/pipeline/providers/tools/verification, "
                         "providers: domain, interfaces: application/domain/pipeline"
+                    )
+
+    assert violations == [], "\n".join(violations)
+
+
+def test_committee_layer_has_only_canonical_dependency_cones() -> None:
+    """Committee code may compare candidates, but cannot reach orchestration.
+
+    Relative imports are resolved through the same AST resolver used by the
+    other architecture rules.  The committee package itself is allowed as an
+    internal dependency; its outward dependency cone is exactly domain and
+    providers.
+    """
+
+    violations: list[str] = []
+    allowed_prefixes = (
+        "zhiyan_legal.committee",
+        "zhiyan_legal.domain",
+        "zhiyan_legal.providers",
+    )
+
+    for module in _parse_modules():
+        if module.tree is None or not _is_committee_file(module.path):
+            continue
+        for node in ast.walk(module.tree):
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                continue
+            for target in _resolved_targets(module.path, node):
+                if target.startswith("zhiyan_legal.") and not target.startswith(
+                    allowed_prefixes
+                ):
+                    violations.append(
+                        f"Rule F: {_location(module.path, node.lineno)} committee imports "
+                        f"{target}; allowed dependencies are committee/domain/providers"
+                    )
+
+    assert violations == [], "\n".join(violations)
+
+
+def test_legacy_committee_entrypoint_uses_the_canonical_adapter() -> None:
+    """The historical HTTP entrypoint must delegate to Committee vNext."""
+
+    parsed = next(
+        module
+        for module in _parse_modules()
+        if module.path == LEGACY_COMMITTEE_ADAPTER
+    )
+    assert parsed.tree is not None, "legacy committee adapter must be parseable"
+
+    imported_targets = {
+        target
+        for node in ast.walk(parsed.tree)
+        if isinstance(node, (ast.Import, ast.ImportFrom))
+        for target in _resolved_targets(parsed.path, node)
+    }
+    assert any(
+        target == "zhiyan_legal.committee"
+        or target.startswith("zhiyan_legal.committee.")
+        for target in imported_targets
+    )
+
+    committee_constructor_lines = [
+        node.lineno
+        for node in ast.walk(parsed.tree)
+        if isinstance(node, ast.Name) and node.id == "CommitteeEngine"
+    ]
+    committee_run_lines = [
+        node.lineno
+        for node in ast.walk(parsed.tree)
+        if isinstance(node, ast.Attribute) and node.attr == "run"
+    ]
+    assert committee_constructor_lines
+    assert committee_run_lines
+
+
+def test_phase2_and_phase3_non_application_layers_cannot_execute_committee() -> None:
+    """No lower or transport layer may bypass the application boundary.
+
+    The historical adapter is checked separately above.  Within ``src/``,
+    only the application package may import or invoke the canonical committee;
+    phase 2 and phase 3 layers must remain below that decision boundary.
+    """
+
+    violations: list[str] = []
+    for module in _parse_modules():
+        if module.tree is None:
+            continue
+        layer = _phase2_layer(module.path) or _phase3_layer(module.path)
+        if layer is None or layer == "application":
+            continue
+        for node in ast.walk(module.tree):
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                continue
+            for target in _resolved_targets(module.path, node):
+                if target == "zhiyan_legal.committee" or target.startswith(
+                    "zhiyan_legal.committee."
+                ):
+                    violations.append(
+                        f"Rule G: {_location(module.path, node.lineno)} {layer} imports "
+                        f"{target}; committee execution belongs to application"
                     )
 
     assert violations == [], "\n".join(violations)

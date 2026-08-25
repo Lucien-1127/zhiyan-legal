@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import json
 import os
+import time
 from typing import Optional
 
 from ..application import ZhiyanApplicationEngine
+from ..committee import CommitteeEngine, CommitteeReportVNext, ConsensusStatus
 from ..domain import TaskMode
 from ..providers import ProviderRegistry
 from .api_router import _resolve_task
@@ -26,10 +29,23 @@ class ZhiyanClient:
     def __init__(
         self,
         application_engine: ZhiyanApplicationEngine | None = None,
+        committee_engine: CommitteeEngine | None = None,
     ) -> None:
-        self._application = application_engine or ZhiyanApplicationEngine(
-            provider_registry=ProviderRegistry.from_env()
-        )
+        if application_engine is None:
+            registry = ProviderRegistry.from_env()
+            self._committee = committee_engine or CommitteeEngine(
+                provider_registry=registry
+            )
+            self._application = ZhiyanApplicationEngine(
+                provider_registry=registry,
+            )
+        else:
+            self._application = application_engine
+            self._committee = (
+                committee_engine
+                or getattr(application_engine, "committee_engine", None)
+                or CommitteeEngine(provider_registry=application_engine.registry)
+            )
 
     @property
     def application_engine(self) -> ZhiyanApplicationEngine:
@@ -86,26 +102,75 @@ class ZhiyanClient:
         )
 
     async def acommittee(self, message: str, **kwargs) -> CommitteeResponse:
-        """Run one canonical execution and expose it as a one-vote committee.
+        """Run the canonical CommitteeEngine and return its vNext report."""
+        req = QueryRequest(message=message, **kwargs)
+        return await self.route_committee(req)
 
-        Committee fan-out belongs to a separate orchestration product. The
-        SDK still offers the historical shape, but its underlying answer is
-        now produced by the application engine rather than a raw HTTP call.
-        """
-        response = await self.aquery(message, **kwargs)
+    async def route_committee(self, req: QueryRequest) -> CommitteeResponse:
+        """SDK committee route; fan-out is owned by ``CommitteeEngine``."""
+        task = _resolve_task(req)
+        if req.dry_run:
+            return self._dry_run_committee(req, task)
+
+        t0 = time.monotonic()
+        report = await self._committee.run(
+            task_id=f"sdk-{time.time_ns()}",
+            instructions=(
+                f"使用者目標：{req.message}\n"
+                "請輸出 JSON，至少包含 verdict、confidence、claims；"
+                "未有可驗證來源時不得宣稱 VERIFIED。"
+            ),
+            output_schema="committee",
+        )
+        return self._committee_response(report, task, (time.monotonic() - t0) * 1000)
+
+    @staticmethod
+    def _committee_response(
+        report: CommitteeReportVNext,
+        task: str,
+        latency_ms: float,
+    ) -> CommitteeResponse:
+        status = report.status
+        if status is ConsensusStatus.CONSENSUS:
+            verdict = "consensus"
+        elif status is ConsensusStatus.BLIND_SPOT:
+            verdict = "blind_spot"
+        else:
+            verdict = "dissensus"
+
+        votes: list[CommitteeVote] = []
+        for member in report.member_verdicts:
+            member_payload = member.model_dump(mode="json")
+            votes.append(CommitteeVote(
+                provider=member.provider_name,  # type: ignore[arg-type]
+                model=member.model,
+                content=json.dumps(member_payload, ensure_ascii=False, sort_keys=True),
+                error=member.error,
+            ))
+
+        report_payload = report.model_dump(mode="json")
         return CommitteeResponse(
-            task=response.task,
-            verdict="consensus" if response.decision == "DELIVER" else "blind_spot",
-            votes=[CommitteeVote(
-                provider=response.provider,
-                model=response.model,
-                content=response.content,
-                citations=response.citations,
-                error=("decision: " + response.decision) if response.decision != "DELIVER" else None,
-            )],
-            merged_content=response.content,
-            disagreements=list(response.warnings),
-            latency_ms=response.latency_ms,
+            task=task,  # type: ignore[arg-type]
+            verdict=verdict,
+            votes=votes,
+            merged_content=json.dumps(report_payload, ensure_ascii=False, sort_keys=True),
+            disagreements=[claim.text for claim in report.divergent_claims],
+            latency_ms=latency_ms,
+            status=status.value,
+            recommended_decision=report.recommended_decision.value,
+            recommended_strictness=int(report.recommended_strictness),
+            report=report_payload,
+        )
+
+    @staticmethod
+    def _dry_run_committee(req: QueryRequest, task: str) -> CommitteeResponse:
+        return CommitteeResponse(
+            task=task,  # type: ignore[arg-type]
+            verdict="consensus",
+            merged_content=f"[DRY-RUN] 不呼叫 CommitteeEngine：{req.message}",
+            status="CONSENSUS",
+            recommended_decision="DELIVER",
+            recommended_strictness=0,
         )
 
     @property
