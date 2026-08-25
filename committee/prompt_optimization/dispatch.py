@@ -15,11 +15,10 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 from .prompt_quality import (
     PromptClaim, ClaimCluster, PromptCommitteeReport,
-    PromptDimension, Severity, ConsensusLabel,
+    ConsensusLabel,
 )
 
 logger = logging.getLogger("dispatch")

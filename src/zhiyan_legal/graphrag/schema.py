@@ -7,8 +7,8 @@ GraphRAG 層加入 Knowledge Graph + Qdrant 雙軌檢索。
 Entity types & Relationship types 定義。
 """
 from __future__ import annotations
-from enum import Enum, auto
-from typing import List, Optional
+from enum import Enum
+from typing import Optional
 
 
 class EntityType(str, Enum):

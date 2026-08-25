@@ -16,8 +16,6 @@ import json
 import logging
 import os
 import re
-import sys
-from datetime import datetime
 from typing import Optional
 from urllib.request import urlopen, Request
 
@@ -360,7 +358,7 @@ def export_word(diff_report: dict, output_path: str) -> str:
     - 附立法理由（若有）
     """
     from docx import Document
-    from docx.shared import Pt, RGBColor, Cm, Inches, Emu
+    from docx.shared import Pt, RGBColor, Cm
     from docx.enum.text import WD_ALIGN_PARAGRAPH
     from docx.oxml.ns import qn
 

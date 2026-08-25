@@ -16,10 +16,9 @@ Usage:
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 import httpx
@@ -33,7 +32,7 @@ from tenacity import (
 )
 
 from .prompt_quality import (
-    ReviewerModel, PromptDimension, Severity,
+    ReviewerModel, PromptDimension,
     PromptClaim, PromptReviewReport,
 )
 from .prompt_normalizer import PromptNormalizer

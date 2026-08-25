@@ -7,9 +7,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ..graphrag.schema import (
-    EntityType, GraphEntity, GraphRelation, RelationType,
-)
 
 
 def build_civil_code_graph() -> dict:

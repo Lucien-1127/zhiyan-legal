@@ -10,12 +10,10 @@ Parallels committee/mapper.py but specialized for prompt claims.
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
-from typing import Optional
 
 from .prompt_quality import (
     PromptClaim, PromptReviewReport, PromptCommitteeReport, ClaimCluster,
-    PromptDimension, Severity, ConsensusLabel,
+    PromptDimension, ConsensusLabel,
 )
 from .prompt_normalizer import are_claims_equivalent
 

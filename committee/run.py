@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import sys
 import time
 from pathlib import Path
 
-from .core import CommitteeReport, CommitteeSummary, ModelVerdict
+from .core import CommitteeReport, CommitteeSummary
 from .mapper import generate_report
 from .runner import run_committee, load_queries, DEFAULT_MODELS
 from .quota import print_quota_status, warn_if_low, get_remaining

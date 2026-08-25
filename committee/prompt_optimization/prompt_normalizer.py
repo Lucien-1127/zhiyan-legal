@@ -12,7 +12,6 @@ import json
 import re
 import logging
 from pathlib import Path
-from typing import Optional
 
 from .prompt_quality import PromptClaim, PromptDimension, Severity, ReviewerModel
 
