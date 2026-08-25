@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
 import sys
@@ -22,7 +23,7 @@ import sys
 from .manifest import get_load_order, EXCLUDED_DIRS, DOCS_DIR
 from .router import route, describe_route, KEYWORD_MAP
 from .loader import compose, count_tokens
-from .engine import ZhiyanEngine, EngineConfig, validate_output
+from .application import ZhiyanApplicationEngine
 
 
 def setup_logging(level: str = "WARNING") -> None:
@@ -120,16 +121,18 @@ Examples:
             "documents_loaded": len(file_paths),
             "token_estimate": token_estimate,
         }
-        # Only run LLM if not dry_run
-        if not args.dry_run:
-            engine = ZhiyanEngine()
-            llm_result = engine.run(
-                system_prompt=system_prompt,
-                user_message=query,
-                model=args.model,
-                task=task,
+        if args.dry_run:
+            result_data["response"] = f"[DRY-RUN] 不呼叫 provider：{query}"
+        else:
+            context, meta, content = asyncio.run(
+                ZhiyanApplicationEngine().query_async(query, task=task)
             )
-            result_data["response"] = llm_result
+            result_data.update({
+                "response": content,
+                "decision": meta.decision.value,
+                "answer_meta": meta.model_dump(mode="json"),
+                "execution_id": context.execution_id,
+            })
         print(json.dumps(result_data, ensure_ascii=False, indent=2))
         return
 
@@ -142,15 +145,15 @@ Examples:
     print(f"📄 Loading {len(file_paths)} document(s)...")
     print(f"📊 System prompt: ~{token_estimate:,} tokens")
 
-    # ── 3. Run ──
-    engine = ZhiyanEngine()
-    result = engine.run(
-        system_prompt=system_prompt,
-        user_message=query,
-        model=args.model,
-        dry_run=args.dry_run,
-        task=task,
-    )
+    # ── 3. Run through the canonical application boundary ──
+    if args.dry_run:
+        result = f"[DRY-RUN] 不呼叫 provider：{query}"
+    else:
+        _, meta, result = asyncio.run(
+            ZhiyanApplicationEngine().query_async(query, task=task)
+        )
+        if meta.decision.value != "DELIVER":
+            print(f"\n決策：{meta.decision.value}")
 
     if result:
         print("\n" + "=" * 60)

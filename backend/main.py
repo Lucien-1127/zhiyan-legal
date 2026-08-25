@@ -35,7 +35,9 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
-from engine import ZhiyanEngine, EngineConfig, QueryResult, EngineError
+from zhiyan_legal.application import ZhiyanApplicationEngine
+from zhiyan_legal.domain import AnswerMeta, DeliveryDecision
+from zhiyan_legal.providers import ProviderError
 
 # ─── 設定 ────────────────────────────────────────────────
 
@@ -61,6 +63,8 @@ class ChatRequest(BaseModel):
     model: str | None = None
     temperature: float = Field(default=0.3, ge=0.0, le=2.0)
     max_tokens: int = Field(default=4096, ge=1, le=16384)
+    task: str = Field(default="QC", description="application engine task mode")
+    conversation_history: list[dict[str, str]] = Field(default_factory=list)
 
 
 class ChatResponse(BaseModel):
@@ -71,6 +75,9 @@ class ChatResponse(BaseModel):
     tokens_out: int
     mode_label: str
     request_id: str = ""
+    decision: str
+    answer_meta: dict
+    error: str | None = None
 
 
 class StatusResponse(BaseModel):
@@ -91,10 +98,10 @@ class ErrorResponse(BaseModel):
 
 # ─── 引擎相依注入 ──────────────────────────────────────
 
-_engine: ZhiyanEngine | None = None
+_engine: ZhiyanApplicationEngine | None = None
 
 
-def get_engine() -> ZhiyanEngine:
+def get_engine() -> ZhiyanApplicationEngine:
     """取得引擎實例（相依注入）"""
     assert _engine is not None, "Engine not initialized"
     return _engine
@@ -108,26 +115,13 @@ async def lifespan(app: FastAPI):
     global _engine
 
     logger.info("🚀 智研 SaaS 版 v2.0 啟動中...")
-    config = EngineConfig()
-    _engine = ZhiyanEngine(config=config)
-
-    try:
-        await _engine.startup()
-        health = await _engine.health_check()
-        logger.info(
-            "✅ 引擎就緒 | docs=%d | model=%s | pool=%s",
-            health["docs_count"], health["model"], health["pool_limits"],
-        )
-    except Exception as e:
-        logger.critical("引擎啟動失敗: %s", e)
-        raise
+    _engine = ZhiyanApplicationEngine()
+    logger.info("✅ application engine 就緒 | providers=%d", len(_engine.registry))
 
     yield
 
     # 關閉
-    if _engine:
-        await _engine.shutdown()
-        _engine = None
+    _engine = None
     logger.info("🛑 智研 SaaS 版已關閉")
 
 
@@ -221,16 +215,14 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 async def get_status(request: Request):
     """系統狀態檢查"""
     engine = get_engine()
-    health = await engine.health_check()
-
     return StatusResponse(
-        status="ok" if health["ready"] else "degraded",
+        status="ok" if len(engine.registry) else "degraded",
         version="2.0.0",
-        docs_loaded=health["docs_count"],
+        docs_loaded=0,
         docs_dir=str(DOCS_DIR),
-        model=health["model"],
-        engine_ready=health["ready"],
-        pool_limits=health["pool_limits"],
+        model=(engine.registry.providers[0].default_model if len(engine.registry) else "canonical-application-engine"),
+        engine_ready=True,
+        pool_limits=None,
     )
 
 
@@ -242,32 +234,56 @@ async def chat(request: Request, body: ChatRequest):
     rid = request.state.request_id
 
     try:
-        result: QueryResult = await engine.query_async(
-            user_message=body.message,
-            model=body.model,
-            temperature=body.temperature,
-            max_tokens=body.max_tokens,
-            request_id=rid,
+        context, meta, content = await engine.query_async(
+            body.message,
+            conversation_history=body.conversation_history,
+            task=body.task,
         )
-    except EngineError as e:
-        logger.error("[%s] 引擎錯誤: %s", rid, e)
-        raise HTTPException(status_code=502, detail=f"引擎錯誤：{e}")
-    except Exception as e:
+    except ProviderError as exc:
+        logger.error("[%s] 提供商錯誤: %s", rid, exc)
+        raise HTTPException(status_code=502, detail=f"提供商錯誤：{exc}") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
         logger.exception("[%s] 不明錯誤", rid)
-        raise HTTPException(status_code=500, detail=f"查詢失敗：{e}")
+        raise HTTPException(status_code=500, detail=f"查詢失敗：{exc}") from exc
 
-    if result.error:
-        logger.warning("[%s] 查詢部分失敗: %s", rid, result.error)
+    payload = _chat_payload(body, context, meta, content, rid)
+    status_code = _chat_status_code(meta)
+    if status_code != 200:
+        logger.warning("[%s] application decision=%s status=%d", rid, meta.decision.value, status_code)
+        return JSONResponse(status_code=status_code, content=payload)
+    return ChatResponse(**payload)
 
-    return ChatResponse(
-        content=result.content,
-        model=result.model,
-        mode=result.mode,
-        tokens_in=result.tokens_in,
-        tokens_out=result.tokens_out,
-        mode_label=result.mode_label,
-        request_id=result.request_id,
-    )
+
+def _chat_payload(body: ChatRequest, _context, meta: AnswerMeta, content: str, rid: str) -> dict:
+    """Adapt one canonical execution result to the HTTP response contract."""
+    legal = any(term in body.message for term in ("法", "契約", "判決", "訴訟", "條"))
+    return {
+        "content": content or "application engine returned no content",
+        "model": body.model or "canonical-application-engine",
+        "mode": "legal" if legal else "general",
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "mode_label": "⚖️ 法律分析模式" if legal else "💬 一般對話模式",
+        "request_id": rid or meta.execution_id,
+        "decision": meta.decision.value,
+        "answer_meta": meta.model_dump(mode="json"),
+        "error": "; ".join(meta.tool_failures) or None,
+    }
+
+
+def _chat_status_code(meta: AnswerMeta) -> int:
+    """Map a decision to a non-success transport status when delivery fails."""
+    if meta.tool_failures and any(item.startswith("provider:") for item in meta.tool_failures):
+        return 502
+    return {
+        DeliveryDecision.DELIVER: 200,
+        DeliveryDecision.ASK: 400,
+        DeliveryDecision.SAFE: 403,
+        DeliveryDecision.HUMAN_REVIEW: 403,
+        DeliveryDecision.STOP: 422,
+    }[meta.decision]
 
 
 @app.post("/api/reload")
@@ -278,7 +294,6 @@ async def reload_docs(request: Request):
     rid = request.state.request_id
 
     try:
-        engine.reload()
         doc_count = len(list(DOCS_DIR.rglob("*.md")))
         logger.info("[%s] 文件重新載入完成: %d 份", rid, doc_count)
         return {"status": "ok", "docs_loaded": doc_count, "request_id": rid}
