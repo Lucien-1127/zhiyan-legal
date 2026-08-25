@@ -185,3 +185,13 @@ def generate_report(
         blind_spot_count=n_blind,
         unique_insight_count=n_unique,
     )
+
+
+def generate_vnext_report(
+    model_verdicts: List[ModelVerdict], task_id: Optional[str] = None
+):
+    """Compatibility bridge from legacy mapper results to vNext contracts."""
+    return generate_report(model_verdicts).to_vnext(task_id=task_id)
+
+
+to_vnext_report = generate_vnext_report

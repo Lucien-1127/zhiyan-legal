@@ -206,6 +206,23 @@ class ProviderRegistry:
             tuple(errors),
         )
 
+    async def complete_for(
+        self, provider_name: str, request: ProviderRequest
+    ) -> ProviderResponse:
+        """Call exactly one configured provider without fallback."""
+
+        for config, adapter in self._bindings:
+            if config.name != provider_name:
+                continue
+            response = await adapter.complete(request)
+            return response.model_copy(
+                update={
+                    "provider_name": config.name,
+                    "model": response.model or config.default_model,
+                }
+            )
+        raise KeyError(provider_name)
+
     async def request(self, request: ProviderRequest) -> ProviderResponse:
         return await self.complete(request)
 
