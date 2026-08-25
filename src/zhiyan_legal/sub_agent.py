@@ -110,6 +110,7 @@ def parallel_citation_verify(law_name: str, article: int | str) -> list[dict]:
             "context": f"法規名稱={law_name}, 條號={article}, 來源=法律相關網站",
             "toolsets": ["web"],
         },
+    ]
 
 def parallel_citation_verify(law_name: str, article: int | str) -> list[dict]:
     """Verify citations in parallel: official statute + judgments + practice articles."""
@@ -158,6 +159,7 @@ def courtroom_parallel(case_facts: str, model: str = "") -> list[dict]:
             "context": context,
             "toolsets": ["web"],
         },
+    ]
 
 def courtroom_parallel(case_facts: str, model: str = "") -> list[dict]:
     """Three-role parallel preparation: judge, prosecutor, defense."""
@@ -248,6 +250,7 @@ def parallel_rag_online(query: str, category: str = "") -> list[dict]:
             "context": "來源=law.moj.gov.tw",
             "toolsets": ["web"],
         },
+    ]
 
     template = f"原始查詢：{query}\n請從 {{domain}} 的專門角度分析此問題，回傳相關條文、爭點、實務見解。"
     tasks = [{"goal": f"以{domain}專家角色分析：{query}", "context": template.replace("{domain}", domain), "toolsets": ["web"]} for domain in domains]
@@ -274,7 +277,6 @@ def run_full_analysis(query: str, model: str = "") -> dict:
 
     Returns a dict with phases, assembled by the calling agent.
     """
-    results = {
 
 def run_full_analysis(query: str, model: str = "") -> dict:
     """Full legal analysis pipeline: parallel citation + TYPE-S review."""

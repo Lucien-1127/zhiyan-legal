@@ -184,9 +184,6 @@ def discover_api_key() -> str:
     """
     # Check well-known keys first (most likely to be active)
 
-    Priority: DEEPSEEK > OPENROUTER > OPENAI > GEMINI > ZHIYAN
-    (ZHIYAN_API_KEY is lowest priority to avoid stale keys overriding the active one.)
-    """
     hermes_keys = (
         "DEEPSEEK_API_KEY", "OPENROUTER_API_KEY",
         "OPENAI_API_KEY", "GEMINI_API_KEY", "GOOGLE_API_KEY",

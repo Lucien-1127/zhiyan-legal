@@ -92,10 +92,6 @@ class TestTaskLayers:
 
     def test_all_route_tasks_covered(self):
         """所有 router.py 定義的任務都應有對應 TASK_LAYERS"""
-        expected_tasks = {
-            "QC", "RESEARCH", "REPORT", "CONSULTANT",
-            "TA", "TUTOR", "LEGAL_WRITER", "LITIGATION", "SAFETY",
-
         """所有 router.py 定義的任務都應有對應 TASK_LAYERS
 
         v3.9.1: MODE_ROUTER 擴展為 13 個模式，同步更新 expected_tasks。
@@ -214,19 +210,10 @@ class TestGetLoadOrder:
         (mode_dir / "30_引用政策_CITATION_POLICY_v2.0.0.md").write_text(
             "# Citation Policy"
         )
-        # QC task file
-
-        ]:
-            (core_dir / fname).write_text(f"# {fname}")
-        (mode_dir / "30_引用政策_CITATION_POLICY_v2.0.0.md").write_text("# Citation Policy")
         (mode_dir / "22_模式_QC_查核_v2.0.1.md").write_text("# QC Mode")
 
     def test_get_load_order_returns_paths(self, monkeypatch):
         """get_load_order 應返回檔案路徑 list"""
-        with tempfile.TemporaryDirectory() as tmp:
-            tmp_root = Path(tmp)
-            # Create docs/ inside the temp root (matches ROOT logic)
-
         import tempfile
         with tempfile.TemporaryDirectory() as tmp:
             tmp_root = Path(tmp)

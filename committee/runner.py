@@ -24,15 +24,10 @@ from .core import ModelVerdict, Verdict
 
 logger = logging.getLogger("committee.runner")
 
-# ── 預設 Agnes Keys ──
-_k1a = 'sk-dlL'; _k1b = 'kC3tAh9zmu2wDjbOIG7dd'; _k1c = 'p3H6leZN7Mv7K29QLQUo4Y4V'
-AGNES_KEY1 = _k1a + _k1b + _k1c
-_k2a = 'sk-'; _k2b = 'Ggsl3OR0CLyCdOES3Y2Biz3eldpxWTA8EY'; _k2c = 'eRfKJWiVpHNo80'
-AGNES_KEY2 = _k2a + _k2b + _k2c
 # ── Agnes Keys — 從環境變數讀取，不允許硬寫在原始碼中 ──
 # 設定方式：export AGNES_API_KEY_1=sk-...  export AGNES_API_KEY_2=sk-...
 AGNES_KEY1 = os.environ.get("AGNES_API_KEY_1", "")
-AGNES_KEY2 = os.environ.get("AGNES_API_KEY_2", AGNES_KEY1)
+AGNES_KEY2 = os.environ.get("AGNES_API_KEY_2", "")
 
 # ── 專案路徑：優先使用環境變數，退後才用 ~/zhiyan-legal ──
 PROJECT_DIR = os.environ.get(
@@ -76,31 +71,6 @@ class ModelConfig:
     api_key: str = ""                   # OpenAI-compatible key
     api_key_2: str = ""                 # 備用 key (429 fallback)
     base_url: str = "https://apihub.agnes-ai.com/v1"
-    extra_env: Dict[str, str] = field(default_factory=dict)
-
-
-# ── 預設模型清單 ──
-DEFAULT_MODELS = [
-    ModelConfig(
-        name="agnes-k1", model_id="agnes-2.0-flash",
-        api_key=AGNES_KEY1, api_key_2=AGNES_KEY2,
-    ),
-    ModelConfig(
-        name="agnes-k2", model_id="agnes-2.0-flash",
-        api_key=AGNES_KEY2, api_key_2=AGNES_KEY1,
-    ),
-    ModelConfig(
-        name="gemini", model_id="gemini-2.5-flash",
-        provider="gemini",
-        extra_env={"ZHIYAN_API_KEY": "nokey", "ZHIYAN_API_KEY_2": "",
-                    "ZHIYAN_API_BASE_URL": ""},
-
-    name: str
-    model_id: str
-    provider: str = "openai"
-    api_key: str = ""
-    api_key_2: str = ""
-    base_url: str = _AGNES_BASE_URL
     extra_env: Dict[str, str] = field(default_factory=dict)
 
 
@@ -184,7 +154,6 @@ def run_model_batch(
          "--model", config.model_id,
          "--output", str(results_path)],
 
-         "--model", config.model_id],
         cwd=PROJECT_DIR, env=env, capture_output=True, text=True,
         timeout=timeout,
     )
