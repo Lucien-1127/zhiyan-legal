@@ -10,7 +10,13 @@ zhiyan_legal.sdk — Zhiyan Legal AI 公開 SDK v1.0.0
 """
 
 from .client import ZhiyanClient
-from .models import QueryRequest, QueryResponse, CommitteeResponse, ProviderInfo
+from .models import (
+    QueryRequest,
+    QueryResponse,
+    CommitteeResponse,
+    ProviderInfo,
+    query_response_from_domain,
+)
 from .exceptions import ZhiyanAPIError, ZhiyanAuthError, ZhiyanTimeoutError
 
 __version__ = "1.0.0"
@@ -19,6 +25,7 @@ __all__ = [
     "ZhiyanClient",
     "QueryRequest",
     "QueryResponse",
+    "query_response_from_domain",
     "CommitteeResponse",
     "ProviderInfo",
     "ZhiyanAPIError",

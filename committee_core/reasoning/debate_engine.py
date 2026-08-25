@@ -1,8 +1,13 @@
-class DebateEngine:
-    """獨立的辯論引擎，不依賴任何領域知識"""
-    def __init__(self, models):
-        self.models = models
+"""Deprecated compatibility import for the debate engine."""
+import warnings
 
-    def orchestrate_debate(self, claim):
-        # 實作跨模型辯論邏輯
-        pass
+warnings.warn(
+    "committee_core.reasoning.debate_engine 已棄用，請改用 "
+    "committee.reasoning.debate_engine",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
+from committee.reasoning.debate_engine import DebateEngine  # noqa: E402, F401
+
+__all__ = ["DebateEngine"]

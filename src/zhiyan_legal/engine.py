@@ -173,6 +173,30 @@ class EngineConfig:
     max_conversation_turns: int = 10
 
 
+def run_llm(prompt: str = "", **kwargs: Any) -> str:
+    """Run one synchronous query using the canonical engine.
+
+    This is the canonical home of the historical ``runner.run_llm``
+    convenience API.  The old module only re-exports this function so that
+    compatibility callers cannot acquire a different execution policy.
+    """
+    engine = ZhiyanEngine()
+    query = getattr(engine, "query_sync", engine.query)
+    query_kwargs = {
+        key: kwargs[key]
+        for key in (
+            "model",
+            "temperature",
+            "max_tokens",
+            "conversation_history",
+            "task",
+        )
+        if key in kwargs
+    }
+    result = query(kwargs.get("user_message", prompt), **query_kwargs)
+    return result.get("content", "") if isinstance(result, dict) else result
+
+
 # ── API key discovery ────────────────────────────────
 
 

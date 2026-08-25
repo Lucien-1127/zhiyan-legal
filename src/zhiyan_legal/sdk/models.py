@@ -4,7 +4,10 @@ zhiyan_legal.sdk.models — SDK 資料模型
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Optional, Literal
+from typing import TYPE_CHECKING, Optional, Literal
+
+if TYPE_CHECKING:
+    from ..domain import AnswerMeta, ExecutionContext
 
 
 TaskLabel = Literal[
@@ -48,6 +51,77 @@ class QueryResponse:
     citations: list[str] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
     is_dry_run: bool = False
+
+    @classmethod
+    def from_domain(
+        cls,
+        context: "ExecutionContext",
+        answer_meta: "AnswerMeta",
+        *,
+        content: str = "",
+        model: str = "canonical-domain",
+        provider: ProviderName = "zhiyan",
+        tokens_used: int = 0,
+        latency_ms: float = 0.0,
+        citations: list[str] | None = None,
+        warnings: list[str] | None = None,
+        is_dry_run: bool = False,
+    ) -> "QueryResponse":
+        """Adapt canonical execution and answer metadata to the SDK response.
+
+        Content and transport metrics belong to the SDK boundary, so callers
+        may provide them while decision, task, citations, and warnings are
+        derived from the canonical domain objects.
+        """
+        task_value = getattr(answer_meta.task_mode, "value", answer_meta.task_mode)
+        task_map = {
+            "CONTRACT_REVIEW": "QC",
+            "LEGAL_DRAFT": "LEGAL_WRITER",
+            "COURTROOM": "SIMULATION",
+        }
+        task = task_map.get(str(task_value), str(task_value))
+
+        response_citations = (
+            list(citations)
+            if citations is not None
+            else [citation.locator for citation in context.citations]
+        )
+        response_warnings = list(warnings or [])
+        response_warnings.extend(answer_meta.conflicts)
+        response_warnings.extend(answer_meta.tool_failures)
+        if answer_meta.human_review_required:
+            response_warnings.append("human review required")
+
+        return cls(
+            content=content,
+            task=task,  # type: ignore[arg-type]
+            model=model,
+            provider=provider,
+            tokens_used=tokens_used,
+            latency_ms=latency_ms,
+            citations=response_citations,
+            warnings=response_warnings,
+            is_dry_run=is_dry_run,
+        )
+
+    @classmethod
+    def from_execution_context(
+        cls,
+        context: "ExecutionContext",
+        answer_meta: "AnswerMeta",
+        **kwargs,
+    ) -> "QueryResponse":
+        """Named compatibility alias for the domain-to-SDK adapter."""
+        return cls.from_domain(context, answer_meta, **kwargs)
+
+
+def query_response_from_domain(
+    context: "ExecutionContext",
+    answer_meta: "AnswerMeta",
+    **kwargs,
+) -> QueryResponse:
+    """Functional form of :meth:`QueryResponse.from_domain`."""
+    return QueryResponse.from_domain(context, answer_meta, **kwargs)
 
 
 @dataclass

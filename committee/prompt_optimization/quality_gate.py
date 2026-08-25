@@ -18,7 +18,7 @@ logger = logging.getLogger("quality_gate")
 
 
 @dataclass
-class GateResult:
+class PromptGateResult:
     """Single gate result."""
     name: str
     passed: bool
@@ -32,6 +32,12 @@ class GateResult:
 
     def __str__(self) -> str:
         return f"{self.emoji()} {self.name}: {self.detail}"
+
+
+# ``GateResult`` is retained as a compatibility alias for callers of the
+# original prompt-quality API.  The concrete class has a prompt-specific
+# name so it cannot be mistaken for the canonical domain GateResult.
+GateResult = PromptGateResult
 
 
 # ── Gate functions ──────────────────────────────────────

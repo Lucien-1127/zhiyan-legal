@@ -1,10 +1,4 @@
-"""
-Zhiyan AI Legal System — API-agnostic runner.
-
-⚠️  DEPRECATED — 請改用 src/zhiyan_legal/engine.py 的 ZhiyanEngine
-
-此檔案保留供向後相容，將在下一版本移除。
-"""
+"""Deprecated compatibility import for the historical runner entry point."""
 from __future__ import annotations
 
 import warnings
@@ -15,17 +9,6 @@ warnings.warn(
     stacklevel=2,
 )
 
+from .engine import run_llm  # noqa: E402, F401
 
-def run_llm(prompt: str = "", **kwargs):
-    """Backward-compatible synchronous wrapper around ``ZhiyanEngine``."""
-    from .engine import ZhiyanEngine
-
-    engine = ZhiyanEngine()
-    query = getattr(engine, "query_sync", engine.query)
-    query_kwargs = {
-        key: kwargs[key]
-        for key in ("model", "temperature", "max_tokens", "conversation_history", "task")
-        if key in kwargs
-    }
-    result = query(kwargs.get("user_message", prompt), **query_kwargs)
-    return result.get("content", "") if isinstance(result, dict) else result
+__all__ = ["run_llm"]
