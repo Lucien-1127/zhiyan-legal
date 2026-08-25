@@ -46,6 +46,20 @@
 
 ---
 
-## 四、最終操作
+## 四、PR 系列全景（全數 6 個 PR 已合併）
 
-請於 Pixel 終端合併 [PR #11](https://github.com/Lucien-1127/zhiyan-legal/pull/11) 至 `main` 分支，完成整個智研收斂工程的正式主線合流！
+- **PR #6**：Phase 0.5 止血（語法修復、runner shim、移除硬編碼金鑰、test.yml 修復）
+- **PR #7**：Phase 1 Canonical Domain + Execution Contract 收斂
+- **PR #8**：Phase 2 ToolResult / Evidence / Verification / Gate Pipeline
+- **PR #9**：Phase 3 Application Engine / Interfaces / Providers（消除 Fake-Success）
+- **PR #10**：Phase 4 Multi-model Committee vNext（多數票不覆蓋事實閘門）
+- **PR #11**：Phase 5 Repository Cleanup and Legacy Removal
+
+---
+
+## 五、Post-Convergence 治理與結案狀態
+
+1. **基準鎖定**：`main@ebf2b6dbf6220c747d63a3b7ed678d5e66ad26e7` 定為 ZHIYAN-CONVERGENCE 正式收斂基準點。
+2. **Branch Protection 建議**：建議於 GitHub 啟用 `main` 分支保護（Require PR、Require CI Checks、禁止 force push 與直接刪除）。
+3. **金鑰安全事件處置**：原始碼中硬編碼金鑰已徹底移除；外部平台之歷史 Agnes 金鑰輪換請確認完成後標記 CLOSED。
+4. **生命週期切換**：收斂工程正式結案，後續開發進入 Benchmark/Evaluation、Legal Retrieval 品質與 Production Hardening 階段。
