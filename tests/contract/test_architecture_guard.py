@@ -20,6 +20,8 @@ PIPELINE_ROOT = ZHIYAN_ROOT / "pipeline"
 TOOLS_ROOT = ZHIYAN_ROOT / "tools"
 VERIFICATION_ROOT = ZHIYAN_ROOT / "verification"
 APPLICATION_ROOT = ZHIYAN_ROOT / "application"
+PROVIDERS_ROOT = ZHIYAN_ROOT / "providers"
+INTERFACES_ROOT = ZHIYAN_ROOT / "interfaces"
 
 CANONICAL_TYPES = frozenset(
     {
@@ -71,6 +73,21 @@ PHASE2_LAYER_ROOTS = {
     "tools": TOOLS_ROOT,
     "verification": VERIFICATION_ROOT,
 }
+PHASE3_LAYER_ROOTS = {
+    "application": APPLICATION_ROOT,
+    "providers": PROVIDERS_ROOT,
+    "interfaces": INTERFACES_ROOT,
+}
+# ``interfaces/http_regulation.py`` is a pre-existing transport compatibility
+# surface.  Its tracker/diff imports are not model execution dependencies and
+# remain explicitly named until that legacy monitoring API is migrated behind
+# an application service.  New interfaces have no such exception.
+LEGACY_INTERFACE_SUPPORT = frozenset(
+    {
+        "zhiyan_legal.regulation_diff",
+        "zhiyan_legal.regulation_tracker",
+    }
+)
 FORBIDDEN_APPLICATION_ROOTS = frozenset(
     {
         "backend",
@@ -136,6 +153,38 @@ def _phase2_layer(path: Path) -> str | None:
             continue
         return layer
     return None
+
+
+def _phase3_layer(path: Path) -> str | None:
+    for layer, root in PHASE3_LAYER_ROOTS.items():
+        try:
+            path.relative_to(root)
+        except ValueError:
+            continue
+        return layer
+    return None
+
+
+def _allowed_phase3_target(layer: str, target: str, path: Path) -> bool:
+    """Return whether one Phase 3 import stays within its dependency cone."""
+    if not target.startswith("zhiyan_legal."):
+        return True
+
+    allowed = {
+        "application": ("domain", "pipeline", "providers", "tools", "verification", "application"),
+        "providers": ("domain", "providers"),
+        "interfaces": ("application", "domain", "pipeline", "interfaces"),
+    }[layer]
+    if any(
+        target == f"zhiyan_legal.{prefix}"
+        or target.startswith(f"zhiyan_legal.{prefix}.")
+        for prefix in allowed
+    ):
+        return True
+    return path.is_relative_to(INTERFACES_ROOT) and any(
+        target == boundary or target.startswith(f"{boundary}.")
+        for boundary in LEGACY_INTERFACE_SUPPORT
+    )
 
 
 def _import_names(node: ast.AST) -> list[str]:
@@ -334,6 +383,28 @@ def test_phase2_layers_only_use_domain_and_their_own_layer() -> None:
                     f"Rule D: {_location(module.path, node.lineno)} {layer} imports {target}; "
                     "Phase 2 layers may depend only on domain, themselves, and named provider boundaries"
                 )
+
+    assert violations == [], "\n".join(violations)
+
+
+def test_phase3_layers_have_explicit_one_way_dependency_cones() -> None:
+    """Application, provider, and interface imports cannot cross layers."""
+
+    violations: list[str] = []
+    for module in _parse_modules():
+        layer = _phase3_layer(module.path)
+        if module.tree is None or layer is None:
+            continue
+        for node in ast.walk(module.tree):
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                continue
+            for target in _resolved_targets(module.path, node):
+                if not _allowed_phase3_target(layer, target, module.path):
+                    violations.append(
+                        f"Rule D: {_location(module.path, node.lineno)} {layer} imports {target}; "
+                        "allowed dependencies are application: domain/pipeline/providers/tools/verification, "
+                        "providers: domain, interfaces: application/domain/pipeline"
+                    )
 
     assert violations == [], "\n".join(violations)
 
