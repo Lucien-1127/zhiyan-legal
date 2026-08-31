@@ -32,16 +32,16 @@ result = client.query("分析這份合約風險", task="QC")
 # 合議庭模式（全部提供商平行驗證）
 committee = client.committee("正當防衛的構成要件？")
 print(committee.verdict)         # "consensus" / "dissensus" / "blind_spot"
-print(committee.merged_content)  # 主應商回應
+print(committee.merged_content)  # 聚合後回應
 for vote in committee.votes:
     print(f"  {vote.provider}: {vote.content[:80]}...")
 
 # DRY-RUN 測試（不發送真實 API）
 result = client.query("測試", dry_run=True)
 
-# async 环境（FastAPI）
+# async 環境（FastAPI）
 import asyncio
-result = asyncio.run(client.aquery("張三點死從與正當防衛有何差異？"))
+result = asyncio.run(client.aquery("防衛過當與正當防衛有何差異？"))
 ```
 
 ## 提供商路由模式

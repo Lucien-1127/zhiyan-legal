@@ -16,6 +16,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### 🟡 Improvements
 
+- **開源開發者體驗**：重寫 README 與 Quickstart、新增 CONTRIBUTING、動態 CI badge、研究／法律使用邊界與 benchmark 限制說明。
+- **套件安裝修復**：修正 `pyproject.toml` table 結構、補齊 runtime dependencies、console script、extras 與 project URLs。
+- **CI／文件驗證**：本機與 CI 統一使用 editable install；CLI、SDK、distribution build 與 MkDocs strict build 納入可重現驗證。
+
 - **版本號三方對齊**：pyproject.toml → v3.7.2，CITATION.cff → v3.07.2，與 git tag 一致
 - **依賴管理補強**：新增 committee/test 兩個 optional group（google-genai, PyYAML, requests, pytest, pytest-cov）
 - **Badge 一致化**：Tests 122→123

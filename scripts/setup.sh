@@ -24,9 +24,16 @@ if [ ! -d ".venv" ]; then
 fi
 source .venv/bin/activate
 
-# ── 2. Dependencies ──
-echo "📦 安裝相依套件..."
-pip install -q -r requirements.txt
+# uv-created virtual environments may omit pip by default.
+if ! python -m pip --version >/dev/null 2>&1; then
+    echo "🔧 在虛擬環境中啟用 pip..."
+    python -m ensurepip --upgrade
+fi
+
+# ── 2. Install package and development test tools ──
+echo "📦 安裝智研與測試相依套件..."
+python -m pip install -q --upgrade pip
+python -m pip install -q -e ".[test]"
 
 # ── 3. Environment ──
 if [ ! -f ".env" ]; then
@@ -56,7 +63,7 @@ fi
 # ── 4. Dry-run test ──
 echo ""
 echo "🧪 執行乾跑測試 (dry-run) — 0 成本..."
-PYTHONPATH=src python -m zhiyan_legal "什麼是公然侮辱罪?" --dry-run 2>&1
+zhiyan-legal "什麼是公然侮辱罪?" --dry-run 2>&1
 
 echo ""
 echo "═══════════════════════════════════════════════════"
@@ -64,9 +71,9 @@ echo "✅ 安裝完成！"
 echo ""
 echo "  使用方法:"
 echo "    source .venv/bin/activate"
-echo "    PYTHONPATH=src python -m zhiyan_legal \"你的法律問題\""
-echo "    PYTHONPATH=src python -m zhiyan_legal \"你的問題\" --dry-run"
-echo "    PYTHONPATH=src pytest tests/ -v"
+echo "    zhiyan-legal \"你的法律問題\""
+echo "    zhiyan-legal \"你的問題\" --dry-run"
+echo "    python -m pytest tests/ -v"
 echo ""
 echo "  或透過 Hermes Agent:"
 echo "    /zhiyan 你的法律問題"
