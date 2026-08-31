@@ -47,7 +47,7 @@ G0 → INTAKE → SRP → CORE_GATE → L0.7 RAG → L0.8 CASE_VERIFY → MODE �
 | [願景](vision.md) | 從 AI 工具到 AI 法律作業系統 |
 | [路線圖](roadmap.md) | Phase 1~4 開發規劃（v3.08 當前進度） |
 | [架構](architecture.md) | 七層系統架構完整規格 |
-| [Benchmark](benchmark/essay-questions.md) | AI 法律推理能力測驗集（6 題跨法域） |
+| [Benchmark](https://github.com/Lucien-1127/zhiyan-legal/blob/main/benchmark/essay-questions.md) | AI 法律推理能力測驗集（6 題跨法域） |
 
 ## ⚡ 快速開始
 
