@@ -33,8 +33,8 @@ D = Path.home() / "zhiyan-legal" / "tests" / "ablation_results"
 D.mkdir(parents=True, exist_ok=True)
 LOG = D / "run_v8_committee.log"
 
-K1 = os.getenv("AGNES_API_KEY_1", "")
-K2 = os.getenv("AGNES_API_KEY_2", "")
+K1 = os.getenv("AGNES_API_KEY_1") or os.getenv("AGNES_KEY1", "")
+K2 = os.getenv("AGNES_API_KEY_2") or os.getenv("AGNES_KEY2", "")
 
 PRJ = str(Path.home() / "zhiyan-legal")
 SCR = str(Path.home() / "zhiyan-legal" / "tests" / "run_ablation.py")
@@ -153,11 +153,12 @@ def load_query_categories():
 
 
 def main():
-    missing = [
-        name
-        for name in ("AGNES_API_KEY_1", "AGNES_API_KEY_2", "GEMINI_API_KEY")
-        if not os.getenv(name)
-    ]
+    required_credentials = {
+        "AGNES_API_KEY_1 (or AGNES_KEY1)": K1,
+        "AGNES_API_KEY_2 (or AGNES_KEY2)": K2,
+        "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY", ""),
+    }
+    missing = [name for name, value in required_credentials.items() if not value]
     if missing:
         raise SystemExit(
             "Missing required environment variables: " + ", ".join(missing)
