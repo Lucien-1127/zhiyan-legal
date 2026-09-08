@@ -19,7 +19,7 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture(scope="function")
-def engine():
+def engine(monkeypatch):
     """建立引擎實例，每次測試獨立使用"""
     api_base = os.getenv("ZHIYAN_C54_API_BASE_URL")
     api_key = os.getenv("ZHIYAN_C54_API_KEY")
@@ -28,6 +28,19 @@ def engine():
             "C5.4 integration tests require ZHIYAN_C54_API_BASE_URL and "
             "ZHIYAN_C54_API_KEY"
         )
+
+    # This integration test targets one explicit OpenAI-compatible endpoint.
+    # Do not allow unrelated credentials from the developer's shell or .env to
+    # take precedence inside ``ZhiyanEngine._provider_registry()``.
+    for name in (
+        "OPENAI_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "OPENROUTER_API_KEY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("ZHIYAN_PROVIDER", "openai")
 
     config = EngineConfig(
         api_base=api_base,
