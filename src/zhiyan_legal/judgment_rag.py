@@ -195,6 +195,9 @@ def parse_jdoc(payload: dict[str, Any], *, jid_hint: str = "") -> JudgmentRecord
     """將官方 JDoc JSON 正規化成穩定主檔。"""
     if _is_removed(payload):
         return None
+    if _text(payload.get("error")):
+        # Do not persist an API failure as an empty judgment or echo its payload.
+        raise JudgmentRagError("JDoc 回傳 API 錯誤（非撤下）；未更新判決資料")
     full = payload.get("JFULLX") or {}
     if not isinstance(full, dict):
         full = {}
@@ -371,8 +374,20 @@ class JudgmentManifest:
         return str(row[0]) if row else ""
 
     def upsert_record(self, record: JudgmentRecord, chunks: Sequence[JudgmentChunk]) -> bool:
-        old_hash = self.get_hash(record.jid)
-        changed = old_hash != record.content_hash
+        previous = self.conn.execute(
+            """
+            SELECT content_hash, status,
+                   EXISTS(SELECT 1 FROM chunks WHERE chunks.jid = judgments.jid) AS has_chunks
+            FROM judgments WHERE jid = ?
+            """,
+            (record.jid,),
+        ).fetchone()
+        changed = (
+            previous is None
+            or str(previous["content_hash"]) != record.content_hash
+            or str(previous["status"]) != "active"
+            or (bool(chunks) and not bool(previous["has_chunks"]))
+        )
         now = _now_iso()
         self.conn.execute(
             """
@@ -408,6 +423,16 @@ class JudgmentManifest:
         self.conn.commit()
         return changed
 
+    def pending_chunks(self, jid: str) -> list[JudgmentChunk]:
+        rows = self.conn.execute(
+            """
+            SELECT chunk_id, jid, sequence, section, text, char_count, content_hash
+            FROM chunks WHERE jid = ? AND indexed = 0 ORDER BY sequence
+            """,
+            (jid,),
+        ).fetchall()
+        return [JudgmentChunk(**dict(row)) for row in rows]
+
     def mark_removed(self, jid: str, error: str = "officially removed") -> None:
         now = _now_iso()
         self.conn.execute(
@@ -429,6 +454,10 @@ class JudgmentManifest:
         if not ids:
             return
         self.conn.executemany("UPDATE chunks SET indexed=1 WHERE chunk_id=?", [(item,) for item in ids])
+        self.conn.commit()
+
+    def reset_indexed(self, jid: str) -> None:
+        self.conn.execute("UPDATE chunks SET indexed=0 WHERE jid=?", (jid,))
         self.conn.commit()
 
     def stats(self) -> dict[str, int]:
@@ -605,12 +634,19 @@ class JudgmentRagIndex:
             return {"jid": record.jid, "status": "pending_text", "changed": False, "chunks": 0}
         chunks = chunk_judgment(record, max_chars=self.max_chars, overlap=self.overlap)
         changed = self.manifest.upsert_record(record, chunks)
-        if changed:
-            # Re-index only the new content.  A changed JID gets a new chunk IDs.
+        pending = self.manifest.pending_chunks(record.jid)
+        if pending:
+            # Remove every older or partially-written version before rebuilding.
+            # A failed rebuild stays retryable because all manifest chunks are reset.
+            self.store.delete_judgment(record.jid)
+            self.manifest.reset_indexed(record.jid)
+            pending = self.manifest.pending_chunks(record.jid)
             records = {record.jid: record}
-            for start in range(0, len(chunks), self.batch_size):
-                batch = chunks[start:start + self.batch_size]
+            for start in range(0, len(pending), self.batch_size):
+                batch = pending[start:start + self.batch_size]
                 vectors = self.embedder.encode([f"{record.title}｜{c.section}｜{c.text}" for c in batch])
+                if len(vectors) != len(batch):
+                    raise JudgmentRagError("嵌入模型回傳的向量數與待索引切片數不一致")
                 self.store.upsert(batch, records, vectors)
                 self.manifest.set_indexed([c.chunk_id for c in batch])
         return {"jid": record.jid, "status": "indexed", "changed": changed, "chunks": len(chunks)}
