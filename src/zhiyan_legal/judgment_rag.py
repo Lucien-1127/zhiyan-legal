@@ -594,6 +594,10 @@ class JudgmentVectorStore:
     def count(self) -> int:
         return int(self.client.count(collection_name=self.collection, exact=True).count)
 
+    def close(self) -> None:
+        """Release Qdrant connections and the embedded storage directory lock."""
+        self.client.close()
+
 
 class JudgmentRagIndex:
     """同步、建立索引、查詢與狀態的主要 facade。"""
@@ -625,7 +629,10 @@ class JudgmentRagIndex:
         self.batch_size = batch_size
 
     def close(self) -> None:
-        self.manifest.close()
+        try:
+            self.store.close()
+        finally:
+            self.manifest.close()
 
     def index_record(self, record: JudgmentRecord) -> dict[str, Any]:
         if not record.content:

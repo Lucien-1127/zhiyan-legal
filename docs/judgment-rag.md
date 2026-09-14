@@ -121,6 +121,25 @@ POST /api/judgments/search
 
 司法院官方規格指出，同一 `JID` 代表同一筆裁判書；後續同一 `JID` 的內容應覆蓋先前版本。若官方回覆判決已移除或不再公開，本專案會刪除該 JID 的向量點。建議在 API 開放時段執行 `sync-changes`，並保留每次執行的輸出與 manifest 備份。
 
+## 本地 Qdrant 回歸驗證
+
+可先用合成判決與固定測試向量驗證儲存行為，不需下載嵌入模型或提供司法院帳密：
+
+```bash
+python -m pip install -e '.[test]' 'qdrant-client>=1.10.0'
+PYTHONPATH=src python -m pytest tests/test_judgment_resources.py tests/test_judgment_qdrant_integration.py -q
+```
+
+測試在暫存目錄實際建立 Qdrant 本地儲存與 SQLite，涵蓋版本更新、保留其他 JID、
+刪除失敗、批次已寫入但回覆失敗後重跑，以及關閉後重新開啟與查詢。
+錯誤由測試注入，沒有連線至 Qdrant Server 或司法院；這不代表真實嵌入品質、
+網路故障或正式主機驗收通過。未安裝 `qdrant-client` 時，Qdrant 測試模組會明確跳過。
+
+自行建立 `JudgmentRagIndex` 時須在 `finally` 呼叫 `index.close()`，以釋放 Qdrant
+及 SQLite。直接使用 `JudgmentVectorStore` 時也須呼叫 `store.close()`。
+關閉 Qdrant 發生錯誤時，索引仍會嘗試關閉 SQLite，並讓錯誤傳回呼叫端。
+這項修補針對已成功建立的索引；初始化失敗與多執行緒生命週期仍待獨立驗收。
+
 ## 安全邊界
 
 這個向量庫是法律研究與引用檢索工具，不代表檢索到的判決必然適用於個案。回答層仍應保留裁判日期、法院、案號、原文切片與官方來源，並做現行有效性、案件事實與引用內容的人工覆核。
