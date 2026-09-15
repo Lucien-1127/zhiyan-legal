@@ -29,7 +29,13 @@ jobs:
           startsWith(github.event.comment.body, '@orcacode-review ') ||
           startsWith(github.event.comment.body, '@orcacode review ')) &&
         contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
+    env:
+      ORCAROUTER_API_KEY: ${{ secrets.ORCAROUTER_API_KEY }}
     steps:
+      - name: Skip review when OrcaRouter API key is unavailable
+        if: ${{ env.ORCAROUTER_API_KEY == '' }}
+        run: echo "ORCAROUTER_API_KEY is not configured; skipping OrcaCode Review."
       - uses: Continuum-AI-Corp/orca-code-review@v1
+        if: ${{ env.ORCAROUTER_API_KEY != '' }}
         with:
-          orcarouter-api-key: ${{ secrets.ORCAROUTER_API_KEY }}
+          orcarouter-api-key: ${{ env.ORCAROUTER_API_KEY }}
