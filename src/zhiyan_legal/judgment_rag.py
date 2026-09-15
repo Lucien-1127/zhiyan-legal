@@ -433,14 +433,43 @@ class JudgmentManifest:
         ).fetchall()
         return [JudgmentChunk(**dict(row)) for row in rows]
 
-    def mark_removed(self, jid: str, error: str = "officially removed") -> None:
+    def _write_removal_tombstone(self, jid: str, status: str, error: str) -> None:
         now = _now_iso()
         self.conn.execute(
-            """UPDATE judgments SET status='removed', removed_at=?, updated_at=?, error=? WHERE jid=?""",
-            (now, now, error, jid),
+            """
+            INSERT INTO judgments
+              (jid, status, last_retrieved_at, updated_at, removed_at, error)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(jid) DO UPDATE SET
+              year='', case_word='', case_number='', judgment_date='', title='',
+              full_type='', content='', content_hash='', pdf_url='', source_url='',
+              status=excluded.status, last_retrieved_at=excluded.last_retrieved_at,
+              updated_at=excluded.updated_at,
+              removed_at=CASE
+                WHEN judgments.removed_at='' THEN excluded.removed_at
+                ELSE judgments.removed_at
+              END,
+              error=excluded.error
+            """,
+            (jid, status, now, now, now, error),
         )
         self.conn.execute("DELETE FROM chunks WHERE jid = ?", (jid,))
         self.conn.commit()
+
+    def mark_removal_pending(
+        self,
+        jid: str,
+        error: str,
+        *,
+        cleanup_error: str = "",
+    ) -> None:
+        detail = error
+        if cleanup_error:
+            detail = f"{error}; vector cleanup pending ({cleanup_error})"
+        self._write_removal_tombstone(jid, "removal_pending", detail)
+
+    def mark_removed(self, jid: str, error: str = "officially removed") -> None:
+        self._write_removal_tombstone(jid, "removed", error)
 
     def mark_pending_text(self, jid: str, error: str) -> None:
         self.conn.execute(
@@ -658,6 +687,20 @@ class JudgmentRagIndex:
                 self.manifest.set_indexed([c.chunk_id for c in batch])
         return {"jid": record.jid, "status": "indexed", "changed": changed, "chunks": len(chunks)}
 
+    def remove_judgment(self, jid: str, error: str = "officially removed") -> None:
+        """Scrub local plaintext immediately, then make vector deletion retryable."""
+        self.manifest.mark_removal_pending(jid, error)
+        try:
+            self.store.delete_judgment(jid)
+        except Exception as exc:
+            self.manifest.mark_removal_pending(
+                jid,
+                error,
+                cleanup_error=type(exc).__name__,
+            )
+            raise
+        self.manifest.mark_removed(jid, error)
+
     async def sync_jids(self, client: OfficialJudicialClient, jids: Sequence[str]) -> dict[str, int]:
         stats = {"fetched": 0, "changed": 0, "removed": 0, "failed": 0}
         for jid in dict.fromkeys(_text(item) for item in jids if _text(item)):
@@ -666,8 +709,10 @@ class JudgmentRagIndex:
                 stats["fetched"] += 1
                 record = parse_jdoc(payload, jid_hint=jid)
                 if record is None:
-                    self.manifest.mark_removed(jid, str(payload.get("error", "officially removed")))
-                    self.store.delete_judgment(jid)
+                    self.remove_judgment(
+                        jid,
+                        str(payload.get("error", "officially removed")),
+                    )
                     stats["removed"] += 1
                     continue
                 result = self.index_record(record)
@@ -675,8 +720,10 @@ class JudgmentRagIndex:
             except Exception as exc:
                 logger.exception("judgment sync failed: %s", jid)
                 stats["failed"] += 1
-                existing = self.manifest.conn.execute("SELECT jid FROM judgments WHERE jid=?", (jid,)).fetchone()
-                if existing:
+                existing = self.manifest.conn.execute(
+                    "SELECT status FROM judgments WHERE jid=?", (jid,),
+                ).fetchone()
+                if existing and str(existing["status"]) not in {"removed", "removal_pending"}:
                     self.manifest.conn.execute(
                         "UPDATE judgments SET error=?, updated_at=? WHERE jid=?",
                         (f"{type(exc).__name__}: {exc}", _now_iso(), jid),
@@ -709,8 +756,10 @@ class JudgmentRagIndex:
                     record = parse_jdoc(payload, jid_hint=jid_hint)
                     if record is None:
                         if jid_hint:
-                            self.manifest.mark_removed(jid_hint, str(payload.get("error", "officially removed")))
-                            self.store.delete_judgment(jid_hint)
+                            self.remove_judgment(
+                                jid_hint,
+                                str(payload.get("error", "officially removed")),
+                            )
                             stats["removed"] += 1
                         continue
                     stats["fetched"] += 1

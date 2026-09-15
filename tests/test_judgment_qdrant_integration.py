@@ -4,7 +4,8 @@ Run explicitly with qdrant-client installed; no model download or API credential
 Injected failures exercise client-call boundaries, not a remote server outage.
 """
 from dataclasses import replace
-from unittest.mock import Mock, patch
+import asyncio
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -131,3 +132,40 @@ def test_close_releases_directory_and_persists_searchable_index(open_index):
     index.close()
     reopened = open_index()
     assert_complete(reopened, expected)
+
+
+def test_official_removal_failure_scrubs_sqlite_then_real_qdrant_retry(open_index):
+    index = open_index()
+    expected = record("撤下前的合成全文。")
+    index.index_record(expected)
+    client = Mock()
+    client.get_judgment = AsyncMock(
+        return_value={"error": "查無資料，本裁判可能已從系統移除"}
+    )
+    with patch.object(
+        index.store.client, "delete",
+        side_effect=RuntimeError("synthetic delete failure"),
+    ):
+        failed = asyncio.run(index.sync_jids(client, [expected.jid]))
+    assert failed["failed"] == 1
+    assert failed["removed"] == 0
+    tombstone = dict(index.manifest.conn.execute(
+        "SELECT * FROM judgments WHERE jid=?", (expected.jid,),
+    ).fetchone())
+    assert tombstone["status"] == "removal_pending"
+    assert tombstone["content"] == ""
+    assert tombstone["content_hash"] == ""
+    assert index.store.search(
+        [1.0, 0.0, 0.0], top_k=10, jid=expected.jid,
+    )
+
+    removed = asyncio.run(index.sync_jids(client, [expected.jid]))
+    assert removed == {"fetched": 1, "changed": 0, "removed": 1, "failed": 0}
+    assert index.store.search(
+        [1.0, 0.0, 0.0], top_k=10, jid=expected.jid,
+    ) == []
+    final = dict(index.manifest.conn.execute(
+        "SELECT * FROM judgments WHERE jid=?", (expected.jid,),
+    ).fetchone())
+    assert final["status"] == "removed"
+    assert final["content"] == ""
