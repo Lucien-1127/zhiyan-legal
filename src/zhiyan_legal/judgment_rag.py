@@ -36,6 +36,8 @@ DEFAULT_COLLECTION = "zhiyan_legal_judgments"
 DEFAULT_QDRANT_PATH = "data/qdrant"
 DEFAULT_MANIFEST_PATH = "data/judgments/manifest.sqlite3"
 DEFAULT_EMBED_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
+INDEX_FINGERPRINT_VERSION = 1
+INDEX_INPUT_TEMPLATE_VERSION = "title-section-text-v1"
 
 _REMOVED_MARKERS = ("查無資料", "已從系統移除", "不再公開", "未公開")
 _SECTION_RULES: tuple[tuple[str, str], ...] = (
@@ -78,6 +80,48 @@ class JudgmentChunk:
     text: str
     char_count: int
     content_hash: str
+
+
+@dataclass(frozen=True)
+class JudgmentIndexConfig:
+    """Settings that define one compatible judgment vector space."""
+
+    collection: str
+    embedding_model: str
+    embedding_model_revision: str
+    embedding_dimension: int
+    chunk_max_chars: int
+    chunk_overlap: int
+    input_template_version: str = INDEX_INPUT_TEMPLATE_VERSION
+    fingerprint_version: int = INDEX_FINGERPRINT_VERSION
+
+    @property
+    def fingerprint(self) -> str:
+        payload = {
+            "chunk_max_chars": self.chunk_max_chars,
+            "chunk_overlap": self.chunk_overlap,
+            "collection": self.collection,
+            "embedding_dimension": self.embedding_dimension,
+            "embedding_model": self.embedding_model,
+            "embedding_model_revision": self.embedding_model_revision,
+            "fingerprint_version": self.fingerprint_version,
+            "input_template_version": self.input_template_version,
+        }
+        canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "fingerprint": self.fingerprint,
+            "collection": self.collection,
+            "embedding_model": self.embedding_model,
+            "embedding_model_revision": self.embedding_model_revision,
+            "embedding_dimension": self.embedding_dimension,
+            "chunk_max_chars": self.chunk_max_chars,
+            "chunk_overlap": self.chunk_overlap,
+            "input_template_version": self.input_template_version,
+            "fingerprint_version": self.fingerprint_version,
+        }
 
 
 class OfficialJudicialClient:
@@ -365,7 +409,165 @@ class JudgmentManifest:
                 removed INTEGER NOT NULL DEFAULT 0,
                 failed INTEGER NOT NULL DEFAULT 0
             );
+            CREATE TABLE IF NOT EXISTS index_config (
+                singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
+                fingerprint TEXT NOT NULL,
+                collection TEXT NOT NULL,
+                embedding_model TEXT NOT NULL,
+                embedding_model_revision TEXT NOT NULL DEFAULT '',
+                embedding_dimension INTEGER NOT NULL,
+                chunk_max_chars INTEGER NOT NULL,
+                chunk_overlap INTEGER NOT NULL,
+                input_template_version TEXT NOT NULL,
+                fingerprint_version INTEGER NOT NULL,
+                state TEXT NOT NULL DEFAULT 'ready',
+                updated_at TEXT NOT NULL
+            );
             """
+        )
+        self.conn.commit()
+
+    def get_index_config(self) -> dict[str, Any] | None:
+        row = self.conn.execute("SELECT * FROM index_config WHERE singleton=1").fetchone()
+        return dict(row) if row else None
+
+    def _write_index_config(self, config: JudgmentIndexConfig, state: str) -> None:
+        values = config.as_dict()
+        self.conn.execute(
+            """
+            INSERT INTO index_config
+              (singleton, fingerprint, collection, embedding_model,
+               embedding_model_revision, embedding_dimension, chunk_max_chars,
+               chunk_overlap, input_template_version, fingerprint_version,
+               state, updated_at)
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(singleton) DO UPDATE SET
+              fingerprint=excluded.fingerprint,
+              collection=excluded.collection,
+              embedding_model=excluded.embedding_model,
+              embedding_model_revision=excluded.embedding_model_revision,
+              embedding_dimension=excluded.embedding_dimension,
+              chunk_max_chars=excluded.chunk_max_chars,
+              chunk_overlap=excluded.chunk_overlap,
+              input_template_version=excluded.input_template_version,
+              fingerprint_version=excluded.fingerprint_version,
+              state=excluded.state,
+              updated_at=excluded.updated_at
+            """,
+            (
+                values["fingerprint"], values["collection"],
+                values["embedding_model"], values["embedding_model_revision"],
+                values["embedding_dimension"], values["chunk_max_chars"],
+                values["chunk_overlap"], values["input_template_version"],
+                values["fingerprint_version"], state, _now_iso(),
+            ),
+        )
+
+    def configure_index(
+        self,
+        config: JudgmentIndexConfig,
+        *,
+        allow_rebuild: bool,
+        target_points: int,
+    ) -> str:
+        current = self.get_index_config()
+        if current is None:
+            active = int(self.conn.execute(
+                "SELECT COUNT(*) FROM judgments WHERE status='active' AND content != ''"
+            ).fetchone()[0])
+            if target_points and not active:
+                raise JudgmentRagError(
+                    f"目標 Qdrant collection {config.collection!r} 含有向量，"
+                    "但 manifest 沒有可核對的 active 判決或索引指紋；拒絕採用。"
+                )
+            if active and not target_points:
+                if not allow_rebuild:
+                    raise JudgmentRagError(
+                        "manifest 已有 active 判決，但目標 collection 為空且沒有舊索引指紋；"
+                        "請明確執行 rebuild-index。"
+                    )
+                self.conn.execute("BEGIN")
+                try:
+                    self.conn.execute("DELETE FROM chunks")
+                    self._write_index_config(config, "rebuild_pending")
+                    self.conn.commit()
+                except Exception:
+                    self.conn.rollback()
+                    raise
+                return "rebuild_pending"
+            # One-time adoption for a populated pre-fingerprint manifest + collection.
+            self._write_index_config(config, "ready")
+            self.conn.commit()
+            return "ready"
+        if str(current["fingerprint"]) == config.fingerprint:
+            return str(current["state"])
+
+        changed = [
+            key for key, value in config.as_dict().items()
+            if key != "fingerprint" and str(current.get(key, "")) != str(value)
+        ]
+        details = ", ".join(changed) or "unknown"
+        if str(current["collection"]) == config.collection:
+            raise JudgmentRagError(
+                "索引指紋不一致（變更："
+                f"{details}）。不可把不同設定寫入同一 collection；"
+                "請指定新的 Qdrant collection 後執行 rebuild-index。"
+            )
+        if not allow_rebuild:
+            raise JudgmentRagError(
+                "索引指紋不一致（變更："
+                f"{details}）。新 collection 必須明確執行 rebuild-index。"
+            )
+        if target_points:
+            raise JudgmentRagError(
+                f"目標 Qdrant collection {config.collection!r} 不是空集合；"
+                "拒絕採用來源不明或不同語意空間的既有向量。"
+            )
+
+        self.conn.execute("BEGIN")
+        try:
+            self.conn.execute("DELETE FROM chunks")
+            self._write_index_config(config, "rebuild_pending")
+            self.conn.commit()
+        except Exception:
+            self.conn.rollback()
+            raise
+        return "rebuild_pending"
+
+    def active_records(self) -> list[JudgmentRecord]:
+        rows = self.conn.execute(
+            """
+            SELECT jid, year, case_word, case_number, judgment_date, title,
+                   full_type, content, pdf_url, source_url,
+                   last_retrieved_at AS retrieved_at
+            FROM judgments
+            WHERE status='active' AND content != ''
+            ORDER BY jid
+            """
+        ).fetchall()
+        return [JudgmentRecord(**dict(row)) for row in rows]
+
+    def finish_index_rebuild(self, fingerprint: str) -> None:
+        current = self.get_index_config()
+        if current is None or str(current["fingerprint"]) != fingerprint:
+            raise JudgmentRagError("索引指紋在重建期間改變；拒絕完成重建")
+        pending = int(self.conn.execute(
+            "SELECT COUNT(*) FROM chunks WHERE indexed=0"
+        ).fetchone()[0])
+        missing = int(self.conn.execute(
+            """
+            SELECT COUNT(*) FROM judgments j
+            WHERE j.status='active' AND j.content != ''
+              AND NOT EXISTS(SELECT 1 FROM chunks c WHERE c.jid=j.jid)
+            """
+        ).fetchone()[0])
+        if pending or missing:
+            raise JudgmentRagError(
+                f"索引重建尚未完成：pending_chunks={pending}, missing_judgments={missing}"
+            )
+        self.conn.execute(
+            "UPDATE index_config SET state='ready', updated_at=? WHERE singleton=1",
+            (_now_iso(),),
         )
         self.conn.commit()
 
@@ -503,15 +705,21 @@ class JudgmentManifest:
 class LocalEmbeddingModel:
     """懶載入的本地多語嵌入模型。"""
 
-    def __init__(self, model_name: str = DEFAULT_EMBED_MODEL) -> None:
+    def __init__(
+        self,
+        model_name: str = DEFAULT_EMBED_MODEL,
+        model_revision: str = "",
+    ) -> None:
         try:
             from sentence_transformers import SentenceTransformer
         except ImportError as exc:
             raise JudgmentRagError(
                 "需要 sentence-transformers：請執行 pip install -e '.[rag]'"
             ) from exc
-        self.model = SentenceTransformer(model_name)
+        kwargs = {"revision": model_revision} if model_revision else {}
+        self.model = SentenceTransformer(model_name, **kwargs)
         self.model_name = model_name
+        self.model_revision = model_revision
         self.dimension = int(self.model.get_sentence_embedding_dimension())
 
     def encode(self, texts: Sequence[str]) -> list[list[float]]:
@@ -640,28 +848,77 @@ class JudgmentRagIndex:
         qdrant_port: int = 6333,
         collection: str = DEFAULT_COLLECTION,
         embed_model: str = DEFAULT_EMBED_MODEL,
+        embed_model_revision: str = "",
         max_chars: int = 800,
         overlap: int = 80,
         batch_size: int = 32,
+        allow_rebuild: bool = False,
     ) -> None:
         self.manifest = JudgmentManifest(manifest_path)
-        self.embedder = LocalEmbeddingModel(embed_model)
-        self.store = JudgmentVectorStore(
-            path=qdrant_path,
-            host=qdrant_host,
-            port=qdrant_port,
-            collection=collection,
-            dimension=self.embedder.dimension,
-        )
-        self.max_chars = max_chars
-        self.overlap = overlap
-        self.batch_size = batch_size
+        self.embedder: LocalEmbeddingModel | None = None
+        self.store: JudgmentVectorStore | None = None
+        try:
+            self.embedder = LocalEmbeddingModel(embed_model, embed_model_revision)
+            self.store = JudgmentVectorStore(
+                path=qdrant_path,
+                host=qdrant_host,
+                port=qdrant_port,
+                collection=collection,
+                dimension=self.embedder.dimension,
+            )
+            self.max_chars = max_chars
+            self.overlap = overlap
+            self.batch_size = batch_size
+            self.index_config = JudgmentIndexConfig(
+                collection=collection,
+                embedding_model=embed_model,
+                embedding_model_revision=embed_model_revision,
+                embedding_dimension=self.embedder.dimension,
+                chunk_max_chars=max_chars,
+                chunk_overlap=overlap,
+            )
+            target_points = self.store.count()
+            if not isinstance(target_points, int):
+                # Test doubles and custom stores must return an exact integer to
+                # participate in the non-empty collection safety check.
+                target_points = 0
+            self.index_state = self.manifest.configure_index(
+                self.index_config,
+                allow_rebuild=allow_rebuild,
+                target_points=target_points,
+            )
+        except Exception:
+            try:
+                if self.store is not None:
+                    self.store.close()
+            except Exception:
+                logger.exception("初始化失敗後關閉 Qdrant 時再次失敗")
+            finally:
+                self.manifest.close()
+            raise
 
     def close(self) -> None:
         try:
-            self.store.close()
+            if self.store is not None:
+                self.store.close()
         finally:
             self.manifest.close()
+
+    def rebuild_index(self) -> dict[str, int | str]:
+        """Rebuild every active manifest record into an explicitly selected collection."""
+        records = self.manifest.active_records()
+        total_chunks = 0
+        for record in records:
+            result = self.index_record(record)
+            total_chunks += int(result["chunks"])
+        self.manifest.finish_index_rebuild(self.index_config.fingerprint)
+        self.index_state = "ready"
+        return {
+            "judgments": len(records),
+            "chunks": total_chunks,
+            "collection": self.index_config.collection,
+            "index_fingerprint": self.index_config.fingerprint,
+        }
 
     def index_record(self, record: JudgmentRecord) -> dict[str, Any]:
         if not record.content:
@@ -771,6 +1028,8 @@ class JudgmentRagIndex:
         return stats
 
     def search(self, query: str, top_k: int = 8, *, jid: str = "", year: str = "") -> list[dict[str, Any]]:
+        if self.index_state != "ready":
+            raise JudgmentRagError("索引仍在 rebuild_pending；完成 rebuild-index 前拒絕查詢部分索引")
         vector = self.embedder.encode([query])[0]
         return self.store.search(vector, top_k=top_k, jid=jid, year=year)
 
@@ -779,7 +1038,10 @@ class JudgmentRagIndex:
         result["vector_points"] = self.store.count()
         result["collection"] = self.store.collection
         result["embedding_model"] = self.embedder.model_name
+        result["embedding_model_revision"] = self.index_config.embedding_model_revision
         result["embedding_dimension"] = self.embedder.dimension
+        result["index_fingerprint"] = self.index_config.fingerprint
+        result["index_state"] = self.index_state
         return result
 
 
@@ -792,7 +1054,7 @@ def client_from_env() -> OfficialJudicialClient:
     )
 
 
-def index_from_env() -> JudgmentRagIndex:
+def index_from_env(*, allow_rebuild: bool = False) -> JudgmentRagIndex:
     return JudgmentRagIndex(
         manifest_path=os.getenv("JUDGMENT_MANIFEST_PATH", DEFAULT_MANIFEST_PATH),
         qdrant_path=os.getenv("JUDGMENT_QDRANT_PATH", DEFAULT_QDRANT_PATH) or None,
@@ -800,9 +1062,11 @@ def index_from_env() -> JudgmentRagIndex:
         qdrant_port=int(os.getenv("JUDGMENT_QDRANT_PORT", "6333")),
         collection=os.getenv("JUDGMENT_QDRANT_COLLECTION", DEFAULT_COLLECTION),
         embed_model=os.getenv("JUDGMENT_EMBED_MODEL", DEFAULT_EMBED_MODEL),
+        embed_model_revision=os.getenv("JUDGMENT_EMBED_MODEL_REVISION", ""),
         max_chars=int(os.getenv("JUDGMENT_CHUNK_MAX_CHARS", "800")),
         overlap=int(os.getenv("JUDGMENT_CHUNK_OVERLAP", "80")),
         batch_size=int(os.getenv("JUDGMENT_EMBED_BATCH_SIZE", "32")),
+        allow_rebuild=allow_rebuild,
     )
 
 
@@ -810,6 +1074,7 @@ __all__ = [
     "JudgmentRagError",
     "JudgmentRecord",
     "JudgmentChunk",
+    "JudgmentIndexConfig",
     "OfficialJudicialClient",
     "JudgmentManifest",
     "JudgmentRagIndex",

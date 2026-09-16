@@ -26,7 +26,9 @@ python -m pip install -e '.[rag,api]'
 
 第一次使用多語嵌入模型時，`sentence-transformers` 會下載模型。預設模型是
 `paraphrase-multilingual-MiniLM-L12-v2`，向量維度為 384，適合先在本機建立中文判決庫。
-若要替換模型，必須同時使用新的 Qdrant collection，避免不同維度混寫。
+正式環境可用 `JUDGMENT_EMBED_MODEL_REVISION` 固定模型 revision。若要替換模型、revision、
+切片設定或向量維度，必須同時使用新的空 Qdrant collection，再明確執行重建，避免
+不同語意空間混寫。
 
 ## 憑證與本地資料
 
@@ -40,6 +42,7 @@ JUDGMENT_MANIFEST_PATH=data/judgments/manifest.sqlite3
 JUDGMENT_QDRANT_PATH=data/qdrant
 JUDGMENT_QDRANT_COLLECTION=zhiyan_legal_judgments
 JUDGMENT_EMBED_MODEL=paraphrase-multilingual-MiniLM-L12-v2
+JUDGMENT_EMBED_MODEL_REVISION=
 JUDGMENT_CHUNK_MAX_CHARS=800
 JUDGMENT_CHUNK_OVERLAP=80
 JUDGMENT_EMBED_BATCH_SIZE=32
@@ -54,6 +57,20 @@ JUDGMENT_EMBED_BATCH_SIZE=32
 ```bash
 zhiyan-judgment-rag status
 ```
+
+`status` 會顯示 `index_fingerprint` 與 `index_state`。指紋包含 collection、模型、
+模型 revision、實際向量維度、切片上限／重疊及嵌入輸入模板版本。
+
+變更上述任一設定時，先指定**新的空 collection**，再執行：
+
+```bash
+JUDGMENT_QDRANT_COLLECTION=zhiyan_legal_judgments_v2 \
+zhiyan-judgment-rag rebuild-index
+```
+
+若沿用原 collection，程式會拒絕啟動；若新名稱已含向量，也會拒絕採用。重建中狀態為
+`rebuild_pending`，完成前拒絕查詢部分索引；失敗時可用同一設定重跑。舊 collection
+不會自動刪除，完成驗收與備份後再由管理者處理。
 
 查詢已建立的本地判決向量庫：
 
@@ -138,7 +155,10 @@ PDF／來源連結及切片，只保留 JID、`removed_at`、狀態與原因等�
 
 ```bash
 python -m pip install -e '.[test]' 'qdrant-client>=1.10.0'
-PYTHONPATH=src python -m pytest tests/test_judgment_resources.py tests/test_judgment_qdrant_integration.py -q
+PYTHONPATH=src python -m pytest \
+  tests/test_judgment_resources.py \
+  tests/test_judgment_qdrant_integration.py \
+  tests/test_judgment_index_fingerprint.py -q
 ```
 
 測試在暫存目錄實際建立 Qdrant 本地儲存與 SQLite，涵蓋版本更新、保留其他 JID、

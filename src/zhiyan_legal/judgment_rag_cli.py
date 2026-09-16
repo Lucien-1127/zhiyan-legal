@@ -24,6 +24,10 @@ def _parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("status", help="顯示本地 manifest 與 Qdrant 狀態")
+    sub.add_parser(
+        "rebuild-index",
+        help="設定變更後，把 manifest 中的 active 判決重建到新的空 collection",
+    )
     sub.add_parser("sync-changes", help="取得官方異動清單並同步判決全文")
 
     sync = sub.add_parser("sync-jids", help="依 JID 檔案同步判決全文")
@@ -47,10 +51,13 @@ def main() -> None:
         format="%(levelname)s | %(name)s | %(message)s",
     )
     try:
-        index = index_from_env()
+        index = index_from_env(allow_rebuild=args.command == "rebuild-index")
         try:
             if args.command == "status":
                 print(json.dumps(index.status(), ensure_ascii=False, indent=2))
+                return
+            if args.command == "rebuild-index":
+                print(json.dumps(index.rebuild_index(), ensure_ascii=False, indent=2))
                 return
             if args.command == "search":
                 results = index.search(args.query, top_k=args.top_k, jid=args.jid, year=args.year)
