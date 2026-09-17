@@ -25,12 +25,15 @@ def record(jid: str = "SYNTHETIC-FINGERPRINT-A") -> rag.JudgmentRecord:
 
 def open_index(tmp_path, *, collection="fingerprint_v1", model="model-a",
                revision="rev-a", dimension=3, max_chars=100, overlap=10,
-               allow_rebuild=False):
+               max_tokens=0, allow_rebuild=False):
     embedder = Mock(
         dimension=dimension,
         model_name=model,
         model_revision=revision,
+        max_sequence_length=max_tokens,
     )
+    if max_tokens:
+        embedder.count_tokens.side_effect = lambda text: len(text) + 2
     embedder.encode.side_effect = lambda texts: [
         [1.0] + [0.0] * (dimension - 1) for _ in texts
     ]
@@ -74,6 +77,7 @@ def test_initial_fingerprint_is_stable_and_visible_in_status(tmp_path):
         ({"model": "model-b"}, "embedding_model"),
         ({"revision": "rev-b"}, "embedding_model_revision"),
         ({"dimension": 4}, "embedding_dimension"),
+        ({"max_tokens": 64}, "embedding_max_tokens"),
         ({"max_chars": 80}, "chunk_max_chars"),
         ({"overlap": 5}, "chunk_overlap"),
     ],

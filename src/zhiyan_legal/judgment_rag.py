@@ -36,8 +36,8 @@ DEFAULT_COLLECTION = "zhiyan_legal_judgments"
 DEFAULT_QDRANT_PATH = "data/qdrant"
 DEFAULT_MANIFEST_PATH = "data/judgments/manifest.sqlite3"
 DEFAULT_EMBED_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
-INDEX_FINGERPRINT_VERSION = 1
-INDEX_INPUT_TEMPLATE_VERSION = "title-section-text-v1"
+INDEX_FINGERPRINT_VERSION = 2
+INDEX_INPUT_TEMPLATE_VERSION = "title-section-text-v2-token-aware"
 
 _REMOVED_MARKERS = ("查無資料", "已從系統移除", "不再公開", "未公開")
 _SECTION_RULES: tuple[tuple[str, str], ...] = (
@@ -90,6 +90,7 @@ class JudgmentIndexConfig:
     embedding_model: str
     embedding_model_revision: str
     embedding_dimension: int
+    embedding_max_tokens: int
     chunk_max_chars: int
     chunk_overlap: int
     input_template_version: str = INDEX_INPUT_TEMPLATE_VERSION
@@ -102,6 +103,7 @@ class JudgmentIndexConfig:
             "chunk_overlap": self.chunk_overlap,
             "collection": self.collection,
             "embedding_dimension": self.embedding_dimension,
+            "embedding_max_tokens": self.embedding_max_tokens,
             "embedding_model": self.embedding_model,
             "embedding_model_revision": self.embedding_model_revision,
             "fingerprint_version": self.fingerprint_version,
@@ -117,6 +119,7 @@ class JudgmentIndexConfig:
             "embedding_model": self.embedding_model,
             "embedding_model_revision": self.embedding_model_revision,
             "embedding_dimension": self.embedding_dimension,
+            "embedding_max_tokens": self.embedding_max_tokens,
             "chunk_max_chars": self.chunk_max_chars,
             "chunk_overlap": self.chunk_overlap,
             "input_template_version": self.input_template_version,
@@ -355,6 +358,86 @@ def chunk_judgment(
     return chunks
 
 
+def _embedding_input(record: JudgmentRecord, chunk: JudgmentChunk) -> str:
+    """Return the exact text sent to the embedding model."""
+    return f"{record.title}｜{chunk.section}｜{chunk.text}"
+
+
+def _fit_chunks_to_token_limit(
+    record: JudgmentRecord,
+    chunks: Sequence[JudgmentChunk],
+    *,
+    token_counter: Any,
+    max_tokens: int,
+    overlap: int,
+) -> list[JudgmentChunk]:
+    """Split character chunks again until the complete embedding input fits.
+
+    Character slicing keeps the stored judgment text byte-for-byte rather than
+    round-tripping it through a tokenizer decode operation.  The binary search
+    measures the exact title/section/text template that will be embedded.
+    """
+    if max_tokens <= 0:
+        return list(chunks)
+
+    units: list[tuple[str, str]] = []
+    for chunk in chunks:
+        if int(token_counter(_embedding_input(record, chunk))) <= max_tokens:
+            units.append((chunk.section, chunk.text))
+            continue
+
+        start = 0
+        while start < len(chunk.text):
+            low = start + 1
+            high = len(chunk.text)
+            best = start
+            while low <= high:
+                end = (low + high) // 2
+                candidate = JudgmentChunk(
+                    chunk_id="",
+                    jid=record.jid,
+                    sequence=0,
+                    section=chunk.section,
+                    text=chunk.text[start:end],
+                    char_count=end - start,
+                    content_hash=record.content_hash,
+                )
+                if int(token_counter(_embedding_input(record, candidate))) <= max_tokens:
+                    best = end
+                    low = end + 1
+                else:
+                    high = end - 1
+            if best == start:
+                raise JudgmentRagError(
+                    "判決標題與段落前綴已占滿嵌入模型 token 上限；"
+                    "請縮短輸入模板或改用較長上下文模型"
+                )
+            units.append((chunk.section, chunk.text[start:best]))
+            if best >= len(chunk.text):
+                break
+            span = best - start
+            effective_overlap = min(overlap, span // 2)
+            start = best - effective_overlap
+
+    fitted: list[JudgmentChunk] = []
+    for sequence, (section, text_unit) in enumerate(units, start=1):
+        fitted.append(
+            JudgmentChunk(
+                chunk_id=str(uuid5(
+                    NAMESPACE_URL,
+                    f"{record.jid}:{record.content_hash}:{sequence}",
+                )),
+                jid=record.jid,
+                sequence=sequence,
+                section=section,
+                text=text_unit,
+                char_count=len(text_unit),
+                content_hash=record.content_hash,
+            )
+        )
+    return fitted
+
+
 class JudgmentManifest:
     """SQLite manifest：全文版本、切片狀態、失敗與移除稽核。"""
 
@@ -416,6 +499,7 @@ class JudgmentManifest:
                 embedding_model TEXT NOT NULL,
                 embedding_model_revision TEXT NOT NULL DEFAULT '',
                 embedding_dimension INTEGER NOT NULL,
+                embedding_max_tokens INTEGER NOT NULL DEFAULT 0,
                 chunk_max_chars INTEGER NOT NULL,
                 chunk_overlap INTEGER NOT NULL,
                 input_template_version TEXT NOT NULL,
@@ -425,6 +509,14 @@ class JudgmentManifest:
             );
             """
         )
+        columns = {
+            str(row[1]) for row in self.conn.execute("PRAGMA table_info(index_config)")
+        }
+        if "embedding_max_tokens" not in columns:
+            self.conn.execute(
+                "ALTER TABLE index_config "
+                "ADD COLUMN embedding_max_tokens INTEGER NOT NULL DEFAULT 0"
+            )
         self.conn.commit()
 
     def get_index_config(self) -> dict[str, Any] | None:
@@ -438,15 +530,16 @@ class JudgmentManifest:
             INSERT INTO index_config
               (singleton, fingerprint, collection, embedding_model,
                embedding_model_revision, embedding_dimension, chunk_max_chars,
-               chunk_overlap, input_template_version, fingerprint_version,
+               embedding_max_tokens, chunk_overlap, input_template_version, fingerprint_version,
                state, updated_at)
-            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(singleton) DO UPDATE SET
               fingerprint=excluded.fingerprint,
               collection=excluded.collection,
               embedding_model=excluded.embedding_model,
               embedding_model_revision=excluded.embedding_model_revision,
               embedding_dimension=excluded.embedding_dimension,
+              embedding_max_tokens=excluded.embedding_max_tokens,
               chunk_max_chars=excluded.chunk_max_chars,
               chunk_overlap=excluded.chunk_overlap,
               input_template_version=excluded.input_template_version,
@@ -458,6 +551,7 @@ class JudgmentManifest:
                 values["fingerprint"], values["collection"],
                 values["embedding_model"], values["embedding_model_revision"],
                 values["embedding_dimension"], values["chunk_max_chars"],
+                values["embedding_max_tokens"],
                 values["chunk_overlap"], values["input_template_version"],
                 values["fingerprint_version"], state, _now_iso(),
             ),
@@ -721,10 +815,29 @@ class LocalEmbeddingModel:
         self.model_name = model_name
         self.model_revision = model_revision
         self.dimension = int(self.model.get_sentence_embedding_dimension())
+        self.max_sequence_length = int(self.model.max_seq_length)
+
+    def count_tokens(self, text: str) -> int:
+        encoded = self.model.tokenizer(
+            text,
+            add_special_tokens=True,
+            truncation=False,
+            return_attention_mask=False,
+            return_token_type_ids=False,
+        )
+        input_ids = encoded["input_ids"]
+        return len(input_ids)
 
     def encode(self, texts: Sequence[str]) -> list[list[float]]:
         if not texts:
             return []
+        token_counts = [self.count_tokens(text) for text in texts]
+        oversized = [count for count in token_counts if count > self.max_sequence_length]
+        if oversized:
+            raise JudgmentRagError(
+                "嵌入輸入超過模型 token 上限："
+                f"max={self.max_sequence_length}, actual={max(oversized)}"
+            )
         values = self.model.encode(list(texts), normalize_embeddings=True, show_progress_bar=False)
         return values.tolist()
 
@@ -874,6 +987,11 @@ class JudgmentRagIndex:
                 embedding_model=embed_model,
                 embedding_model_revision=embed_model_revision,
                 embedding_dimension=self.embedder.dimension,
+                embedding_max_tokens=(
+                    self.embedder.max_sequence_length
+                    if isinstance(getattr(self.embedder, "max_sequence_length", None), int)
+                    else 0
+                ),
                 chunk_max_chars=max_chars,
                 chunk_overlap=overlap,
             )
@@ -926,6 +1044,16 @@ class JudgmentRagIndex:
             self.manifest.mark_pending_text(record.jid, "JFULLCONTENT 空白；需要下載 PDF 後抽取文字")
             return {"jid": record.jid, "status": "pending_text", "changed": False, "chunks": 0}
         chunks = chunk_judgment(record, max_chars=self.max_chars, overlap=self.overlap)
+        max_tokens = self.index_config.embedding_max_tokens
+        token_counter = getattr(self.embedder, "count_tokens", None)
+        if max_tokens and callable(token_counter):
+            chunks = _fit_chunks_to_token_limit(
+                record,
+                chunks,
+                token_counter=token_counter,
+                max_tokens=max_tokens,
+                overlap=self.overlap,
+            )
         changed = self.manifest.upsert_record(record, chunks)
         pending = self.manifest.pending_chunks(record.jid)
         if pending:
@@ -937,7 +1065,7 @@ class JudgmentRagIndex:
             records = {record.jid: record}
             for start in range(0, len(pending), self.batch_size):
                 batch = pending[start:start + self.batch_size]
-                vectors = self.embedder.encode([f"{record.title}｜{c.section}｜{c.text}" for c in batch])
+                vectors = self.embedder.encode([_embedding_input(record, c) for c in batch])
                 if len(vectors) != len(batch):
                     raise JudgmentRagError("嵌入模型回傳的向量數與待索引切片數不一致")
                 self.store.upsert(batch, records, vectors)
@@ -1040,6 +1168,7 @@ class JudgmentRagIndex:
         result["embedding_model"] = self.embedder.model_name
         result["embedding_model_revision"] = self.index_config.embedding_model_revision
         result["embedding_dimension"] = self.embedder.dimension
+        result["embedding_max_tokens"] = self.index_config.embedding_max_tokens
         result["index_fingerprint"] = self.index_config.fingerprint
         result["index_state"] = self.index_state
         return result

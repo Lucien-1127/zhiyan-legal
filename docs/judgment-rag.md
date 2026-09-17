@@ -58,8 +58,15 @@ JUDGMENT_EMBED_BATCH_SIZE=32
 zhiyan-judgment-rag status
 ```
 
-`status` 會顯示 `index_fingerprint` 與 `index_state`。指紋包含 collection、模型、
-模型 revision、實際向量維度、切片上限／重疊及嵌入輸入模板版本。
+`status` 會顯示 `index_fingerprint`、`index_state` 與模型實際回報的
+`embedding_max_tokens`。指紋包含 collection、模型、模型 revision、實際向量維度、
+token 上限、切片上限／重疊及嵌入輸入模板版本。
+
+`JUDGMENT_CHUNK_MAX_CHARS` 是第一層字元上限；送入模型前，程式還會以 tokenizer
+計算「案由標題＋段落類型＋切片全文」的完整 token 數，超過模型上限就再次分段，
+避免 `sentence-transformers` 靜默截斷。查詢文字若超過模型上限則直接回報錯誤，不會
+悄悄只使用前段內容。升級到這個 token-aware 格式時，索引指紋會改變，請使用新的
+空 collection 執行 `rebuild-index`。
 
 變更上述任一設定時，先指定**新的空 collection**，再執行：
 
