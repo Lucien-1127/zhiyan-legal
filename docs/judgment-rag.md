@@ -141,6 +141,12 @@ POST /api/judgments/search
 
 回傳會包含 `jid`、法院、裁判日期、案由、切片序號、原文與來源 URL；前端或 LLM 層應把這些欄位轉成可核對的判決引用，不應只顯示向量分數。
 
+API 同步產生的 `source_url` 會使用實際設定的 `JUDICIAL_API_BASE_URL` 再加上
+`/JDoc`，因此透過受控 proxy 或測試端點同步時，不會誤標成正式 API 位址。若同一 JID
+的來源端點改變，即使判決全文 hash 相同，也會重新發布 Qdrant payload，避免 SQLite
+與向量搜尋結果顯示不同來源。歷史 JSONL 沒有執行期 client，預設仍標示司法院正式
+JDoc 端點。
+
 ## 同步規則
 
 司法院官方規格指出，同一 `JID` 代表同一筆裁判書；後續同一 `JID` 的內容應覆蓋先前版本。若官方回覆判決已移除或不再公開，本專案會刪除該 JID 的向量點。建議在 API 開放時段執行 `sync-changes`，並保留每次執行的輸出與 manifest 備份。

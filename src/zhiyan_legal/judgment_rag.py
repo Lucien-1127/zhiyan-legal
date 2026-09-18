@@ -238,8 +238,14 @@ def _is_removed(payload: dict[str, Any]) -> bool:
     return False
 
 
-def parse_jdoc(payload: dict[str, Any], *, jid_hint: str = "") -> JudgmentRecord | None:
+def parse_jdoc(
+    payload: dict[str, Any],
+    *,
+    jid_hint: str = "",
+    source_base_url: str = OFFICIAL_API_BASE,
+) -> JudgmentRecord | None:
     """將官方 JDoc JSON 正規化成穩定主檔。"""
+    source_base_url = _text(source_base_url) or OFFICIAL_API_BASE
     if _is_removed(payload):
         return None
     if _text(payload.get("error")):
@@ -269,7 +275,7 @@ def parse_jdoc(payload: dict[str, Any], *, jid_hint: str = "") -> JudgmentRecord
         full_type=_text(full.get("JFULLTYPE")) or "unknown",
         content=content,
         pdf_url=_text(full.get("JFULLPDF")) or attachment_url,
-        source_url=OFFICIAL_API_BASE + "/JDoc",
+        source_url=f"{source_base_url.rstrip('/')}/JDoc",
         retrieved_at=_now_iso(),
     )
 
@@ -672,7 +678,7 @@ class JudgmentManifest:
     def upsert_record(self, record: JudgmentRecord, chunks: Sequence[JudgmentChunk]) -> bool:
         previous = self.conn.execute(
             """
-            SELECT content_hash, status,
+            SELECT content_hash, status, source_url,
                    EXISTS(SELECT 1 FROM chunks WHERE chunks.jid = judgments.jid) AS has_chunks
             FROM judgments WHERE jid = ?
             """,
@@ -682,6 +688,7 @@ class JudgmentManifest:
             previous is None
             or str(previous["content_hash"]) != record.content_hash
             or str(previous["status"]) != "active"
+            or str(previous["source_url"]) != record.source_url
             or (bool(chunks) and not bool(previous["has_chunks"]))
         )
         now = _now_iso()
@@ -1092,7 +1099,14 @@ class JudgmentRagIndex:
             try:
                 payload = await client.get_judgment(jid)
                 stats["fetched"] += 1
-                record = parse_jdoc(payload, jid_hint=jid)
+                source_base_url = getattr(client, "base_url", OFFICIAL_API_BASE)
+                if not isinstance(source_base_url, str) or not source_base_url.strip():
+                    source_base_url = OFFICIAL_API_BASE
+                record = parse_jdoc(
+                    payload,
+                    jid_hint=jid,
+                    source_base_url=source_base_url,
+                )
                 if record is None:
                     self.remove_judgment(
                         jid,
