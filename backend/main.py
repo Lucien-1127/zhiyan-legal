@@ -20,6 +20,8 @@ import time
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
+from threading import Lock
+from typing import Any
 
 from dotenv import load_dotenv
 load_dotenv()  # 載入 .env（含 ZHIYAN_API_KEY）
@@ -96,9 +98,19 @@ class ErrorResponse(BaseModel):
     request_id: str = ""
 
 
+class JudgmentSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=5000, description="判決檢索問題")
+    top_k: int = Field(default=8, ge=1, le=50)
+    jid: str = Field(default="", max_length=300)
+    year: str = Field(default="", max_length=10)
+
+
 # ─── 引擎相依注入 ──────────────────────────────────────
 
 _engine: ZhiyanApplicationEngine | None = None
+_judgment_index: Any = None
+_judgment_index_lock = Lock()
+_judgment_index_closing = False
 
 
 def get_engine() -> ZhiyanApplicationEngine:
@@ -112,17 +124,29 @@ def get_engine() -> ZhiyanApplicationEngine:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """啟動/關閉：引擎初始化 + 資源釋放"""
-    global _engine
+    global _engine, _judgment_index, _judgment_index_closing
 
     logger.info("🚀 智研 SaaS 版 v2.0 啟動中...")
     _engine = ZhiyanApplicationEngine()
+    with _judgment_index_lock:
+        _judgment_index_closing = False
     logger.info("✅ application engine 就緒 | providers=%d", len(_engine.registry))
 
-    yield
-
-    # 關閉
-    _engine = None
-    logger.info("🛑 智研 SaaS 版已關閉")
+    try:
+        yield
+    finally:
+        # Detach the singleton while holding the same lock used for lazy
+        # initialization. New requests cannot recreate it during shutdown.
+        _engine = None
+        with _judgment_index_lock:
+            _judgment_index_closing = True
+            judgment_index = _judgment_index
+            _judgment_index = None
+        try:
+            if judgment_index is not None:
+                judgment_index.close()
+        finally:
+            logger.info("🛑 智研 SaaS 版已關閉")
 
 
 # ─── FastAPI 實例 ──────────────────────────────────────
@@ -224,6 +248,46 @@ async def get_status(request: Request):
         engine_ready=True,
         pool_limits=None,
     )
+
+
+def get_judgment_index():
+    """延遲載入本地判決向量庫，避免一般聊天啟動時載入嵌入模型。"""
+    global _judgment_index
+    with _judgment_index_lock:
+        if _judgment_index_closing:
+            raise RuntimeError("判決向量庫正在關閉")
+        if _judgment_index is None:
+            from zhiyan_legal.judgment_rag import index_from_env
+
+            _judgment_index = index_from_env()
+        return _judgment_index
+
+
+@app.get("/api/judgments/status")
+@limiter.limit(_RATE_LIMIT)
+def get_judgment_status(request: Request):
+    """回傳本地判決 manifest 與 Qdrant 狀態。"""
+    try:
+        return get_judgment_index().status()
+    except Exception as exc:
+        logger.exception("判決向量庫狀態讀取失敗")
+        raise HTTPException(status_code=503, detail=f"判決向量庫未就緒：{exc}") from exc
+
+
+@app.post("/api/judgments/search")
+@limiter.limit(_RATE_LIMIT)
+def search_local_judgments(request: Request, body: JudgmentSearchRequest):
+    """以本地判決向量庫檢索，回傳可供引用的 metadata 與原文切片。"""
+    try:
+        return {
+            "query": body.query,
+            "results": get_judgment_index().search(
+                body.query, top_k=body.top_k, jid=body.jid, year=body.year
+            ),
+        }
+    except Exception as exc:
+        logger.exception("本地判決檢索失敗")
+        raise HTTPException(status_code=503, detail=f"判決向量庫未就緒：{exc}") from exc
 
 
 @app.post("/api/chat", response_model=ChatResponse)

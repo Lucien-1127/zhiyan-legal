@@ -98,6 +98,19 @@ zhiyan-legal "比較兩份法規" --task RESEARCH --dry-run
 zhiyan-legal "測試查詢" --dry-run --output json
 ```
 
+## 司法院判決書自有向量庫
+
+若需要把司法院公開判決納入自己的法律研究檢索，可安裝選用功能：
+
+```bash
+python -m pip install -e ".[rag]"
+zhiyan-judgment-rag status
+zhiyan-judgment-rag sync-changes
+zhiyan-judgment-rag search "買賣物有瑕疵時買受人可以主張什麼？"
+```
+
+這條管線使用官方裁判書 API 的 `JList`／`JDoc`、SQLite 版本 manifest、本地 Qdrant 與中文多語 embedding。它會依 JID 做內容 hash 去重、在內容更新時重新切片與向量化，並在官方標示判決不再公開時移除向量。歷史全量 bootstrap 的操作與 JSONL 格式請見 [`docs/judgment-rag.md`](docs/judgment-rag.md)。真實司法院帳密只放在本機 `.env` 或部署平台 secret，不要提交到 Git。
+
 真正呼叫模型前，請複製並編輯 `.env.example`；不要把 API key 提交到 Git。
 
 ## 系統流程

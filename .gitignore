@@ -28,6 +28,9 @@ site/
 # Data artifacts
 data/regulation_tracker.db
 data/exports/
+data/qdrant/
+data/judgments/raw/
+data/judgments/*.jsonl
 
 # Database
 data/zhiyan.db
@@ -39,3 +42,4 @@ data/zhiyan.db
 # Database
 *.db
 *.sqlite
+*.sqlite3
