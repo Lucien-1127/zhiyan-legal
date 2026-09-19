@@ -25,7 +25,9 @@ import re
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import wraps
 from pathlib import Path
+from threading import RLock
 from typing import Any, Iterable, Sequence
 from uuid import uuid5, NAMESPACE_URL
 
@@ -46,6 +48,16 @@ _SECTION_RULES: tuple[tuple[str, str], ...] = (
     ("理由", "reasoning"),
     ("爭點", "issues"),
 )
+
+
+def _serialized(method):
+    """Serialize access to stateful SQLite/Qdrant facade instances."""
+    @wraps(method)
+    def wrapped(self, *args, **kwargs):
+        with self._lock:
+            return method(self, *args, **kwargs)
+
+    return wrapped
 
 
 class JudgmentRagError(RuntimeError):
@@ -450,11 +462,15 @@ class JudgmentManifest:
     def __init__(self, path: str = DEFAULT_MANIFEST_PATH) -> None:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.conn = sqlite3.connect(self.path)
+        self._lock = RLock()
+        # FastAPI sync handlers may move the singleton between worker threads.
+        # Every manifest method is protected by ``_lock`` below.
+        self.conn = sqlite3.connect(self.path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA journal_mode=WAL")
         self._init_schema()
 
+    @_serialized
     def _init_schema(self) -> None:
         self.conn.executescript(
             """
@@ -525,10 +541,12 @@ class JudgmentManifest:
             )
         self.conn.commit()
 
+    @_serialized
     def get_index_config(self) -> dict[str, Any] | None:
         row = self.conn.execute("SELECT * FROM index_config WHERE singleton=1").fetchone()
         return dict(row) if row else None
 
+    @_serialized
     def _write_index_config(self, config: JudgmentIndexConfig, state: str) -> None:
         values = config.as_dict()
         self.conn.execute(
@@ -563,6 +581,7 @@ class JudgmentManifest:
             ),
         )
 
+    @_serialized
     def configure_index(
         self,
         config: JudgmentIndexConfig,
@@ -634,6 +653,7 @@ class JudgmentManifest:
             raise
         return "rebuild_pending"
 
+    @_serialized
     def active_records(self) -> list[JudgmentRecord]:
         rows = self.conn.execute(
             """
@@ -647,6 +667,7 @@ class JudgmentManifest:
         ).fetchall()
         return [JudgmentRecord(**dict(row)) for row in rows]
 
+    @_serialized
     def finish_index_rebuild(self, fingerprint: str) -> None:
         current = self.get_index_config()
         if current is None or str(current["fingerprint"]) != fingerprint:
@@ -671,10 +692,12 @@ class JudgmentManifest:
         )
         self.conn.commit()
 
+    @_serialized
     def get_hash(self, jid: str) -> str:
         row = self.conn.execute("SELECT content_hash FROM judgments WHERE jid = ?", (jid,)).fetchone()
         return str(row[0]) if row else ""
 
+    @_serialized
     def upsert_record(self, record: JudgmentRecord, chunks: Sequence[JudgmentChunk]) -> bool:
         previous = self.conn.execute(
             """
@@ -726,6 +749,7 @@ class JudgmentManifest:
         self.conn.commit()
         return changed
 
+    @_serialized
     def pending_chunks(self, jid: str) -> list[JudgmentChunk]:
         rows = self.conn.execute(
             """
@@ -736,6 +760,7 @@ class JudgmentManifest:
         ).fetchall()
         return [JudgmentChunk(**dict(row)) for row in rows]
 
+    @_serialized
     def _write_removal_tombstone(self, jid: str, status: str, error: str) -> None:
         now = _now_iso()
         self.conn.execute(
@@ -759,6 +784,7 @@ class JudgmentManifest:
         self.conn.execute("DELETE FROM chunks WHERE jid = ?", (jid,))
         self.conn.commit()
 
+    @_serialized
     def mark_removal_pending(
         self,
         jid: str,
@@ -771,9 +797,11 @@ class JudgmentManifest:
             detail = f"{error}; vector cleanup pending ({cleanup_error})"
         self._write_removal_tombstone(jid, "removal_pending", detail)
 
+    @_serialized
     def mark_removed(self, jid: str, error: str = "officially removed") -> None:
         self._write_removal_tombstone(jid, "removed", error)
 
+    @_serialized
     def mark_pending_text(self, jid: str, error: str) -> None:
         self.conn.execute(
             "UPDATE judgments SET status='pending_text', updated_at=?, error=? WHERE jid=?",
@@ -781,6 +809,7 @@ class JudgmentManifest:
         )
         self.conn.commit()
 
+    @_serialized
     def set_indexed(self, chunk_ids: Iterable[str]) -> None:
         ids = list(chunk_ids)
         if not ids:
@@ -788,10 +817,25 @@ class JudgmentManifest:
         self.conn.executemany("UPDATE chunks SET indexed=1 WHERE chunk_id=?", [(item,) for item in ids])
         self.conn.commit()
 
+    @_serialized
     def reset_indexed(self, jid: str) -> None:
         self.conn.execute("UPDATE chunks SET indexed=0 WHERE jid=?", (jid,))
         self.conn.commit()
 
+    @_serialized
+    def record_sync_error(self, jid: str, error: str) -> None:
+        """Record a retryable sync failure without reviving a tombstone."""
+        existing = self.conn.execute(
+            "SELECT status FROM judgments WHERE jid=?", (jid,),
+        ).fetchone()
+        if existing and str(existing["status"]) not in {"removed", "removal_pending"}:
+            self.conn.execute(
+                "UPDATE judgments SET error=?, updated_at=? WHERE jid=?",
+                (error, _now_iso(), jid),
+            )
+            self.conn.commit()
+
+    @_serialized
     def stats(self) -> dict[str, int]:
         rows = self.conn.execute("SELECT status, COUNT(*) AS count FROM judgments GROUP BY status").fetchall()
         result = {str(row[0]): int(row[1]) for row in rows}
@@ -799,6 +843,7 @@ class JudgmentManifest:
         result["indexed_chunks"] = int(self.conn.execute("SELECT COUNT(*) FROM chunks WHERE indexed=1").fetchone()[0])
         return result
 
+    @_serialized
     def close(self) -> None:
         self.conn.close()
 
@@ -974,6 +1019,8 @@ class JudgmentRagIndex:
         batch_size: int = 32,
         allow_rebuild: bool = False,
     ) -> None:
+        self._lock = RLock()
+        self._closed = False
         self.manifest = JudgmentManifest(manifest_path)
         self.embedder: LocalEmbeddingModel | None = None
         self.store: JudgmentVectorStore | None = None
@@ -1022,13 +1069,18 @@ class JudgmentRagIndex:
                 self.manifest.close()
             raise
 
+    @_serialized
     def close(self) -> None:
+        if self._closed:
+            return
         try:
             if self.store is not None:
                 self.store.close()
         finally:
             self.manifest.close()
+            self._closed = True
 
+    @_serialized
     def rebuild_index(self) -> dict[str, int | str]:
         """Rebuild every active manifest record into an explicitly selected collection."""
         records = self.manifest.active_records()
@@ -1045,6 +1097,7 @@ class JudgmentRagIndex:
             "index_fingerprint": self.index_config.fingerprint,
         }
 
+    @_serialized
     def index_record(self, record: JudgmentRecord) -> dict[str, Any]:
         if not record.content:
             self.manifest.upsert_record(record, [])
@@ -1079,6 +1132,7 @@ class JudgmentRagIndex:
                 self.manifest.set_indexed([c.chunk_id for c in batch])
         return {"jid": record.jid, "status": "indexed", "changed": changed, "chunks": len(chunks)}
 
+    @_serialized
     def remove_judgment(self, jid: str, error: str = "officially removed") -> None:
         """Scrub local plaintext immediately, then make vector deletion retryable."""
         self.manifest.mark_removal_pending(jid, error)
@@ -1119,15 +1173,10 @@ class JudgmentRagIndex:
             except Exception as exc:
                 logger.exception("judgment sync failed: %s", jid)
                 stats["failed"] += 1
-                existing = self.manifest.conn.execute(
-                    "SELECT status FROM judgments WHERE jid=?", (jid,),
-                ).fetchone()
-                if existing and str(existing["status"]) not in {"removed", "removal_pending"}:
-                    self.manifest.conn.execute(
-                        "UPDATE judgments SET error=?, updated_at=? WHERE jid=?",
-                        (f"{type(exc).__name__}: {exc}", _now_iso(), jid),
-                    )
-                    self.manifest.conn.commit()
+                self.manifest.record_sync_error(
+                    jid,
+                    f"{type(exc).__name__}: {exc}",
+                )
         return stats
 
     async def sync_changes(self, client: OfficialJudicialClient) -> dict[str, int]:
@@ -1169,12 +1218,14 @@ class JudgmentRagIndex:
                     stats["failed"] += 1
         return stats
 
+    @_serialized
     def search(self, query: str, top_k: int = 8, *, jid: str = "", year: str = "") -> list[dict[str, Any]]:
         if self.index_state != "ready":
             raise JudgmentRagError("索引仍在 rebuild_pending；完成 rebuild-index 前拒絕查詢部分索引")
         vector = self.embedder.encode([query])[0]
         return self.store.search(vector, top_k=top_k, jid=jid, year=year)
 
+    @_serialized
     def status(self) -> dict[str, Any]:
         result = self.manifest.stats()
         result["vector_points"] = self.store.count()

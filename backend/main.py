@@ -20,6 +20,7 @@ import time
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
+from threading import Lock
 from typing import Any
 
 from dotenv import load_dotenv
@@ -108,6 +109,8 @@ class JudgmentSearchRequest(BaseModel):
 
 _engine: ZhiyanApplicationEngine | None = None
 _judgment_index: Any = None
+_judgment_index_lock = Lock()
+_judgment_index_closing = False
 
 
 def get_engine() -> ZhiyanApplicationEngine:
@@ -121,20 +124,29 @@ def get_engine() -> ZhiyanApplicationEngine:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """啟動/關閉：引擎初始化 + 資源釋放"""
-    global _engine, _judgment_index
+    global _engine, _judgment_index, _judgment_index_closing
 
     logger.info("🚀 智研 SaaS 版 v2.0 啟動中...")
     _engine = ZhiyanApplicationEngine()
+    with _judgment_index_lock:
+        _judgment_index_closing = False
     logger.info("✅ application engine 就緒 | providers=%d", len(_engine.registry))
 
-    yield
-
-    # 關閉
-    _engine = None
-    if _judgment_index is not None:
-        _judgment_index.close()
-        _judgment_index = None
-    logger.info("🛑 智研 SaaS 版已關閉")
+    try:
+        yield
+    finally:
+        # Detach the singleton while holding the same lock used for lazy
+        # initialization. New requests cannot recreate it during shutdown.
+        _engine = None
+        with _judgment_index_lock:
+            _judgment_index_closing = True
+            judgment_index = _judgment_index
+            _judgment_index = None
+        try:
+            if judgment_index is not None:
+                judgment_index.close()
+        finally:
+            logger.info("🛑 智研 SaaS 版已關閉")
 
 
 # ─── FastAPI 實例 ──────────────────────────────────────
@@ -241,16 +253,19 @@ async def get_status(request: Request):
 def get_judgment_index():
     """延遲載入本地判決向量庫，避免一般聊天啟動時載入嵌入模型。"""
     global _judgment_index
-    if _judgment_index is None:
-        from zhiyan_legal.judgment_rag import index_from_env
+    with _judgment_index_lock:
+        if _judgment_index_closing:
+            raise RuntimeError("判決向量庫正在關閉")
+        if _judgment_index is None:
+            from zhiyan_legal.judgment_rag import index_from_env
 
-        _judgment_index = index_from_env()
-    return _judgment_index
+            _judgment_index = index_from_env()
+        return _judgment_index
 
 
 @app.get("/api/judgments/status")
 @limiter.limit(_RATE_LIMIT)
-async def get_judgment_status(request: Request):
+def get_judgment_status(request: Request):
     """回傳本地判決 manifest 與 Qdrant 狀態。"""
     try:
         return get_judgment_index().status()
@@ -261,7 +276,7 @@ async def get_judgment_status(request: Request):
 
 @app.post("/api/judgments/search")
 @limiter.limit(_RATE_LIMIT)
-async def search_local_judgments(request: Request, body: JudgmentSearchRequest):
+def search_local_judgments(request: Request, body: JudgmentSearchRequest):
     """以本地判決向量庫檢索，回傳可供引用的 metadata 與原文切片。"""
     try:
         return {
