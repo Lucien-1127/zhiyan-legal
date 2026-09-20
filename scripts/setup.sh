@@ -33,7 +33,7 @@ fi
 # ── 2. Install package and development test tools ──
 echo "📦 安裝智研與測試相依套件..."
 python -m pip install -q --upgrade pip
-python -m pip install -q -e ".[test]"
+python -m pip install -q -e ".[committee,test]"
 
 # ── 3. Environment ──
 if [ ! -f ".env" ]; then

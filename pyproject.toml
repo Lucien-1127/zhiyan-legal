@@ -90,3 +90,8 @@ Changelog = "https://github.com/Lucien-1127/zhiyan-legal/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: requires explicitly configured external services or credentials",
+]
