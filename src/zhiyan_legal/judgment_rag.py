@@ -698,6 +698,40 @@ class JudgmentManifest:
         return str(row[0]) if row else ""
 
     @_serialized
+    def filter_live_search_results(
+        self,
+        results: Sequence[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Keep only vectors that match the current active manifest version.
+
+        Qdrant deletion can fail after the SQLite tombstone has already scrubbed
+        the judgment.  Treat the manifest as the authority so those stale points
+        cannot be returned while cleanup is pending.  Matching the content hash
+        also hides superseded vectors during a failed version replacement.
+        """
+        jids = list(dict.fromkeys(
+            str(item.get("jid", "")).strip()
+            for item in results
+            if str(item.get("jid", "")).strip()
+        ))
+        if not jids:
+            return []
+        placeholders = ",".join("?" for _ in jids)
+        rows = self.conn.execute(
+            f"""
+            SELECT jid, content_hash FROM judgments
+            WHERE status='active' AND content != '' AND jid IN ({placeholders})
+            """,
+            jids,
+        ).fetchall()
+        active_hashes = {str(row["jid"]): str(row["content_hash"]) for row in rows}
+        return [
+            item for item in results
+            if active_hashes.get(str(item.get("jid", "")).strip())
+            == str(item.get("content_hash", "")).strip()
+        ]
+
+    @_serialized
     def upsert_record(self, record: JudgmentRecord, chunks: Sequence[JudgmentChunk]) -> bool:
         previous = self.conn.execute(
             """
@@ -1222,8 +1256,29 @@ class JudgmentRagIndex:
     def search(self, query: str, top_k: int = 8, *, jid: str = "", year: str = "") -> list[dict[str, Any]]:
         if self.index_state != "ready":
             raise JudgmentRagError("索引仍在 rebuild_pending；完成 rebuild-index 前拒絕查詢部分索引")
+        if top_k <= 0:
+            return []
         vector = self.embedder.encode([query])[0]
-        return self.store.search(vector, top_k=top_k, jid=jid, year=year)
+        # Oversample because stale vectors can occupy the nearest slots while a
+        # failed Qdrant deletion is waiting for retry.  Correctness wins over
+        # recall: every result is checked against the authoritative manifest.
+        candidate_limit = max(top_k * 4, top_k + 16)
+        maximum_limit = max(candidate_limit, min(1024, top_k * 64))
+        while True:
+            candidates = self.store.search(
+                vector,
+                top_k=candidate_limit,
+                jid=jid,
+                year=year,
+            )
+            live = self.manifest.filter_live_search_results(candidates)
+            if (
+                len(live) >= top_k
+                or len(candidates) < candidate_limit
+                or candidate_limit >= maximum_limit
+            ):
+                return live[:top_k]
+            candidate_limit = min(maximum_limit, candidate_limit * 2)
 
     @_serialized
     def status(self) -> dict[str, Any]:
