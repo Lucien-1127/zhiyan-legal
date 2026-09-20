@@ -68,7 +68,7 @@ cd zhiyan-legal
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e ".[committee,test]"
+python -m pip install -e ".[api,committee,test]" "qdrant-client>=1.10.0"
 
 python -m pytest tests/ --tb=short -m "not integration"
 ```

@@ -69,6 +69,7 @@ all = [
     "pytest-cov>=5.0",
     "requests>=2.31.0",
     "sentence-transformers>=3.0.0",
+    "slowapi>=0.1.9",
     "uvicorn>=0.29.0",
 ]
 rag = [

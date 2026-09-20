@@ -24,7 +24,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[committee,test]"
+          # Exercise API and on-disk vector tests without downloading embedding models.
+          python -m pip install -e ".[api,committee,test]" "qdrant-client>=1.10.0"
           python -m pip check
 
       - name: Run tests (no API keys required)
