@@ -151,3 +151,54 @@ def test_jsonl_unknown_removal_creates_tombstone_and_retries(tmp_path):
         assert_scrubbed(index, "removed")
     finally:
         index.close()
+
+
+def test_removal_pending_stale_vector_is_hidden_from_search(tmp_path):
+    index, store = make_index(tmp_path)
+    record = rag.parse_jdoc(payload())
+    try:
+        index.index_record(record)
+        store.delete_judgment.side_effect = RuntimeError("synthetic delete failure")
+        assert sync(index, {"error": REMOVAL})["failed"] == 1
+        store.search.return_value = [{
+            "jid": JID,
+            "content_hash": record.content_hash,
+            "text": "已撤下但刪除失敗的舊向量",
+            "score": 0.99,
+        }]
+
+        assert index.search("合成查詢", top_k=8) == []
+        assert store.search.call_args.kwargs["top_k"] == 32
+    finally:
+        index.close()
+
+
+def test_search_only_returns_current_active_manifest_version(tmp_path):
+    index, store = make_index(tmp_path)
+    record = rag.parse_jdoc(payload())
+    try:
+        index.index_record(record)
+        store.search.return_value = [
+            {
+                "jid": JID,
+                "content_hash": "superseded-hash",
+                "text": "舊版本",
+                "score": 0.99,
+            },
+            {
+                "jid": JID,
+                "content_hash": record.content_hash,
+                "text": "目前版本",
+                "score": 0.98,
+            },
+            {
+                "jid": "UNKNOWN-JID",
+                "content_hash": "unknown-hash",
+                "text": "manifest 無此資料",
+                "score": 0.97,
+            },
+        ]
+
+        assert index.search("合成查詢", top_k=2) == [store.search.return_value[1]]
+    finally:
+        index.close()
