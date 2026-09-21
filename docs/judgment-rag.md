@@ -50,6 +50,58 @@ JUDGMENT_EMBED_BATCH_SIZE=32
 
 `manifest.sqlite3` 與 Qdrant 目錄包含判決全文與向量，應放在加密磁碟、私有備份或受控的部署環境，不應推送至公開 Git repository。專案的 `.gitignore` 已建議排除這些產物。
 
+## Qdrant Server 部署準備
+
+正式 Ubuntu／VM 主機可沿用既有 `backend/main.py`，以專用 Compose 檔啟動後端與
+Qdrant Server。Qdrant 固定為 `v1.19.1`；它只連到內部 Docker network，不映射到
+主機連接埠。FastAPI 預設也只綁定主機 `127.0.0.1:8000`，應由既有反向代理提供
+TLS 與外部存取控管。
+
+```bash
+cp .env.example .env
+chmod 600 .env
+# 編輯 .env：填入司法院帳密、固定 JUDGMENT_EMBED_MODEL_REVISION，勿提交 Git。
+
+docker compose -f compose.judgment-rag.yml config
+docker compose -f compose.judgment-rag.yml up -d --build
+docker compose -f compose.judgment-rag.yml ps
+```
+
+Compose 會強制使用下列 Server 模式設定，避免誤把內嵌 Qdrant 資料寫進容器層：
+
+```dotenv
+JUDGMENT_MANIFEST_PATH=/data/judgments/manifest.sqlite3
+JUDGMENT_QDRANT_PATH=
+JUDGMENT_QDRANT_HOST=qdrant
+JUDGMENT_QDRANT_PORT=6333
+```
+
+`judgment_manifest`、`judgment_qdrant` 與 `judgment_models` 都是具名持久 volume；執行
+`docker compose down` 不會刪除，但 `docker compose down -v` **會永久刪除資料**，
+正式主機不可在未備份時使用 `-v`。
+
+先確認一般 API 存活，再讓判決端點第一次載入模型並連線 Qdrant：
+
+```bash
+curl --fail http://127.0.0.1:8000/api/status
+curl --fail http://127.0.0.1:8000/api/judgments/status
+```
+
+少量真實驗收應使用明確 JID 清單，不先跑歷史全量或不受控的近期清單：
+
+```bash
+docker compose -f compose.judgment-rag.yml cp \
+  /secure/path/jids.txt backend:/tmp/jids.txt
+docker compose -f compose.judgment-rag.yml exec -T backend \
+  zhiyan-judgment-rag sync-jids /tmp/jids.txt
+docker compose -f compose.judgment-rag.yml exec -T backend \
+  zhiyan-judgment-rag status
+```
+
+這份 Compose 是部署準備，不代表正式主機已安裝或已同步判決。上線前仍須保存
+volume 備份／還原證據，並用 20–50 筆真實判決完成 API、模型、Qdrant Server 與
+HTTP 搜尋驗收。
+
 ## 指令
 
 查看狀態：
