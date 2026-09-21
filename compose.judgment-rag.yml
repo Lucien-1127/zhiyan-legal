@@ -1,0 +1,46 @@
+name: zhiyan-judgment-rag
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    restart: unless-stopped
+    volumes:
+      - judgment_qdrant:/qdrant/storage
+    networks:
+      - judgment_private
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      APP_HOST: 0.0.0.0
+      APP_PORT: 8000
+      APP_WORKERS: 1
+      JUDGMENT_MANIFEST_PATH: /data/judgments/manifest.sqlite3
+      JUDGMENT_QDRANT_PATH: ""
+      JUDGMENT_QDRANT_HOST: qdrant
+      JUDGMENT_QDRANT_PORT: 6333
+      HF_HOME: /models/huggingface
+    depends_on:
+      - qdrant
+    ports:
+      - "127.0.0.1:${JUDGMENT_API_PORT:-8000}:8000"
+    volumes:
+      - judgment_manifest:/data/judgments
+      - judgment_models:/models/huggingface
+    networks:
+      - default
+      - judgment_private
+
+volumes:
+  judgment_qdrant:
+  judgment_manifest:
+  judgment_models:
+
+networks:
+  judgment_private:
+    internal: true
