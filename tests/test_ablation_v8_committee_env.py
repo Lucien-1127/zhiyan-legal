@@ -65,3 +65,19 @@ def test_shell_credentials_take_precedence_over_dotenv(tmp_path, monkeypatch):
     assert credentials["agnes_key_1"] == "agnes-primary-from-shell"
     assert credentials["agnes_key_2"] == "agnes-secondary-legacy-from-dotenv"
     assert credentials["gemini_key"] == "gemini-from-dotenv"
+
+
+def test_legacy_shell_alias_precedes_canonical_dotenv(tmp_path, monkeypatch):
+    clear_credentials(monkeypatch)
+    monkeypatch.setenv("AGNES_KEY1", "agnes-legacy-from-shell")
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "AGNES_API_KEY_1=agnes-canonical-from-dotenv\n"
+        "AGNES_API_KEY_2=agnes-secondary-from-dotenv\n"
+        "GEMINI_API_KEY=gemini-from-dotenv\n",
+        encoding="utf-8",
+    )
+
+    credentials = load_committee_module().load_committee_credentials(env_file)
+
+    assert credentials["agnes_key_1"] == "agnes-legacy-from-shell"
