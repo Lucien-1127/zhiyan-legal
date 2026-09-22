@@ -29,7 +29,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from collections import defaultdict
 
-from dotenv import load_dotenv
+from dotenv import dotenv_values
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -42,7 +42,7 @@ K2 = ""
 
 
 def load_committee_credentials(env_file=None):
-    """Load documented credentials while preserving shell precedence by alias."""
+    """Resolve nonempty shell credentials before project .env aliases."""
     credential_names = (
         "AGNES_API_KEY_1",
         "AGNES_API_KEY_2",
@@ -51,17 +51,15 @@ def load_committee_credentials(env_file=None):
         "GEMINI_API_KEY",
     )
     shell_values = {name: os.getenv(name, "") for name in credential_names}
-    load_dotenv(
-        dotenv_path=env_file or PROJECT_ROOT / ".env",
-        override=False,
-    )
+    file_values = dotenv_values(env_file or PROJECT_ROOT / ".env")
 
     def resolve(primary, legacy=None):
         return (
             shell_values[primary]
             or (shell_values[legacy] if legacy else "")
-            or os.getenv(primary, "")
-            or (os.getenv(legacy, "") if legacy else "")
+            or file_values.get(primary, "")
+            or (file_values.get(legacy, "") if legacy else "")
+            or ""
         )
 
     return {
@@ -69,6 +67,7 @@ def load_committee_credentials(env_file=None):
         "agnes_key_2": resolve("AGNES_API_KEY_2", "AGNES_KEY2"),
         "gemini_key": resolve("GEMINI_API_KEY"),
     }
+
 
 PRJ = str(Path.home() / "zhiyan-legal")
 SCR = str(Path.home() / "zhiyan-legal" / "tests" / "run_ablation.py")
