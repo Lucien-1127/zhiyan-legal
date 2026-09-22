@@ -29,12 +29,29 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from collections import defaultdict
 
+from dotenv import load_dotenv
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
 D = Path.home() / "zhiyan-legal" / "tests" / "ablation_results"
 D.mkdir(parents=True, exist_ok=True)
 LOG = D / "run_v8_committee.log"
 
-K1 = os.getenv("AGNES_API_KEY_1") or os.getenv("AGNES_KEY1", "")
-K2 = os.getenv("AGNES_API_KEY_2") or os.getenv("AGNES_KEY2", "")
+K1 = ""
+K2 = ""
+
+
+def load_committee_credentials(env_file=None):
+    """Load documented project credentials without overriding shell values."""
+    load_dotenv(
+        dotenv_path=env_file or PROJECT_ROOT / ".env",
+        override=False,
+    )
+    return {
+        "agnes_key_1": os.getenv("AGNES_API_KEY_1") or os.getenv("AGNES_KEY1", ""),
+        "agnes_key_2": os.getenv("AGNES_API_KEY_2") or os.getenv("AGNES_KEY2", ""),
+        "gemini_key": os.getenv("GEMINI_API_KEY", ""),
+    }
 
 PRJ = str(Path.home() / "zhiyan-legal")
 SCR = str(Path.home() / "zhiyan-legal" / "tests" / "run_ablation.py")
@@ -153,10 +170,14 @@ def load_query_categories():
 
 
 def main():
+    global K1, K2
+    credentials = load_committee_credentials()
+    K1 = credentials["agnes_key_1"]
+    K2 = credentials["agnes_key_2"]
     required_credentials = {
         "AGNES_API_KEY_1 (or AGNES_KEY1)": K1,
         "AGNES_API_KEY_2 (or AGNES_KEY2)": K2,
-        "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY", ""),
+        "GEMINI_API_KEY": credentials["gemini_key"],
     }
     missing = [name for name, value in required_credentials.items() if not value]
     if missing:
