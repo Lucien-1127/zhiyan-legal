@@ -97,3 +97,29 @@ def test_empty_shell_value_allows_dotenv_fallback(tmp_path, monkeypatch):
     credentials = load_committee_module().load_committee_credentials(env_file)
 
     assert credentials["agnes_key_1"] == "agnes-primary-from-dotenv"
+
+
+def test_gemini_worker_receives_resolved_credential(tmp_path, monkeypatch):
+    clear_credentials(monkeypatch)
+    module = load_committee_module()
+    module.D = tmp_path
+    module.LOG = tmp_path / "committee.log"
+    module.PRJ = str(tmp_path)
+    module.SCR = str(tmp_path / "run_ablation.py")
+    module.GEMINI_KEY = "gemini-resolved-value"
+    captured = {}
+
+    class Completed:
+        returncode = 0
+        stdout = ""
+        stderr = ""
+
+    def fake_run(command, **kwargs):
+        captured["env"] = kwargs["env"]
+        return Completed()
+
+    monkeypatch.setattr(module.subprocess, "run", fake_run)
+
+    module.run_model(3, "gemini", "gemini", "gemini-test-model")
+
+    assert captured["env"]["GEMINI_API_KEY"] == "gemini-resolved-value"
