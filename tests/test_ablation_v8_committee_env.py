@@ -123,3 +123,38 @@ def test_gemini_worker_receives_resolved_credential(tmp_path, monkeypatch):
     module.run_model(3, "gemini", "gemini", "gemini-test-model")
 
     assert captured["env"]["GEMINI_API_KEY"] == "gemini-resolved-value"
+
+
+def test_rejects_shipped_template_credentials(tmp_path, monkeypatch):
+    clear_credentials(monkeypatch)
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "AGNES_API_KEY_1=your-agnes-key-1\n"
+        "AGNES_API_KEY_2=your-agnes-key-2\n"
+        "GEMINI_API_KEY=AIza...\n",
+        encoding="utf-8",
+    )
+
+    credentials = load_committee_module().load_committee_credentials(env_file)
+
+    assert credentials == {
+        "agnes_key_1": "",
+        "agnes_key_2": "",
+        "gemini_key": "",
+    }
+
+
+def test_worker_failure_stops_committee_run():
+    module = load_committee_module()
+
+    try:
+        module.ensure_workers_succeeded(
+            [
+                {"label": "agnes-k1", "code": 0},
+                {"label": "gemini", "code": 2},
+            ]
+        )
+    except SystemExit as exc:
+        assert str(exc) == "Committee worker failure: gemini exit=2"
+    else:
+        raise AssertionError("worker failure must stop the committee run")
