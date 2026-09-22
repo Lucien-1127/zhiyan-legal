@@ -39,6 +39,7 @@ LOG = D / "run_v8_committee.log"
 
 K1 = ""
 K2 = ""
+GEMINI_KEY = ""
 
 
 def load_committee_credentials(env_file=None):
@@ -95,6 +96,7 @@ def run_model(wid, label, key_or_provider, model, cats=HARD_CATS, extras=None):
         env |= {"ZHIYAN_API_KEY": "nokey", "ZHIYAN_API_KEY_2": "",
                 "ZHIYAN_API_BASE_URL": "",
                 "ZHIYAN_MODEL": model, "ZHIYAN_PROVIDER": "gemini",
+                "GEMINI_API_KEY": GEMINI_KEY,
                 "PYTHONPATH": "src"}
     else:
         # OpenAI-compatible (Agnes, DeepSeek)
@@ -186,10 +188,11 @@ def load_query_categories():
 
 
 def main():
-    global K1, K2
+    global K1, K2, GEMINI_KEY
     credentials = load_committee_credentials()
     K1 = credentials["agnes_key_1"]
     K2 = credentials["agnes_key_2"]
+    GEMINI_KEY = credentials["gemini_key"]
     required_credentials = {
         "AGNES_API_KEY_1 (or AGNES_KEY1)": K1,
         "AGNES_API_KEY_2 (or AGNES_KEY2)": K2,
