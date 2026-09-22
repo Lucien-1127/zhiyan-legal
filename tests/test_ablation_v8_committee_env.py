@@ -81,3 +81,19 @@ def test_legacy_shell_alias_precedes_canonical_dotenv(tmp_path, monkeypatch):
     credentials = load_committee_module().load_committee_credentials(env_file)
 
     assert credentials["agnes_key_1"] == "agnes-legacy-from-shell"
+
+
+def test_empty_shell_value_allows_dotenv_fallback(tmp_path, monkeypatch):
+    clear_credentials(monkeypatch)
+    monkeypatch.setenv("AGNES_API_KEY_1", "")
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "AGNES_API_KEY_1=agnes-primary-from-dotenv\n"
+        "AGNES_API_KEY_2=agnes-secondary-from-dotenv\n"
+        "GEMINI_API_KEY=gemini-from-dotenv\n",
+        encoding="utf-8",
+    )
+
+    credentials = load_committee_module().load_committee_credentials(env_file)
+
+    assert credentials["agnes_key_1"] == "agnes-primary-from-dotenv"
