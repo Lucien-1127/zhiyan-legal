@@ -40,6 +40,11 @@ LOG = D / "run_v8_committee.log"
 K1 = ""
 K2 = ""
 GEMINI_KEY = ""
+TEMPLATE_CREDENTIALS = {
+    "your-agnes-key-1",
+    "your-agnes-key-2",
+    "AIza...",
+}
 
 
 def load_committee_credentials(env_file=None):
@@ -55,12 +60,19 @@ def load_committee_credentials(env_file=None):
     file_values = dotenv_values(env_file or PROJECT_ROOT / ".env")
 
     def resolve(primary, legacy=None):
-        return (
-            shell_values[primary]
-            or (shell_values[legacy] if legacy else "")
-            or file_values.get(primary, "")
-            or (file_values.get(legacy, "") if legacy else "")
-            or ""
+        candidates = (
+            shell_values[primary],
+            shell_values[legacy] if legacy else "",
+            file_values.get(primary, ""),
+            file_values.get(legacy, "") if legacy else "",
+        )
+        return next(
+            (
+                value
+                for value in candidates
+                if value and value not in TEMPLATE_CREDENTIALS
+            ),
+            "",
         )
 
     return {
@@ -187,6 +199,15 @@ def load_query_categories():
     return {q["id"]: q.get("category", "?") for q in data["queries"]}
 
 
+def ensure_workers_succeeded(results):
+    failed = [result for result in results if result["code"] != 0]
+    if failed:
+        details = ", ".join(
+            f'{result["label"]} exit={result["code"]}' for result in failed
+        )
+        raise SystemExit("Committee worker failure: " + details)
+
+
 def main():
     global K1, K2, GEMINI_KEY
     credentials = load_committee_credentials()
@@ -222,6 +243,7 @@ def main():
                                "ZHIYAN_API_BASE_URL": ""})
         results = [f.result() for f in as_completed([f1, f2, f3])]
 
+    ensure_workers_succeeded(results)
     tt = time.time() - ts
 
     log("")
