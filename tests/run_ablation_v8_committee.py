@@ -42,15 +42,32 @@ K2 = ""
 
 
 def load_committee_credentials(env_file=None):
-    """Load documented project credentials without overriding shell values."""
+    """Load documented credentials while preserving shell precedence by alias."""
+    credential_names = (
+        "AGNES_API_KEY_1",
+        "AGNES_API_KEY_2",
+        "AGNES_KEY1",
+        "AGNES_KEY2",
+        "GEMINI_API_KEY",
+    )
+    shell_values = {name: os.getenv(name, "") for name in credential_names}
     load_dotenv(
         dotenv_path=env_file or PROJECT_ROOT / ".env",
         override=False,
     )
+
+    def resolve(primary, legacy=None):
+        return (
+            shell_values[primary]
+            or (shell_values[legacy] if legacy else "")
+            or os.getenv(primary, "")
+            or (os.getenv(legacy, "") if legacy else "")
+        )
+
     return {
-        "agnes_key_1": os.getenv("AGNES_API_KEY_1") or os.getenv("AGNES_KEY1", ""),
-        "agnes_key_2": os.getenv("AGNES_API_KEY_2") or os.getenv("AGNES_KEY2", ""),
-        "gemini_key": os.getenv("GEMINI_API_KEY", ""),
+        "agnes_key_1": resolve("AGNES_API_KEY_1", "AGNES_KEY1"),
+        "agnes_key_2": resolve("AGNES_API_KEY_2", "AGNES_KEY2"),
+        "gemini_key": resolve("GEMINI_API_KEY"),
     }
 
 PRJ = str(Path.home() / "zhiyan-legal")
