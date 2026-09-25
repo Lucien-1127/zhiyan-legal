@@ -193,6 +193,12 @@ POST /api/judgments/search
 
 回傳會包含 `jid`、法院、裁判日期、案由、切片序號、原文與來源 URL；前端或 LLM 層應把這些欄位轉成可核對的判決引用，不應只顯示向量分數。
 
+當上游已將檢索結果綁定為 canonical `Evidence`／`Citation` 後，`POST /api/chat`
+會在 `citations` 欄位回傳來源標題、定位、精確原文、裁判適用時點與驗證狀態。
+模型請求只會把這批引註當成不受信任的資料，並明確禁止在引註清單為空時虛構來源。
+目前這項修補完成的是回答與引用的傳遞邊界；把本地 Qdrant 搜尋結果自動建立為
+canonical claim/evidence/citation，仍須在主鏈接線與人工覆核驗收中完成。
+
 API 同步產生的 `source_url` 會使用實際設定的 `JUDICIAL_API_BASE_URL` 再加上
 `/JDoc`，因此透過受控 proxy 或測試端點同步時，不會誤標成正式 API 位址。若同一 JID
 的來源端點改變，即使判決全文 hash 相同，也會重新發布 Qdrant payload，避免 SQLite

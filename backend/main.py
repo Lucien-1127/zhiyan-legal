@@ -79,6 +79,7 @@ class ChatResponse(BaseModel):
     request_id: str = ""
     decision: str
     answer_meta: dict
+    citations: list[dict[str, Any]] = Field(default_factory=list)
     error: str | None = None
 
 
@@ -320,7 +321,7 @@ async def chat(request: Request, body: ChatRequest):
     return ChatResponse(**payload)
 
 
-def _chat_payload(body: ChatRequest, _context, meta: AnswerMeta, content: str, rid: str) -> dict:
+def _chat_payload(body: ChatRequest, context, meta: AnswerMeta, content: str, rid: str) -> dict:
     """Adapt one canonical execution result to the HTTP response contract."""
     legal = any(term in body.message for term in ("法", "契約", "判決", "訴訟", "條"))
     return {
@@ -333,8 +334,41 @@ def _chat_payload(body: ChatRequest, _context, meta: AnswerMeta, content: str, r
         "request_id": rid or meta.execution_id,
         "decision": meta.decision.value,
         "answer_meta": meta.model_dump(mode="json"),
+        "citations": _chat_citations(context),
         "error": "; ".join(meta.tool_failures) or None,
     }
+
+
+def _chat_citations(context) -> list[dict[str, Any]]:
+    """Return only citations that still resolve to canonical evidence."""
+
+    evidence_by_id = {
+        str(item.source_id): item for item in getattr(context, "evidence", [])
+    }
+    output: list[dict[str, Any]] = []
+    for citation in getattr(context, "citations", []):
+        evidence = evidence_by_id.get(str(citation.source_id))
+        if evidence is None:
+            continue
+        output.append(
+            {
+                "citation_id": str(citation.citation_id),
+                "source_id": str(citation.source_id),
+                "source_type": evidence.source_type.value,
+                "title": evidence.title,
+                "locator": citation.locator,
+                "exact_quote": citation.exact_quote,
+                "evidence_level": citation.evidence_level.value,
+                "verification": evidence.verification.value,
+                "effective_at": (
+                    evidence.effective_at.isoformat()
+                    if evidence.effective_at is not None
+                    else None
+                ),
+                "verified_at": citation.verified_at.isoformat(),
+            }
+        )
+    return output
 
 
 def _chat_status_code(meta: AnswerMeta) -> int:
