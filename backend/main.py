@@ -32,6 +32,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -67,6 +68,13 @@ class ChatRequest(BaseModel):
     max_tokens: int = Field(default=4096, ge=1, le=16384)
     task: str = Field(default="QC", description="application engine task mode")
     conversation_history: list[dict[str, str]] = Field(default_factory=list)
+    use_judgments: bool = Field(
+        default=False,
+        description="以本地判決庫建立可核對的研究引註；僅支援 RESEARCH task",
+    )
+    judgment_top_k: int = Field(default=5, ge=1, le=8)
+    judgment_jid: str = Field(default="", max_length=300)
+    judgment_year: str = Field(default="", max_length=10)
 
 
 class ChatResponse(BaseModel):
@@ -298,11 +306,39 @@ async def chat(request: Request, body: ChatRequest):
     engine = get_engine()
     rid = request.state.request_id
 
+    context = None
+    if body.use_judgments:
+        if body.task.strip().upper() != "RESEARCH":
+            raise HTTPException(
+                status_code=400,
+                detail="use_judgments 只能搭配 task=RESEARCH，避免把研究檢索誤當個案法律結論",
+            )
+        try:
+            results = await run_in_threadpool(
+                get_judgment_index().search,
+                body.message,
+                body.judgment_top_k,
+                jid=body.judgment_jid,
+                year=body.judgment_year,
+            )
+        except Exception as exc:
+            logger.exception("[%s] 對話主鏈的判決檢索失敗", rid)
+            raise HTTPException(status_code=503, detail=f"判決向量庫未就緒：{exc}") from exc
+
+        from zhiyan_legal.judgment_answer import build_judgment_research_context
+
+        context = build_judgment_research_context(
+            body.message,
+            results,
+            execution_id=rid,
+        )
+
     try:
         context, meta, content = await engine.query_async(
             body.message,
             conversation_history=body.conversation_history,
             task=body.task,
+            context=context,
         )
     except ProviderError as exc:
         logger.error("[%s] 提供商錯誤: %s", rid, exc)

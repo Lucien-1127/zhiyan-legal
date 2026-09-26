@@ -193,11 +193,27 @@ POST /api/judgments/search
 
 回傳會包含 `jid`、法院、裁判日期、案由、切片序號、原文與來源 URL；前端或 LLM 層應把這些欄位轉成可核對的判決引用，不應只顯示向量分數。
 
-當上游已將檢索結果綁定為 canonical `Evidence`／`Citation` 後，`POST /api/chat`
-會在 `citations` 欄位回傳來源標題、定位、精確原文、裁判適用時點與驗證狀態。
+`POST /api/chat` 可明確啟用本地判決檢索，並把通過 manifest 有效版本檢查的
+Qdrant 切片綁定為 canonical `Claim`／`Evidence`／`Citation`：
+
+```json
+{
+  "message": "毒品案件再犯期間如何判斷？",
+  "task": "RESEARCH",
+  "use_judgments": true,
+  "judgment_top_k": 5,
+  "judgment_year": ""
+}
+```
+
+`use_judgments` 只允許搭配 `task=RESEARCH`。檢索在工作執行緒進行，不阻塞
+FastAPI event loop；索引未就緒會回傳 HTTP 503。找不到同時具有原文、裁判日期與
+來源定位的切片時，證據閘門會回 `ASK`，不會呼叫模型或虛構引註。
+
+`citations` 欄位回傳來源標題、JID／切片定位、精確原文、裁判日期與驗證狀態。
+語意檢索只證明「找到了這段原文」，不證明判決適用於個案，因此標記為
+`PARTIAL`／`NEED_CHECK`，仍須人工覆核案件事實與法律適用。
 模型請求只會把這批引註當成不受信任的資料，並明確禁止在引註清單為空時虛構來源。
-目前這項修補完成的是回答與引用的傳遞邊界；把本地 Qdrant 搜尋結果自動建立為
-canonical claim/evidence/citation，仍須在主鏈接線與人工覆核驗收中完成。
 
 API 同步產生的 `source_url` 會使用實際設定的 `JUDICIAL_API_BASE_URL` 再加上
 `/JDoc`，因此透過受控 proxy 或測試端點同步時，不會誤標成正式 API 位址。若同一 JID
@@ -229,6 +245,8 @@ python -m pip install -e '.[test]' 'qdrant-client>=1.10.0'
 PYTHONPATH=src python -m pytest \
   tests/test_judgment_resources.py \
   tests/test_judgment_qdrant_integration.py \
+  tests/test_judgment_answer_context.py \
+  tests/interfaces/test_chat_judgment_retrieval.py \
   tests/test_judgment_index_fingerprint.py -q
 ```
 

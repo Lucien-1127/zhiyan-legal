@@ -12,6 +12,7 @@ import pytest
 pytest.importorskip("qdrant_client")
 
 from zhiyan_legal import judgment_rag as rag
+from zhiyan_legal.judgment_answer import build_judgment_research_context
 
 
 def record(text="合成測試內容。", jid="SYNTHETIC-JUDGMENT-A"):
@@ -19,6 +20,7 @@ def record(text="合成測試內容。", jid="SYNTHETIC-JUDGMENT-A"):
         jid=jid, year="115", case_word="測試", case_number="0",
         judgment_date="20260914", title="合成判決：非真實法律資料",
         full_type="text", content=text,
+        source_url="https://data.judicial.gov.tw/jdg/api/JDoc",
     )
 
 
@@ -132,6 +134,24 @@ def test_close_releases_directory_and_persists_searchable_index(open_index):
     index.close()
     reopened = open_index()
     assert_complete(reopened, expected)
+
+
+def test_real_local_qdrant_hit_enters_canonical_answer_context(open_index):
+    index = open_index()
+    expected = record("可核對的合成判決原文。")
+    index.index_record(expected)
+
+    hits = index.search("合成判決", top_k=3)
+    context = build_judgment_research_context(
+        "合成判決",
+        hits,
+        execution_id="local-qdrant-answer",
+    )
+
+    assert hits and hits[0]["jid"] == expected.jid
+    assert context.citations[0].exact_quote == hits[0]["text"]
+    assert context.evidence[0].title == expected.title
+    assert expected.jid in context.citations[0].locator
 
 
 def test_official_removal_failure_scrubs_sqlite_then_real_qdrant_retry(open_index):
