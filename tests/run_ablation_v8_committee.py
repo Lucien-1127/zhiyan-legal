@@ -19,7 +19,12 @@ Architecture:
     - Collective blind spot rate (unanimous FAIL / total)
     - Cross-model agreement (%)
 """
-import os, re, subprocess, sys, time, json
+import json
+import os
+import re
+import subprocess
+import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from collections import defaultdict
@@ -28,10 +33,8 @@ D = Path.home() / "zhiyan-legal" / "tests" / "ablation_results"
 D.mkdir(parents=True, exist_ok=True)
 LOG = D / "run_v8_committee.log"
 
-_k1a = 'sk-dlL'; _k1b = 'kC3tAh9zmu2wDjbOIG7dd'; _k1c = 'p3H6leZN7Mv7K29QLQUo4Y4V'
-K1 = _k1a + _k1b + _k1c
-_k2a = 'sk-'; _k2b = 'Ggsl3OR0CLyCdOES3Y2Biz3eldpxWTA8EY'; _k2c = 'eRfKJWiVpHNo80'
-K2 = _k2a + _k2b + _k2c
+K1 = os.getenv("AGNES_API_KEY_1") or os.getenv("AGNES_KEY1", "")
+K2 = os.getenv("AGNES_API_KEY_2") or os.getenv("AGNES_KEY2", "")
 
 PRJ = str(Path.home() / "zhiyan-legal")
 SCR = str(Path.home() / "zhiyan-legal" / "tests" / "run_ablation.py")
@@ -150,6 +153,17 @@ def load_query_categories():
 
 
 def main():
+    required_credentials = {
+        "AGNES_API_KEY_1 (or AGNES_KEY1)": K1,
+        "AGNES_API_KEY_2 (or AGNES_KEY2)": K2,
+        "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY", ""),
+    }
+    missing = [name for name, value in required_credentials.items() if not value]
+    if missing:
+        raise SystemExit(
+            "Missing required environment variables: " + ", ".join(missing)
+        )
+
     log("=" * 60)
     log("🚀 Ablation v8 — Multi-Model Committee Sanction")
     log(f"  Models: Agnes K1, Agnes K2, Gemini 2.5F")

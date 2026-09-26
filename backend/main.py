@@ -20,6 +20,8 @@ import time
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
+from threading import Lock
+from typing import Any
 
 from dotenv import load_dotenv
 load_dotenv()  # 載入 .env（含 ZHIYAN_API_KEY）
@@ -30,6 +32,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.concurrency import run_in_threadpool
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
@@ -65,6 +68,13 @@ class ChatRequest(BaseModel):
     max_tokens: int = Field(default=4096, ge=1, le=16384)
     task: str = Field(default="QC", description="application engine task mode")
     conversation_history: list[dict[str, str]] = Field(default_factory=list)
+    use_judgments: bool = Field(
+        default=False,
+        description="以本地判決庫建立可核對的研究引註；僅支援 RESEARCH task",
+    )
+    judgment_top_k: int = Field(default=5, ge=1, le=8)
+    judgment_jid: str = Field(default="", max_length=300)
+    judgment_year: str = Field(default="", max_length=10)
 
 
 class ChatResponse(BaseModel):
@@ -77,6 +87,7 @@ class ChatResponse(BaseModel):
     request_id: str = ""
     decision: str
     answer_meta: dict
+    citations: list[dict[str, Any]] = Field(default_factory=list)
     error: str | None = None
 
 
@@ -96,9 +107,19 @@ class ErrorResponse(BaseModel):
     request_id: str = ""
 
 
+class JudgmentSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=5000, description="判決檢索問題")
+    top_k: int = Field(default=8, ge=1, le=50)
+    jid: str = Field(default="", max_length=300)
+    year: str = Field(default="", max_length=10)
+
+
 # ─── 引擎相依注入 ──────────────────────────────────────
 
 _engine: ZhiyanApplicationEngine | None = None
+_judgment_index: Any = None
+_judgment_index_lock = Lock()
+_judgment_index_closing = False
 
 
 def get_engine() -> ZhiyanApplicationEngine:
@@ -112,17 +133,29 @@ def get_engine() -> ZhiyanApplicationEngine:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """啟動/關閉：引擎初始化 + 資源釋放"""
-    global _engine
+    global _engine, _judgment_index, _judgment_index_closing
 
     logger.info("🚀 智研 SaaS 版 v2.0 啟動中...")
     _engine = ZhiyanApplicationEngine()
+    with _judgment_index_lock:
+        _judgment_index_closing = False
     logger.info("✅ application engine 就緒 | providers=%d", len(_engine.registry))
 
-    yield
-
-    # 關閉
-    _engine = None
-    logger.info("🛑 智研 SaaS 版已關閉")
+    try:
+        yield
+    finally:
+        # Detach the singleton while holding the same lock used for lazy
+        # initialization. New requests cannot recreate it during shutdown.
+        _engine = None
+        with _judgment_index_lock:
+            _judgment_index_closing = True
+            judgment_index = _judgment_index
+            _judgment_index = None
+        try:
+            if judgment_index is not None:
+                judgment_index.close()
+        finally:
+            logger.info("🛑 智研 SaaS 版已關閉")
 
 
 # ─── FastAPI 實例 ──────────────────────────────────────
@@ -226,6 +259,46 @@ async def get_status(request: Request):
     )
 
 
+def get_judgment_index():
+    """延遲載入本地判決向量庫，避免一般聊天啟動時載入嵌入模型。"""
+    global _judgment_index
+    with _judgment_index_lock:
+        if _judgment_index_closing:
+            raise RuntimeError("判決向量庫正在關閉")
+        if _judgment_index is None:
+            from zhiyan_legal.judgment_rag import index_from_env
+
+            _judgment_index = index_from_env()
+        return _judgment_index
+
+
+@app.get("/api/judgments/status")
+@limiter.limit(_RATE_LIMIT)
+def get_judgment_status(request: Request):
+    """回傳本地判決 manifest 與 Qdrant 狀態。"""
+    try:
+        return get_judgment_index().status()
+    except Exception as exc:
+        logger.exception("判決向量庫狀態讀取失敗")
+        raise HTTPException(status_code=503, detail=f"判決向量庫未就緒：{exc}") from exc
+
+
+@app.post("/api/judgments/search")
+@limiter.limit(_RATE_LIMIT)
+def search_local_judgments(request: Request, body: JudgmentSearchRequest):
+    """以本地判決向量庫檢索，回傳可供引用的 metadata 與原文切片。"""
+    try:
+        return {
+            "query": body.query,
+            "results": get_judgment_index().search(
+                body.query, top_k=body.top_k, jid=body.jid, year=body.year
+            ),
+        }
+    except Exception as exc:
+        logger.exception("本地判決檢索失敗")
+        raise HTTPException(status_code=503, detail=f"判決向量庫未就緒：{exc}") from exc
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 @limiter.limit(_RATE_LIMIT)
 async def chat(request: Request, body: ChatRequest):
@@ -233,11 +306,39 @@ async def chat(request: Request, body: ChatRequest):
     engine = get_engine()
     rid = request.state.request_id
 
+    context = None
+    if body.use_judgments:
+        if body.task.strip().upper() != "RESEARCH":
+            raise HTTPException(
+                status_code=400,
+                detail="use_judgments 只能搭配 task=RESEARCH，避免把研究檢索誤當個案法律結論",
+            )
+        try:
+            results = await run_in_threadpool(
+                get_judgment_index().search,
+                body.message,
+                body.judgment_top_k,
+                jid=body.judgment_jid,
+                year=body.judgment_year,
+            )
+        except Exception as exc:
+            logger.exception("[%s] 對話主鏈的判決檢索失敗", rid)
+            raise HTTPException(status_code=503, detail=f"判決向量庫未就緒：{exc}") from exc
+
+        from zhiyan_legal.judgment_answer import build_judgment_research_context
+
+        context = build_judgment_research_context(
+            body.message,
+            results,
+            execution_id=rid,
+        )
+
     try:
         context, meta, content = await engine.query_async(
             body.message,
             conversation_history=body.conversation_history,
             task=body.task,
+            context=context,
         )
     except ProviderError as exc:
         logger.error("[%s] 提供商錯誤: %s", rid, exc)
@@ -256,7 +357,7 @@ async def chat(request: Request, body: ChatRequest):
     return ChatResponse(**payload)
 
 
-def _chat_payload(body: ChatRequest, _context, meta: AnswerMeta, content: str, rid: str) -> dict:
+def _chat_payload(body: ChatRequest, context, meta: AnswerMeta, content: str, rid: str) -> dict:
     """Adapt one canonical execution result to the HTTP response contract."""
     legal = any(term in body.message for term in ("法", "契約", "判決", "訴訟", "條"))
     return {
@@ -269,8 +370,41 @@ def _chat_payload(body: ChatRequest, _context, meta: AnswerMeta, content: str, r
         "request_id": rid or meta.execution_id,
         "decision": meta.decision.value,
         "answer_meta": meta.model_dump(mode="json"),
+        "citations": _chat_citations(context),
         "error": "; ".join(meta.tool_failures) or None,
     }
+
+
+def _chat_citations(context) -> list[dict[str, Any]]:
+    """Return only citations that still resolve to canonical evidence."""
+
+    evidence_by_id = {
+        str(item.source_id): item for item in getattr(context, "evidence", [])
+    }
+    output: list[dict[str, Any]] = []
+    for citation in getattr(context, "citations", []):
+        evidence = evidence_by_id.get(str(citation.source_id))
+        if evidence is None:
+            continue
+        output.append(
+            {
+                "citation_id": str(citation.citation_id),
+                "source_id": str(citation.source_id),
+                "source_type": evidence.source_type.value,
+                "title": evidence.title,
+                "locator": citation.locator,
+                "exact_quote": citation.exact_quote,
+                "evidence_level": citation.evidence_level.value,
+                "verification": evidence.verification.value,
+                "effective_at": (
+                    evidence.effective_at.isoformat()
+                    if evidence.effective_at is not None
+                    else None
+                ),
+                "verified_at": citation.verified_at.isoformat(),
+            }
+        )
+    return output
 
 
 def _chat_status_code(meta: AnswerMeta) -> int:
