@@ -7,11 +7,15 @@ Since sub_agent.py imports hermes_tools (Hermes runtime only),
 we mock delegate_task before importing the module.
 """
 
+import ast
+import importlib.util
 from pathlib import Path
 import sys
 from unittest.mock import patch, MagicMock
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+SOURCE_ROOT = Path(__file__).parent.parent / "src"
+SUB_AGENT_PATH = SOURCE_ROOT / "zhiyan_legal" / "sub_agent.py"
+sys.path.insert(0, str(SOURCE_ROOT))
 
 # Mock hermes_tools before importing sub_agent
 fake_delegate = MagicMock(name="delegate_task")
@@ -25,7 +29,10 @@ modules_patcher = patch.dict("sys.modules", {
 })
 modules_patcher.start()
 
-from zhiyan_legal import sub_agent
+spec = importlib.util.spec_from_file_location("zhiyan_legal_test_sub_agent", SUB_AGENT_PATH)
+assert spec is not None and spec.loader is not None
+sub_agent = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(sub_agent)
 
 modules_patcher.stop()
 
@@ -253,6 +260,16 @@ def test_run_full_analysis_has_expected_keys():
     assert len(result.keys()) == 3  # 沒有多餘 key
 
 
+def test_run_full_analysis_reuses_one_research_pass():
+    """相同三法域研究只能執行一次，避免重複費用與不一致結果。"""
+    _reset_mock()
+
+    result = sub_agent.run_full_analysis("詐欺罪")
+
+    assert fake_delegate.call_count == 1
+    assert result["citation_verify"] is result["domains"]
+
+
 # ── 7. Edge cases ──────────────────────────────────────
 
 def test_empty_citation_verify():
@@ -295,3 +312,11 @@ def test_delegate_task_called_with_tasks_kwarg():
     _, kwargs = fake_delegate.call_args
     assert "tasks" in kwargs
     assert isinstance(kwargs["tasks"], list)
+
+
+def test_module_has_no_duplicate_top_level_functions():
+    """同名函式會被 Python 靜默覆寫，應在測試階段直接擋下。"""
+    tree = ast.parse(SUB_AGENT_PATH.read_text(encoding="utf-8"))
+    names = [node.name for node in tree.body if isinstance(node, ast.FunctionDef)]
+
+    assert len(names) == len(set(names))
