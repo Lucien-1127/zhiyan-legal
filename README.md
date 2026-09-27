@@ -68,12 +68,9 @@ cd zhiyan-legal
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e ".[test]"
+python -m pip install -e ".[committee,test]"
 
-python -m pytest tests/ --tb=short \
-  --ignore=tests/test_c54_validation.py \
-  --ignore=tests/run_ablation_v8_committee.py \
-  -m "not integration"
+python -m pytest tests/ --tb=short -m "not integration"
 ```
 
 需要額外功能時安裝對應 extra：

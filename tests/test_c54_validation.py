@@ -7,24 +7,48 @@ tests/test_c54_validation.py — C5.4 來源可信度分級對應規則驗證測
 執行方式: python3 -m pytest tests/test_c54_validation.py -v
 """
 
-import pytest
 import asyncio
+import os
 import re
+
+import pytest
+
 from src.zhiyan_legal.engine import ZhiyanEngine, EngineConfig
 
-# ── FreeLLMAPI 設定 ──────────────────────────────
-TEST_CONFIG = EngineConfig(
-    api_base="http://127.0.0.1:3001/v1",
-    api_key="freellmapi-753f4ce293c4490259774f8afc7280313d1c8c4de43d06a1",
-    default_model="auto",
-    timeout=60,
-)
+pytestmark = pytest.mark.integration
 
 
 @pytest.fixture(scope="function")
-def engine():
+def engine(monkeypatch):
     """建立引擎實例，每次測試獨立使用"""
-    eng = ZhiyanEngine(TEST_CONFIG)
+    api_base = os.getenv("ZHIYAN_C54_API_BASE_URL")
+    api_key = os.getenv("ZHIYAN_C54_API_KEY")
+    if not api_base or not api_key:
+        pytest.skip(
+            "C5.4 integration tests require ZHIYAN_C54_API_BASE_URL and "
+            "ZHIYAN_C54_API_KEY"
+        )
+
+    # This integration test targets one explicit OpenAI-compatible endpoint.
+    # Do not allow unrelated credentials from the developer's shell or .env to
+    # take precedence inside ``ZhiyanEngine._provider_registry()``.
+    for name in (
+        "OPENAI_API_KEY",
+        "DEEPSEEK_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "OPENROUTER_API_KEY",
+    ):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("ZHIYAN_PROVIDER", "openai")
+
+    config = EngineConfig(
+        api_base=api_base,
+        api_key=api_key,
+        default_model=os.getenv("ZHIYAN_C54_MODEL", "auto"),
+        timeout=60,
+    )
+    eng = ZhiyanEngine(config)
     asyncio.run(eng.startup())
     yield eng
     asyncio.run(eng.shutdown())

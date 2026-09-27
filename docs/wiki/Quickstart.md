@@ -17,7 +17,7 @@ source .venv/bin/activate
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e ".[test]"
+python -m pip install -e ".[committee,test]"
 ```
 
 ## 2. 無 API 金鑰試跑
@@ -46,10 +46,7 @@ cp .env.example .env  # setup.sh 已建立時不必重複
 以下命令與 GitHub Actions 的無金鑰測試範圍一致：
 
 ```bash
-python -m pytest tests/ --tb=short \
-  --ignore=tests/test_c54_validation.py \
-  --ignore=tests/run_ablation_v8_committee.py \
-  -m "not integration"
+python -m pytest tests/ --tb=short -m "not integration"
 ```
 
 ## 5. 選用功能
