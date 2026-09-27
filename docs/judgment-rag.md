@@ -50,6 +50,25 @@ JUDGMENT_EMBED_BATCH_SIZE=32
 
 `manifest.sqlite3` 與 Qdrant 目錄包含判決全文與向量，應放在加密磁碟、私有備份或受控的部署環境，不應推送至公開 Git repository。專案的 `.gitignore` 已建議排除這些產物。
 
+CLI 會從目前目錄往上尋找最近的專案 `.env`，且不覆蓋主機或部署平台已注入的
+環境變數。設定後先執行不連線、不載入模型的預檢；輸出只顯示帳密是否存在，不會
+顯示帳號或密碼內容：
+
+```bash
+chmod 600 .env
+zhiyan-judgment-rag preflight
+```
+
+正式 Qdrant Server 主機應使用較嚴格模式：
+
+```bash
+zhiyan-judgment-rag preflight --require-server
+```
+
+此模式會要求帳密存在、`.env` 權限不開放給群組／其他使用者、
+`JUDGMENT_QDRANT_PATH` 為空、`JUDGMENT_QDRANT_HOST` 已設定、manifest 使用絕對路徑，
+並固定 `JUDGMENT_EMBED_MODEL_REVISION`。任一條件未通過會以 exit code 2 結束。
+
 ## Qdrant Server 部署準備
 
 正式 Ubuntu／VM 主機可沿用既有 `backend/main.py`，以專用 Compose 檔啟動後端與
@@ -66,6 +85,10 @@ docker compose -f compose.judgment-rag.yml config
 docker compose -f compose.judgment-rag.yml up -d --build
 docker compose -f compose.judgment-rag.yml ps
 ```
+
+後端容器啟動前也會執行 `preflight --require-server`；設定不完整時容器會明確失敗，
+不會在未知模型版本、local Qdrant 或缺少司法院帳密的狀態下假裝可用。由於 Compose
+只把 `.env` 的值注入容器，主機端檔案權限仍須在 `docker compose up` 前由上方命令檢查。
 
 Compose 會強制使用下列 Server 模式設定，避免誤把內嵌 Qdrant 資料寫進容器層：
 

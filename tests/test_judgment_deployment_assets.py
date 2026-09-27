@@ -28,6 +28,9 @@ def test_backend_uses_existing_fastapi_app_and_server_mode() -> None:
     assert environment["JUDGMENT_QDRANT_HOST"] == "qdrant"
     assert environment["JUDGMENT_MANIFEST_PATH"].startswith("/data/")
     assert "judgment_manifest:/data/judgments" in backend["volumes"]
+    command = "\n".join(backend["command"])
+    assert "zhiyan-judgment-rag preflight --require-server" in command
+    assert "exec uvicorn backend.main:app" in command
 
     dockerfile = (ROOT / "docker" / "Dockerfile.backend").read_text()
     assert '".[api,rag]"' in dockerfile
