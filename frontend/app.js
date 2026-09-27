@@ -1,11 +1,10 @@
 /* ══════════════════════════════════════════════════
-   智研 AI 法律系統 · SaaS 版
+   智研 AI 法律研究助手
    前端邏輯 — 聊天 UI 互動
    ══════════════════════════════════════════════════ */
 
 // ─── 狀態 ──────────────────────────────────────────
 const state = {
-  model: 'deepseek-chat',
   status: 'checking',
   messages: [],
   sending: false,
@@ -19,7 +18,6 @@ const welcome = $('#welcome');
 const input = $('#messageInput');
 const sendBtn = $('#sendBtn');
 const statusText = $('#statusText');
-const modelDisplay = $('#modelDisplay');
 const loadingOverlay = $('#loadingOverlay');
 
 // ─── 初始化 ────────────────────────────────────────
@@ -35,9 +33,7 @@ async function checkStatus() {
     const res = await fetch('/api/status');
     const data = await res.json();
     state.status = 'connected';
-    state.model = data.model;
     statusText.textContent = '已連線';
-    modelDisplay.textContent = data.model;
   } catch (e) {
     state.status = 'error';
     statusText.textContent = '連線失敗';
@@ -83,8 +79,6 @@ async function sendMessage() {
 
     const data = await res.json();
     addMessage(data.content, 'ai', data);
-    state.model = data.model;
-    modelDisplay.textContent = data.model;
   } catch (e) {
     addMessage(`❌ 查詢失敗：${e.message}`, 'ai', null, true);
   } finally {
@@ -116,13 +110,15 @@ function addMessage(text, role, meta = null, isError = false) {
     bubble.style.background = '#fef2f2';
   }
 
-  // 中繼資料
+  appendCitations(bubble, meta?.citations || []);
+
+  // 只顯示對使用者有意義的狀態，不顯示模型名或 token 數。
   if (meta && meta.mode) {
     const metaDiv = document.createElement('div');
     metaDiv.className = 'message-meta';
     metaDiv.innerHTML = `
-      <span class="mode-tag">${meta.mode_label}</span>
-      <span>⚡ ${meta.tokens_in + meta.tokens_out} tokens</span>
+      <span class="mode-tag">${escapeHtml(meta.mode_label || '法律研究')}</span>
+      <span>${decisionLabel(meta.decision)}</span>
     `;
     bubble.appendChild(metaDiv);
   }
@@ -133,6 +129,54 @@ function addMessage(text, role, meta = null, isError = false) {
 
   // 滾到底
   scrollToBottom();
+}
+
+function appendCitations(bubble, citations) {
+  if (!Array.isArray(citations) || citations.length === 0) return;
+
+  const section = document.createElement('section');
+  section.className = 'citation-list';
+
+  const heading = document.createElement('h3');
+  heading.textContent = '可核對的來源';
+  section.appendChild(heading);
+
+  citations.forEach((citation, index) => {
+    const item = document.createElement('article');
+    item.className = 'citation-item';
+
+    const title = document.createElement('strong');
+    title.textContent = `${index + 1}. ${citation.title || citation.locator || '來源'}`;
+    item.appendChild(title);
+
+    if (citation.exact_quote) {
+      const quote = document.createElement('blockquote');
+      quote.textContent = citation.exact_quote;
+      item.appendChild(quote);
+    }
+
+    if (citation.locator) {
+      const locator = document.createElement('div');
+      locator.className = 'citation-locator';
+      locator.textContent = citation.locator;
+      item.appendChild(locator);
+    }
+
+    section.appendChild(item);
+  });
+
+  bubble.appendChild(section);
+}
+
+function decisionLabel(decision) {
+  const labels = {
+    DELIVER: '已完成來源與風險檢查',
+    ASK: '需要補充資料',
+    HUMAN_REVIEW: '建議人工確認',
+    SAFE: '已停止高風險回答',
+    STOP: '資料不足，未繼續推測',
+  };
+  return labels[decision] || '請核對重要資訊';
 }
 
 // ─── 建議問題 ──────────────────────────────────────

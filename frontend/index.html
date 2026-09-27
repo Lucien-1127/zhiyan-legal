@@ -15,14 +15,14 @@
         <span class="logo-icon">⚖️</span>
         <div class="logo-text">
           <h1>智研</h1>
-          <span class="logo-sub">AI 法律系統</span>
+          <span class="logo-sub">台灣法律研究助手</span>
         </div>
       </div>
     </div>
 
     <nav class="sidebar-nav">
       <button class="nav-btn active" data-mode="chat">
-        <span>💬</span> 法律諮詢
+        <span>💬</span> 查法律問題
       </button>
       <button class="nav-btn" onclick="newChat()">
         <span>🆕</span> 新對話
@@ -34,7 +34,7 @@
         <span class="status-dot"></span>
         <span id="statusText">連線中...</span>
       </div>
-      <div class="version-info">v1.0.0 · SaaS 版</div>
+      <div class="version-info">研究工具，不取代律師</div>
     </div>
   </aside>
 
@@ -44,8 +44,8 @@
     <header class="topbar">
       <button class="mobile-menu-btn" id="menuToggle" aria-label="選單">☰</button>
       <div class="topbar-info">
-        <span class="topbar-title">⚖️ 法律諮詢</span>
-        <span class="topbar-model" id="modelDisplay">deepseek-chat</span>
+        <span class="topbar-title">⚖️ 查法律問題</span>
+        <span class="topbar-model">回答附上可核對線索</span>
       </div>
       <div class="topbar-actions">
         <button class="icon-btn" onclick="newChat()" title="新對話">🆕</button>
@@ -59,10 +59,15 @@
         <div class="welcome-content">
           <div class="welcome-text">
             <div class="welcome-icon">⚖️</div>
-            <h2>智研 AI 法律系統</h2>
+            <h2>先找依據，再回答法律問題</h2>
             <p class="welcome-desc">
-              台灣法律 AI 研究助手 · 5 層架構 · 強制引用 · 安全優先
+              智研幫你整理問題、說明依據，也會指出資料不足或需要人工確認的地方，降低把不確定答案當成法律事實的風險。
             </p>
+            <ul class="welcome-promises" aria-label="智研的回答原則">
+              <li>看得懂：用一般用語說明法律重點</li>
+              <li>查得到：有來源時提供可核對的引用</li>
+              <li>不硬猜：資料不足時明確告訴你</li>
+            </ul>
             <div class="welcome-suggestions">
               <button class="suggestion-chip" onclick="askSuggest(this)">
                 公然侮辱罪的構成要件是什麼？
@@ -78,9 +83,6 @@
               </button>
             </div>
           </div>
-          <div class="welcome-image">
-            <img src="images/homepage-architecture.png" alt="智研 AI 法律系統架構圖" />
-          </div>
         </div>
       </div>
 
@@ -94,7 +96,7 @@
         <textarea
           id="messageInput"
           class="message-input"
-          placeholder="輸入您的法律問題..."
+          placeholder="請描述發生了什麼事、時間及你想了解的問題..."
           rows="1"
           oninput="autoResize(this)"
           onkeydown="handleKeydown(event)"
@@ -105,6 +107,7 @@
       </div>
       <div class="input-footer">
         <span class="input-hint">Enter 送出 · Shift+Enter 換行</span>
+        <span class="input-disclaimer">重要權益請再由律師或主管機關確認</span>
       </div>
     </div>
   </main>
@@ -113,7 +116,7 @@
   <div class="loading-overlay" id="loadingOverlay" style="display:none">
     <div class="loading-spinner">
       <div class="spinner"></div>
-      <span>智研分析中...</span>
+      <span>正在整理問題與核對依據...</span>
     </div>
   </div>
 
