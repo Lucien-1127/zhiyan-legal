@@ -125,6 +125,57 @@ docker compose -f compose.judgment-rag.yml exec -T backend \
 volume 備份／還原證據，並用 20–50 筆真實判決完成 API、模型、Qdrant Server 與
 HTTP 搜尋驗收。
 
+### 備份與還原演練
+
+以下腳本會先停掉後端與 Qdrant，對兩個資料 volume 做一致的離線封存，再重新啟動。
+備份目的地必須是受控磁碟上的絕對路徑；腳本不會備份 `.env` 或模型快取：
+
+```bash
+ops/judgment-rag/backup.sh /secure/backups/zhiyan-judgments
+```
+
+備份目錄包含 SQLite／原文、Qdrant 資料、SHA-256 校驗檔與來源 commit。正式驗收要記錄
+備份前後的 `zhiyan-judgment-rag status`、搜尋結果與 `/api/chat` 引用。
+
+還原腳本刻意只接受**全新的空 volume**，不會清空或覆寫現有判決資料。先用另一個
+Compose project name 建立隔離的空 volume，再執行：
+
+```bash
+COMPOSE_PROJECT_NAME=zhiyan-judgment-restore \
+  ops/judgment-rag/restore.sh \
+  /secure/backups/zhiyan-judgments/20260928T021500+0800 \
+  --confirm-empty-target
+```
+
+校驗失敗、目標非空或解壓失敗時都不會宣告成功；解壓中斷時服務會保持停止，避免把
+部分還原的索引開放查詢。還原完成後必須重新執行 preflight、狀態、搜尋與引用驗收。
+
+### 主機增量排程
+
+`ops/judgment-rag/sync-once.sh` 會先確認專案 `.env` 存在且權限為 600、鎖定單一
+執行個體、確認台北時間介於 02:00–06:00、執行 Server 模式 preflight，再跑
+`sync-changes` 與 `status`。成功或失敗的輸出與 exit code 都保留在
+`data/judgments/ops/runs/`，預設保存 30 天；不記錄 `.env` 內容。
+
+範例 user systemd unit 假設 repository 位於 `~/zhiyan-legal`：
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp ops/judgment-rag/systemd/zhiyan-judgment-sync.* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now zhiyan-judgment-sync.timer
+systemctl --user list-timers zhiyan-judgment-sync.timer
+```
+
+若 repository 不在該位置，先修改 service 的 `WorkingDirectory` 與 `ExecStart`。執行帳號
+必須已有 Docker 權限，且主機重新開機後仍要執行 user timer 時，管理者需依主機政策
+啟用 linger。timer 不使用 `Persistent=true`，避免主機在 API 時段外開機時補跑。
+同步失敗會每 10 分鐘重試，單次最長三小時；`flock` 會阻止兩次同步重疊。
+
+上述檔案只是可審查的部署資產。只有在已授權持久主機上看到 timer 實際觸發、
+20–50 筆真實同步統計、失敗重試紀錄，以及隔離還原後相同搜尋／引用結果，才能標記
+「主機排程、備份還原已驗收」。
+
 ## 指令
 
 查看狀態：
