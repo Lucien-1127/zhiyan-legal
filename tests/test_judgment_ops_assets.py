@@ -21,6 +21,7 @@ def test_backup_stops_writers_and_archives_both_data_volumes() -> None:
     assert 'judgment_manifest.tar.gz' in script
     assert 'judgment_qdrant.tar.gz' in script
     assert 'sha256sum judgment_manifest.tar.gz judgment_qdrant.tar.gz' in script
+    assert 'chown "$1:$2"' in script
     assert 'start qdrant backend' in script
     assert 'down -v' not in script
 

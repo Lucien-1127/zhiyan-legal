@@ -11,6 +11,7 @@ if [[ $# -ne 1 || "$1" != /* ]]; then
 fi
 
 command -v docker >/dev/null
+command -v id >/dev/null
 command -v sha256sum >/dev/null
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,11 +30,17 @@ resolve_volume() {
 archive_volume() {
   local volume_name="$1"
   local archive_name="$2"
+  local owner_uid
+  local owner_gid
+  owner_uid="$(id -u)"
+  owner_gid="$(id -g)"
   docker run --rm --network none \
     -v "$volume_name:/source:ro" \
     -v "$backup_dir:/backup" \
     "$helper_image" \
-    tar -C /source -czf "/backup/$archive_name" .
+    sh -ec \
+    'tar -C /source -czf "/backup/$3" . && chown "$1:$2" "/backup/$3" && chmod 600 "/backup/$3"' \
+    sh "$owner_uid" "$owner_gid" "$archive_name"
 }
 
 qdrant_container="$("${compose[@]}" ps --all -q qdrant)"

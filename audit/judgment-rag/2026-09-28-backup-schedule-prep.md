@@ -8,6 +8,7 @@
 ## 實際變更
 
 - 新增具名 volume 離線備份腳本，保存 SQLite／原文與 Qdrant 資料及 SHA-256。
+- 備份 helper 以 root 讀取 volume 後，將封存檔 ownership 還給執行帳號並設為 600，避免 Docker group 使用者無法校驗或搬移備份。
 - 新增只允許還原至空 volume 的還原腳本，不會刪除或覆寫 live data。
 - 新增受鎖、限時、限定 API 時段的單次增量同步 wrapper。
 - 新增 user systemd service／timer 範例，失敗時有界重試。
