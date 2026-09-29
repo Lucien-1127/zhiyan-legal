@@ -2,6 +2,8 @@
 Description=Zhiyan Judicial Yuan judgment incremental sync
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=1h
+StartLimitBurst=3
 
 [Service]
 Type=oneshot
@@ -10,6 +12,7 @@ ExecStart=%h/zhiyan-legal/ops/judgment-rag/sync-once.sh
 TimeoutStartSec=3h10m
 Restart=on-failure
 RestartSec=10m
+RestartPreventExitStatus=2 3
 
 [Install]
 WantedBy=default.target

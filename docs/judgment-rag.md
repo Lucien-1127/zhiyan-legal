@@ -153,7 +153,7 @@ COMPOSE_PROJECT_NAME=zhiyan-judgment-restore \
 ### 主機增量排程
 
 `ops/judgment-rag/sync-once.sh` 會先確認專案 `.env` 存在且權限為 600、鎖定單一
-執行個體、確認台北時間介於 02:00–06:00、執行 Server 模式 preflight，再跑
+執行個體、確認台北時間介於 02:00–05:30、執行 Server 模式 preflight，再跑
 `sync-changes` 與 `status`。成功或失敗的輸出與 exit code 都保留在
 `data/judgments/ops/runs/`，預設保存 30 天；不記錄 `.env` 內容。
 
@@ -170,7 +170,11 @@ systemctl --user list-timers zhiyan-judgment-sync.timer
 若 repository 不在該位置，先修改 service 的 `WorkingDirectory` 與 `ExecStart`。執行帳號
 必須已有 Docker 權限，且主機重新開機後仍要執行 user timer 時，管理者需依主機政策
 啟用 linger。timer 不使用 `Persistent=true`，避免主機在 API 時段外開機時補跑。
-同步失敗會每 10 分鐘重試，單次最長三小時；`flock` 會阻止兩次同步重疊。
+同步失敗會每 10 分鐘重試，但每小時最多啟動三次；設定錯誤或已到 05:30 時不重試。
+單次同步預設最長三小時，接近 05:30 時會自動縮短剩餘時間，避免白天仍繼續呼叫
+司法院 API；`flock` 會阻止兩次同步重疊。若官方服務時段調整，可用
+`JUDGMENT_SYNC_WINDOW_START_HHMM` 與 `JUDGMENT_SYNC_WINDOW_CUTOFF_HHMM` 調整，但應先查核
+當期官方公告。
 
 上述檔案只是可審查的部署資產。只有在已授權持久主機上看到 timer 實際觸發、
 20–50 筆真實同步統計、失敗重試紀錄，以及隔離還原後相同搜尋／引用結果，才能標記

@@ -11,7 +11,17 @@ project_root="$(cd -- "$script_dir/../.." && pwd)"
 compose_file="$project_root/compose.judgment-rag.yml"
 state_dir="${JUDGMENT_SYNC_STATE_DIR:-$project_root/data/judgments/ops}"
 timeout_seconds="${JUDGMENT_SYNC_TIMEOUT_SECONDS:-10800}"
+window_start_hhmm="${JUDGMENT_SYNC_WINDOW_START_HHMM:-0200}"
+window_cutoff_hhmm="${JUDGMENT_SYNC_WINDOW_CUTOFF_HHMM:-0530}"
 compose=(docker compose --project-directory "$project_root" -f "$compose_file")
+
+hhmm_to_seconds() {
+  local value="$1"
+  if [[ ! "$value" =~ ^[0-2][0-9][0-5][0-9]$ ]] || (( 10#${value:0:2} > 23 )); then
+    return 1
+  fi
+  printf '%s\n' "$((10#${value:0:2} * 3600 + 10#${value:2:2} * 60))"
+}
 
 env_file="$project_root/.env"
 if [[ ! -f "$env_file" ]]; then
@@ -28,6 +38,12 @@ if [[ ! "$timeout_seconds" =~ ^[1-9][0-9]*$ ]]; then
   printf 'JUDGMENT_SYNC_TIMEOUT_SECONDS must be a positive integer.\n' >&2
   exit 2
 fi
+if ! window_start_seconds="$(hhmm_to_seconds "$window_start_hhmm")" || \
+   ! window_cutoff_seconds="$(hhmm_to_seconds "$window_cutoff_hhmm")" || \
+   (( window_start_seconds >= window_cutoff_seconds )); then
+  printf 'JUDGMENT_SYNC_WINDOW_START_HHMM and JUDGMENT_SYNC_WINDOW_CUTOFF_HHMM must define a valid same-day window.\n' >&2
+  exit 2
+fi
 
 mkdir -p -- "$state_dir/runs"
 chmod 700 "$state_dir" "$state_dir/runs"
@@ -37,11 +53,24 @@ if ! flock -n 9; then
   exit 0
 fi
 
-local_time="$(TZ=Asia/Taipei date +%H%M)"
-if [[ "${JUDGMENT_SYNC_ALLOW_OUTSIDE_WINDOW:-0}" != "1" ]] && \
-   (( 10#$local_time < 200 || 10#$local_time >= 600 )); then
-  printf 'Judgment sync refused: current Asia/Taipei time is outside 02:00–06:00.\n' >&2
-  exit 3
+effective_timeout_seconds="$timeout_seconds"
+if [[ "${JUDGMENT_SYNC_ALLOW_OUTSIDE_WINDOW:-0}" != "1" ]]; then
+  local_time="$(TZ=Asia/Taipei date +%H%M%S)"
+  if [[ ! "$local_time" =~ ^[0-2][0-9][0-5][0-9][0-5][0-9]$ ]] || \
+     (( 10#${local_time:0:2} > 23 )); then
+    printf 'Judgment sync refused: could not read the current Asia/Taipei time.\n' >&2
+    exit 3
+  fi
+  local_seconds="$((10#${local_time:0:2} * 3600 + 10#${local_time:2:2} * 60 + 10#${local_time:4:2}))"
+  if (( local_seconds < window_start_seconds || local_seconds >= window_cutoff_seconds )); then
+    printf 'Judgment sync refused: current Asia/Taipei time is outside %s–%s.\n' \
+      "$window_start_hhmm" "$window_cutoff_hhmm" >&2
+    exit 3
+  fi
+  remaining_window_seconds="$((window_cutoff_seconds - local_seconds))"
+  if (( effective_timeout_seconds > remaining_window_seconds )); then
+    effective_timeout_seconds="$remaining_window_seconds"
+  fi
 fi
 
 run_id="$(TZ=Asia/Taipei date +%Y%m%dT%H%M%S%z)"
@@ -52,8 +81,9 @@ trap 'rm -f -- "$temporary_log"' EXIT
 run_sync() {
   printf 'started_at=%s\n' "$run_id"
   printf 'source_commit=%s\n' "$(git -C "$project_root" rev-parse HEAD 2>/dev/null || printf unknown)"
+  printf 'effective_timeout_seconds=%s\n' "$effective_timeout_seconds"
   "${compose[@]}" exec -T backend zhiyan-judgment-rag preflight --require-server || return $?
-  timeout --foreground --signal=TERM --kill-after=30s "${timeout_seconds}s" \
+  timeout --foreground --signal=TERM --kill-after=30s "${effective_timeout_seconds}s" \
     "${compose[@]}" exec -T backend zhiyan-judgment-rag sync-changes || return $?
   "${compose[@]}" exec -T backend zhiyan-judgment-rag status || return $?
 }
