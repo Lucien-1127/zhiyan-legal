@@ -72,12 +72,16 @@ async function sendMessage() {
       }),
     });
 
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || '伺服器錯誤');
-    }
+    const data = await res.json().catch(() => null);
+    // 受控決策保留原有 HTTP 狀態；502 等服務故障仍須走錯誤處理。
+    const controlledStatuses = { ASK: 400, SAFE: 403, HUMAN_REVIEW: 403, STOP: 422 };
+    const hasContent = typeof data?.content === 'string' && data.content.trim().length > 0;
+    const isControlled = hasContent && controlledStatuses[data.decision] === res.status;
 
-    const data = await res.json();
+    if (!res.ok && !isControlled) {
+      throw new Error(typeof data?.detail === 'string' && data.detail ? data.detail : '伺服器錯誤');
+    }
+    if (!hasContent) throw new Error('回應格式錯誤');
     addMessage(data.content, 'ai', data);
   } catch (e) {
     addMessage(`❌ 查詢失敗：${e.message}`, 'ai', null, true);

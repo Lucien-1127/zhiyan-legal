@@ -36,7 +36,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from zhiyan_legal.application import ZhiyanApplicationEngine
-from zhiyan_legal.domain import AnswerMeta, DeliveryDecision
+from zhiyan_legal.domain import AnswerMeta, Citation, DeliveryDecision, ExecutionContext
 from zhiyan_legal.providers import ProviderError
 
 # ─── 設定 ────────────────────────────────────────────────
@@ -77,6 +77,7 @@ class ChatResponse(BaseModel):
     request_id: str = ""
     decision: str
     answer_meta: dict
+    citations: list[Citation] = Field(default_factory=list)
     error: str | None = None
 
 
@@ -256,7 +257,7 @@ async def chat(request: Request, body: ChatRequest):
     return ChatResponse(**payload)
 
 
-def _chat_payload(body: ChatRequest, _context, meta: AnswerMeta, content: str, rid: str) -> dict:
+def _chat_payload(body: ChatRequest, context: ExecutionContext, meta: AnswerMeta, content: str, rid: str) -> dict:
     """Adapt one canonical execution result to the HTTP response contract."""
     legal = any(term in body.message for term in ("法", "契約", "判決", "訴訟", "條"))
     return {
@@ -269,6 +270,7 @@ def _chat_payload(body: ChatRequest, _context, meta: AnswerMeta, content: str, r
         "request_id": rid or meta.execution_id,
         "decision": meta.decision.value,
         "answer_meta": meta.model_dump(mode="json"),
+        "citations": [citation.model_dump(mode="json") for citation in context.citations],
         "error": "; ".join(meta.tool_failures) or None,
     }
 

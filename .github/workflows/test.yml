@@ -26,6 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install "openai>=1.0.0" "python-dotenv>=1.0.0" "tenacity>=8.0.0" \
             "httpx>=0.27.0" "google-genai>=1.0.0" "PyYAML>=6.0" "pydantic>=2.0.0" \
+            "fastapi>=0.110.0" "slowapi>=0.1.9" \
             pytest pytest-cov pytest-asyncio
 
       - name: Run tests (no API keys required)
@@ -49,3 +50,15 @@ jobs:
           ZHIYAN_API_KEY: sk-ci-placeholder
         run: |
           PYTHONPATH=src python -c "from zhiyan_legal.sdk import ZhiyanClient; c = ZhiyanClient(); r = c.query('什麼是公然侮辱？', dry_run=True); assert r.is_dry_run, 'SDK dry-run 失敗'; print('SDK smoke test 通過')"
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check chat script syntax
+        run: node --check frontend/app.js
+      - name: Test chat responses and citation rendering
+        run: node --test tests/frontend/*.test.cjs
