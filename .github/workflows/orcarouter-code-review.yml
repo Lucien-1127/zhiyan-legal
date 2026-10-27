@@ -6,7 +6,7 @@ concurrency:
 
 on:
   pull_request_target:
-    types: [opened, synchronize, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review]
   issue_comment:
     types: [created]
 
@@ -14,10 +14,13 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  statuses: write
 
 jobs:
-  review:
+  review_runner:
+    name: Orca review runner
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: |
       github.event_name == 'pull_request_target' ||
       (github.event_name == 'issue_comment' &&
@@ -28,8 +31,143 @@ jobs:
           github.event.comment.body == '@orcacode review' ||
           startsWith(github.event.comment.body, '@orcacode-review ') ||
           startsWith(github.event.comment.body, '@orcacode review ')) &&
-        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
+        contains(fromJSON('[\"OWNER\", \"MEMBER\", \"COLLABORATOR\"]'), github.event.comment.author_association))
     steps:
-      - uses: Continuum-AI-Corp/orca-code-review@v1
+      - name: Validate review eligibility
+        id: eligibility
+        env:
+          REVIEW_API_KEY: ${{ secrets.ORCAROUTER_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as stream:
+              event = json.load(stream)
+          repository = os.environ["GITHUB_REPOSITORY"]
+          trusted = {"OWNER", "MEMBER", "COLLABORATOR"}
+          if os.environ["GITHUB_EVENT_NAME"] == "pull_request_target":
+              pr = event["pull_request"]
+              if pr.get("author_association") not in trusted:
+                  raise SystemExit("Automatic review requires a trusted PR author.")
+          else:
+              if event["comment"].get("author_association") not in trusted:
+                  raise SystemExit("On-demand review requires a trusted maintainer.")
+              number = int(event["issue"]["number"])
+              request = urllib.request.Request(
+                  f"https://api.github.com/repos/{repository}/pulls/{number}",
+                  headers={
+                      "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                      "Accept": "application/vnd.github+json",
+                  },
+              )
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  pr = json.load(response)
+
+          head_sha = pr.get("head", {}).get("sha", "")
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"head_sha={head_sha}\n")
+
+          if pr.get("state") != "open":
+              raise SystemExit("Review requires an open pull request.")
+          if pr.get("draft"):
+              raise SystemExit("Review deferred: mark this draft ready for review.")
+          if (pr.get("head", {}).get("repo") or {}).get("full_name") != repository:
+              raise SystemExit("Fork reviews require a separately approved review path.")
+          if not head_sha:
+              raise SystemExit("Pull request head SHA is unavailable.")
+          if not os.environ.get("REVIEW_API_KEY", "").strip():
+              raise SystemExit("Missing repository secret ORCAROUTER_API_KEY.")
+          print("Trusted workflow verified review eligibility; no PR code was executed.")
+          PY
+
+      - name: Mark review pending on PR head
+        if: steps.eligibility.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.eligibility.outputs.head_sha }}
+          TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          payload = json.dumps({
+              "state": "pending",
+              "context": "review",
+              "description": "OrcaCode review is running",
+              "target_url": os.environ["TARGET_URL"],
+          }).encode()
+          request = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['HEAD_SHA']}",
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                  "Accept": "application/vnd.github+json",
+                  "Content-Type": "application/json",
+              },
+          )
+          with urllib.request.urlopen(request, timeout=20) as response:
+              if response.status != 201:
+                  raise SystemExit(f"Unexpected status API response: {response.status}")
+          PY
+
+      - name: Review pull request
+        id: orcacode
+        if: steps.eligibility.outcome == 'success'
+        uses: Continuum-AI-Corp/orca-code-review@6d253e0399c84848fedc8801176d6bea77817762
         with:
           orcarouter-api-key: ${{ secrets.ORCAROUTER_API_KEY }}
+          settings: "false"
+          block-on: "P0,P1"
+          on-oversized-diff: "fail"
+          auto-review-authors: "OWNER,MEMBER,COLLABORATOR"
+          engine-version: "1.3.13"
+          concurrency: "4"
+          timeout-minutes: "10"
+
+      - name: Publish required review status on PR head
+        if: always() && steps.eligibility.outputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.eligibility.outputs.head_sha }}
+          ELIGIBILITY_OUTCOME: ${{ steps.eligibility.outcome }}
+          REVIEW_OUTCOME: ${{ steps.orcacode.outcome }}
+          TARGET_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          passed = (
+              os.environ["ELIGIBILITY_OUTCOME"] == "success"
+              and os.environ["REVIEW_OUTCOME"] == "success"
+          )
+          payload = json.dumps({
+              "state": "success" if passed else "failure",
+              "context": "review",
+              "description": "OrcaCode review passed" if passed else "OrcaCode review failed",
+              "target_url": os.environ["TARGET_URL"],
+          }).encode()
+          request = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['HEAD_SHA']}",
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": "Bearer " + os.environ["GH_TOKEN"],
+                  "Accept": "application/vnd.github+json",
+                  "Content-Type": "application/json",
+              },
+          )
+          with urllib.request.urlopen(request, timeout=20) as response:
+              if response.status != 201:
+                  raise SystemExit(f"Unexpected status API response: {response.status}")
+          PY
