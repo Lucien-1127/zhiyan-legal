@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════
-   智研 AI 法律系統 · SaaS 版
+   智研 AI 法律研究助手
    主題：法律專業風格 — 深色系 + 金色點綴
    ══════════════════════════════════════════════════ */
 
@@ -291,8 +291,23 @@ body {
   color: var(--text-secondary);
   font-size: 14px;
   max-width: 400px;
-  margin: 0 auto 32px;
+  margin: 0 auto 16px;
   line-height: 1.5;
+}
+
+.welcome-promises {
+  max-width: 440px;
+  margin: 0 auto 24px;
+  padding: 16px 20px 16px 40px;
+  text-align: left;
+  color: var(--text-secondary);
+  background: #f8fafc;
+  border: 1px solid var(--bubble-border);
+  border-radius: var(--radius-md);
+}
+
+.welcome-promises li + li {
+  margin-top: 6px;
 }
 
 .welcome-suggestions {
@@ -302,19 +317,6 @@ body {
   justify-content: center;
   max-width: 500px;
   margin: 0 auto;
-}
-
-.welcome-image {
-  flex: 0 0 auto;
-  max-width: 600px;
-}
-
-.welcome-image img {
-  width: 100%;
-  height: auto;
-  max-width: 100%;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
 }
 
 .suggestion-chip {
@@ -439,6 +441,42 @@ body {
   color: var(--color-accent);
 }
 
+.citation-list {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bubble-border);
+}
+
+.citation-list h3 {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.citation-item {
+  margin-top: 8px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: var(--radius-sm);
+}
+
+.citation-item blockquote {
+  margin-top: 6px;
+  padding-left: 10px;
+  color: var(--text-secondary);
+  border-left: 3px solid var(--color-accent);
+}
+
+.citation-locator {
+  margin-top: 6px;
+  color: var(--text-light);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.input-disclaimer {
+  color: var(--text-secondary);
+}
+
 /* ─── Input Area ───────────────────────────────── */
 .input-area {
   padding: 16px 24px 12px;
@@ -505,7 +543,8 @@ body {
 
 .input-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  gap: 12px;
   margin-top: 6px;
 }
 

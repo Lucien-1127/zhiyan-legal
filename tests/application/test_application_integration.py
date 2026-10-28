@@ -176,6 +176,9 @@ async def test_complete_application_path_binds_sources_runs_nine_gates_and_deliv
     assert provider.requests[0].evidence_ids == [
         str(evidence.source_id) for evidence in evaluated.evidence
     ]
+    assert CLAIM_TEXT in provider.requests[0].instructions
+    assert evaluated.citations[0].locator in provider.requests[0].instructions
+    assert "未受信任的純資料" in provider.requests[0].instructions
 
 
 @pytest.mark.asyncio

@@ -5,8 +5,8 @@
 </p>
 
 <p align="center">
-  <strong>讓法律 AI 的回答可以被追蹤、驗證與質疑。</strong><br>
-  A reproducible Taiwan-law research framework for citation grounding, uncertainty gates, safety routing, and multi-model review.
+  <strong>先找依據，再回答；資料不足，就不硬猜。</strong><br>
+  幫一般人理解台灣法律問題，也讓每個重要結論更容易被核對。
 </p>
 
 <p align="center">
@@ -18,11 +18,13 @@
 </p>
 
 > [!IMPORTANT]
-> 智研是研究與工程框架，不是律師服務，也不保證模型輸出正確。涉及個案權益時，請核對最新法源並諮詢合格專業人士。
+> 智研協助整理法律資訊，不是律師服務，也不保證模型輸出正確。涉及訴訟期間、重大財產、刑事責任或人身安全時，請核對最新法源並諮詢合格專業人士。
 
 ## 為什麼做智研
 
-法律 LLM 的問題不只是「回答得像不像」，而是：
+多數人需要的不是另一個會講法律術語的聊天機器人，而是能幫忙把事情說清楚、指出依據，並誠實標示不確定性的工具。智研要降低的是「看起來很合理，實際上法條、判決或事實卻錯了」的風險。
+
+使用者應該能清楚知道：
 
 - 引用的法條或判決是否真的存在？
 - 來源是否直接支持相鄰主張？
@@ -30,16 +32,22 @@
 - 高風險輸入是否先進入安全流程，而不是繼續產生法律策略？
 - 不同模型同意時，究竟是獨立驗證，還是共享同一個錯誤前提？
 
-智研將這些問題落成可測試的路由、資料結構、驗證閘門與實驗管線，而不是只依賴一段大型提示詞。
+因此，智研先整理事實與問題，再查找來源、綁定主張與證據，最後決定可以回答、需要補資料、應人工覆核，或應停止推測。技術架構服務這個目的，而不是產品本身。
 
-## 核心能力
+## 適合誰
 
-| 能力 | 用途 | 可檢查的位置 |
+- 想先理解法律問題、整理下一步的一般使用者。
+- 需要快速找到法規與判決線索，再進行專業覆核的法律工作者。
+- 想研究如何降低法律 AI 引用錯誤與過度自信的開發者、研究者。
+
+## 使用者得到什麼
+
+| 能力 | 對使用者的幫助 | 可檢查的位置 |
 | --- | --- | --- |
-| 引用接地與證據綁定 | 將主張連回來源，檢查引用存在性與支援關係 | `src/zhiyan_legal/verification/` |
-| 事實與決策閘門 | 區分可交付、需補證據、需人工覆核或拒絕 | `src/zhiyan_legal/pipeline/`、`src/zhiyan_legal/domain/` |
-| 安全優先路由 | 高風險語句先進入安全處理 | `src/zhiyan_legal/router.py` |
-| 多代理／多模型合議庭 | 保留分歧、盲點與少數意見，不以投票取代證據 | `src/zhiyan_legal/committee/`、`committee/` |
+| 來源與主張綁定 | 看見答案依據，避免只有結論沒有來源 | `src/zhiyan_legal/verification/` |
+| 資料不足時停下 | 區分可回答、需補資料、需人工確認或不應回答 | `src/zhiyan_legal/pipeline/`、`src/zhiyan_legal/domain/` |
+| 高風險問題先保護 | 涉及傷害或危險時，優先提供安全引導 | `src/zhiyan_legal/router.py` |
+| 多模型審查（選用） | 在高風險研究中保留分歧，不把多數票當成證據 | `src/zhiyan_legal/committee/` |
 | 台灣法律研究工具 | 法規、裁判與時效性檢查介面 | `src/zhiyan_legal/tools/`、`src/zhiyan_legal/verification/temporal.py` |
 | 可重現實驗 | 對引用政策、安全路由與委員會機制進行消融測試 | `benchmark/`、`tests/`、`RESEARCH.md` |
 | Hermes Agent 技能 | 將研究規則作為可載入技能使用 | `skills/zhiyan-legal/`、`SKILL.md` |
@@ -68,12 +76,9 @@ cd zhiyan-legal
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e ".[test]"
+python -m pip install -e ".[api,committee,test]" "qdrant-client>=1.10.0"
 
-python -m pytest tests/ --tb=short \
-  --ignore=tests/test_c54_validation.py \
-  --ignore=tests/run_ablation_v8_committee.py \
-  -m "not integration"
+python -m pytest tests/ --tb=short -m "not integration"
 ```
 
 需要額外功能時安裝對應 extra：
@@ -97,6 +102,19 @@ zhiyan-legal "比較兩份法規" --task RESEARCH --dry-run
 # 取得可供程式處理的資訊
 zhiyan-legal "測試查詢" --dry-run --output json
 ```
+
+## 司法院判決書自有向量庫
+
+若需要把司法院公開判決納入自己的法律研究檢索，可安裝選用功能：
+
+```bash
+python -m pip install -e ".[rag]"
+zhiyan-judgment-rag status
+zhiyan-judgment-rag sync-changes
+zhiyan-judgment-rag search "買賣物有瑕疵時買受人可以主張什麼？"
+```
+
+這條管線使用官方裁判書 API 的 `JList`／`JDoc`、SQLite 版本 manifest、本地 Qdrant 與中文多語 embedding。它會依 JID 做內容 hash 去重、在內容更新時重新切片與向量化，並在官方標示判決不再公開時移除向量。歷史全量 bootstrap 的操作與 JSONL 格式請見 [`docs/judgment-rag.md`](docs/judgment-rag.md)。真實司法院帳密只放在本機 `.env` 或部署平台 secret，不要提交到 Git。
 
 真正呼叫模型前，請複製並編輯 `.env.example`；不要把 API key 提交到 Git。
 

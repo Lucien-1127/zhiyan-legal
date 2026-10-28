@@ -48,6 +48,7 @@ docgen = [
 ]
 api = [
     "fastapi>=0.110.0",
+    "slowapi>=0.1.9",
     "uvicorn>=0.29.0",
 ]
 sdk = []
@@ -61,15 +62,25 @@ all = [
     "google-genai>=1.0.0",
     "PyYAML>=6.0",
     "python-docx>=1.1.0",
+    "pypdf>=4.0.0",
+    "qdrant-client>=1.10.0",
     "pytest>=8.0",
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=5.0",
     "requests>=2.31.0",
+    "sentence-transformers>=3.0.0",
+    "slowapi>=0.1.9",
     "uvicorn>=0.29.0",
+]
+rag = [
+    "pypdf>=4.0.0",
+    "qdrant-client>=1.10.0",
+    "sentence-transformers>=3.0.0",
 ]
 
 [project.scripts]
 zhiyan-legal = "zhiyan_legal.cli:main"
+zhiyan-judgment-rag = "zhiyan_legal.judgment_rag_cli:main"
 
 [project.urls]
 Homepage = "https://lucien-1127.github.io/zhiyan-legal/"
@@ -80,3 +91,8 @@ Changelog = "https://github.com/Lucien-1127/zhiyan-legal/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: requires explicitly configured external services or credentials",
+]

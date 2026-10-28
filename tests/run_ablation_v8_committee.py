@@ -19,19 +19,68 @@ Architecture:
     - Collective blind spot rate (unanimous FAIL / total)
     - Cross-model agreement (%)
 """
-import os, re, subprocess, sys, time, json
+import json
+import os
+import re
+import subprocess
+import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from collections import defaultdict
+
+from dotenv import dotenv_values
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 D = Path.home() / "zhiyan-legal" / "tests" / "ablation_results"
 D.mkdir(parents=True, exist_ok=True)
 LOG = D / "run_v8_committee.log"
 
-_k1a = 'sk-dlL'; _k1b = 'kC3tAh9zmu2wDjbOIG7dd'; _k1c = 'p3H6leZN7Mv7K29QLQUo4Y4V'
-K1 = _k1a + _k1b + _k1c
-_k2a = 'sk-'; _k2b = 'Ggsl3OR0CLyCdOES3Y2Biz3eldpxWTA8EY'; _k2c = 'eRfKJWiVpHNo80'
-K2 = _k2a + _k2b + _k2c
+K1 = ""
+K2 = ""
+GEMINI_KEY = ""
+TEMPLATE_CREDENTIALS = {
+    "your-agnes-key-1",
+    "your-agnes-key-2",
+    "AIza...",
+}
+
+
+def load_committee_credentials(env_file=None):
+    """Resolve nonempty shell credentials before project .env aliases."""
+    credential_names = (
+        "AGNES_API_KEY_1",
+        "AGNES_API_KEY_2",
+        "AGNES_KEY1",
+        "AGNES_KEY2",
+        "GEMINI_API_KEY",
+    )
+    shell_values = {name: os.getenv(name, "") for name in credential_names}
+    file_values = dotenv_values(env_file or PROJECT_ROOT / ".env")
+
+    def resolve(primary, legacy=None):
+        candidates = (
+            shell_values[primary],
+            shell_values[legacy] if legacy else "",
+            file_values.get(primary, ""),
+            file_values.get(legacy, "") if legacy else "",
+        )
+        return next(
+            (
+                value
+                for value in candidates
+                if value and value not in TEMPLATE_CREDENTIALS
+            ),
+            "",
+        )
+
+    return {
+        "agnes_key_1": resolve("AGNES_API_KEY_1", "AGNES_KEY1"),
+        "agnes_key_2": resolve("AGNES_API_KEY_2", "AGNES_KEY2"),
+        "gemini_key": resolve("GEMINI_API_KEY"),
+    }
+
 
 PRJ = str(Path.home() / "zhiyan-legal")
 SCR = str(Path.home() / "zhiyan-legal" / "tests" / "run_ablation.py")
@@ -59,6 +108,7 @@ def run_model(wid, label, key_or_provider, model, cats=HARD_CATS, extras=None):
         env |= {"ZHIYAN_API_KEY": "nokey", "ZHIYAN_API_KEY_2": "",
                 "ZHIYAN_API_BASE_URL": "",
                 "ZHIYAN_MODEL": model, "ZHIYAN_PROVIDER": "gemini",
+                "GEMINI_API_KEY": GEMINI_KEY,
                 "PYTHONPATH": "src"}
     else:
         # OpenAI-compatible (Agnes, DeepSeek)
@@ -149,7 +199,32 @@ def load_query_categories():
     return {q["id"]: q.get("category", "?") for q in data["queries"]}
 
 
+def ensure_workers_succeeded(results):
+    failed = [result for result in results if result["code"] != 0]
+    if failed:
+        details = ", ".join(
+            f'{result["label"]} exit={result["code"]}' for result in failed
+        )
+        raise SystemExit("Committee worker failure: " + details)
+
+
 def main():
+    global K1, K2, GEMINI_KEY
+    credentials = load_committee_credentials()
+    K1 = credentials["agnes_key_1"]
+    K2 = credentials["agnes_key_2"]
+    GEMINI_KEY = credentials["gemini_key"]
+    required_credentials = {
+        "AGNES_API_KEY_1 (or AGNES_KEY1)": K1,
+        "AGNES_API_KEY_2 (or AGNES_KEY2)": K2,
+        "GEMINI_API_KEY": credentials["gemini_key"],
+    }
+    missing = [name for name, value in required_credentials.items() if not value]
+    if missing:
+        raise SystemExit(
+            "Missing required environment variables: " + ", ".join(missing)
+        )
+
     log("=" * 60)
     log("🚀 Ablation v8 — Multi-Model Committee Sanction")
     log(f"  Models: Agnes K1, Agnes K2, Gemini 2.5F")
@@ -168,6 +243,7 @@ def main():
                                "ZHIYAN_API_BASE_URL": ""})
         results = [f.result() for f in as_completed([f1, f2, f3])]
 
+    ensure_workers_succeeded(results)
     tt = time.time() - ts
 
     log("")
