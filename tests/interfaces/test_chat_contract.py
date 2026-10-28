@@ -10,10 +10,13 @@ from zhiyan_legal.domain import (
     AnswerMeta,
     Citation,
     DeliveryDecision,
+    Evidence,
     EvidenceLevel,
     ExecutionContext,
     RiskLevel,
+    SourceType,
     TaskMode,
+    VerificationStatus,
 )
 
 
@@ -45,9 +48,23 @@ async def test_chat_http_preserves_decision_content_and_canonical_citations(
         )
         for index in (1, 2)
     ] if with_citations else []
+    evidence = [
+        Evidence(
+            source_id=f"source-{index}",
+            source_type=SourceType.JUDGMENT,
+            title=f"測試判決 {index}",
+            locator=f"測試來源第 {index} 段",
+            retrieved_at=datetime(2026, 10, 6, tzinfo=timezone.utc),
+            supports_claims=["claim-1"],
+            verification=VerificationStatus.VERIFIED,
+            level=EvidenceLevel.VERIFIED,
+        )
+        for index in (1, 2)
+    ] if with_citations else []
     context = ExecutionContext(
         execution_id="chat-contract",
         user_goal="法律問題",
+        evidence=evidence,
         citations=citations,
     )
     meta = AnswerMeta(
@@ -81,5 +98,20 @@ async def test_chat_http_preserves_decision_content_and_canonical_citations(
     assert payload["decision"] == decision.value
     assert payload["answer_meta"] == meta.model_dump(mode="json")
     assert payload["request_id"] == response.headers["X-Request-ID"] == "contract-request"
-    assert payload["citations"] == [item.model_dump(mode="json") for item in citations]
+    expected_citations = [
+        {
+            "citation_id": f"citation-{index}",
+            "source_id": f"source-{index}",
+            "source_type": "JUDGMENT",
+            "title": f"測試判決 {index}",
+            "locator": f"測試來源第 {index} 段",
+            "exact_quote": f"測試原文 {index}：<文字> & 引用。",
+            "evidence_level": "VERIFIED",
+            "verification": "VERIFIED",
+            "effective_at": None,
+            "verified_at": "2026-10-06T00:00:00+00:00",
+        }
+        for index in (1, 2)
+    ] if with_citations else []
+    assert payload["citations"] == expected_citations
     assert payload["error"] == ("; ".join(failures) or None)
