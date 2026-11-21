@@ -184,17 +184,15 @@ def _supporting_text(quote: str, claim_text: str, evidence: Evidence) -> bool:
     claim_n = _normalise(claim_text)
     if not quote_n or not claim_n:
         return False
-    if quote_n in claim_n or claim_n in quote_n:
-        return True
+    # When an adapter supplies the original text, the quotation must
+    # actually occur there. The claim cannot corroborate its own wording.
+    for attr in ("content", "full_text", "text", "raw_text"):
+        source = getattr(evidence, attr, None)
+        if isinstance(source, str) and source.strip():
+            return quote in source
 
-    # Evidence may be enriched by an upstream, local adapter with a text
-    # attribute.  The canonical model does not require one, so this remains a
-    # read-only optional check and never performs retrieval.
-    for attr in ("full_text", "text", "raw_text", "content"):
-        source_text = _normalise(_text(getattr(evidence, attr, "")))
-        if source_text and quote_n in source_text:
-            return True
-    return _normalise(quote) in _normalise(evidence.locator)
+    # Canonical Evidence may contain only provenance and the support edge.
+    return quote_n in claim_n or claim_n in quote_n or quote_n in _normalise(evidence.locator)
 
 
 class SupportGate(BaseGate):
@@ -203,6 +201,7 @@ class SupportGate(BaseGate):
     def evaluate(self, context: ExecutionContext) -> GateResult:
         claims_by_id = {claim.claim_id: claim for claim in context.claims}
         evidence_by_id = {evidence.source_id: evidence for evidence in context.evidence}
+        cited_claims = set()
         for citation in context.citations:
             quote = citation.exact_quote.strip()
             claim = claims_by_id.get(citation.claim_id)
@@ -219,6 +218,13 @@ class SupportGate(BaseGate):
                 return _result(self.gate_id, False, "Evidence 未宣告支撐該命題", DeliveryDecision.STOP)
             if not _supporting_text(quote, claim.text, evidence):
                 return _result(self.gate_id, False, f"引註無法實質支撐命題：{claim.claim_id}", DeliveryDecision.STOP)
+            cited_claims.add(claim.claim_id)
+        missing = [
+            claim.claim_id for claim in context.claims
+            if claim.materiality is ClaimMateriality.CORE and claim.claim_id not in cited_claims
+        ]
+        if missing:
+            return _result(self.gate_id, False, f"核心命題缺少引註：{', '.join(missing)}", DeliveryDecision.STOP)
         return _result(self.gate_id, True, "引註原文非空且可支撐對應命題", DeliveryDecision.STOP)
 
 
