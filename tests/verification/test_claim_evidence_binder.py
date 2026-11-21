@@ -1,6 +1,9 @@
 from datetime import datetime, timezone
 
+import pytest
+
 from zhiyan_legal.domain import (
+    Citation,
     Claim,
     ClaimKind,
     ClaimMateriality,
@@ -64,3 +67,55 @@ def test_bind_context_produces_context_compatible_verified_core_claim():
     assert bound.claims[0].status is ClaimStatus.VERIFIED
     assert bound.citations[0].claim_id == bound.claims[0].claim_id
 
+
+def prebound(claim, evidence):
+    return Citation(
+        citation_id="existing", claim_id=claim.claim_id, source_id=evidence.source_id,
+        locator=evidence.locator, exact_quote=claim.text, evidence_level=evidence.level,
+        verified_at=NOW,
+    )
+
+
+@pytest.mark.parametrize("status", [VerificationStatus.STALE, VerificationStatus.CONFLICT])
+def test_prebound_citation_from_ineligible_evidence_does_not_verify(status):
+    claim = make_claim()
+    evidence = make_evidence().model_copy(update={
+        "supports_claims": [claim.claim_id], "verification": status,
+    })
+    citation = prebound(claim, evidence)
+    result = ClaimEvidenceBinder().bind(claim, evidence, citations=[citation])
+    assert result.verified_claim_ids == []
+    assert result.claims[0].status is ClaimStatus.UNVERIFIED
+    assert result.citations == [citation]  # keep the audit record
+
+
+@pytest.mark.parametrize("status", [ClaimStatus.STALE, ClaimStatus.CONFLICT])
+@pytest.mark.parametrize("supply_citation", [False, True])
+def test_text_match_cannot_clear_explicit_claim_status(status, supply_citation):
+    claim = make_claim(status)
+    evidence = make_evidence().model_copy(update={"supports_claims": [claim.claim_id]})
+    existing = [prebound(claim, evidence)] if supply_citation else []
+    result = ClaimEvidenceBinder().bind(claim, evidence, citations=existing)
+    assert result.claims[0].status is status
+    assert result.statuses[claim.claim_id].value == status.value
+    assert result.verified_claim_ids == []
+    assert result.citations == existing
+
+
+def test_generated_quote_retains_source_spelling_and_layout_on_rebind():
+    claim = make_claim().model_copy(update={"text": "STRASSE甲乙"})
+    evidence = make_evidence("test://doc")
+    contents = {evidence.source_id: "摘錄：Straße 甲\n乙。"}
+    binder = ClaimEvidenceBinder()
+    first = binder.bind(claim, evidence, contents=contents)
+    assert [c.exact_quote for c in first] == ["Straße 甲\n乙"]
+    second = binder.bind(first.claims, first.evidence, citations=first, contents=contents)
+    assert second.citations == first.citations
+    assert second.verified_claim_ids == [claim.claim_id]
+
+
+def test_casefold_match_must_cover_complete_source_characters():
+    claim = make_claim().model_copy(update={"text": "s"})
+    evidence = make_evidence("test://doc")
+    result = ClaimEvidenceBinder().bind(claim, evidence, contents={evidence.source_id: "ß"})
+    assert result.citations == []
