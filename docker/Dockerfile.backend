@@ -1,0 +1,29 @@
+# 智研 FastAPI 後端；Qdrant 由 compose 內的獨立服務提供。
+FROM python:3.12-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    APP_HOST=0.0.0.0 \
+    APP_PORT=8000 \
+    APP_WORKERS=1 \
+    HF_HOME=/models/huggingface
+
+WORKDIR /app
+
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+RUN python -m pip install --no-cache-dir ".[api,rag]"
+
+COPY backend/ ./backend/
+COPY frontend/ ./frontend/
+COPY docs/ ./docs/
+
+RUN useradd --create-home --uid 1000 zhiyan \
+    && mkdir -p /data/judgments /models/huggingface \
+    && chown -R zhiyan:zhiyan /app /data /models
+
+USER zhiyan
+
+EXPOSE 8000
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

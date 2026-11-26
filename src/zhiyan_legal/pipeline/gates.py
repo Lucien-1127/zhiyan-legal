@@ -132,6 +132,16 @@ class FactsGate(BaseGate):
                 f"缺少重要事實要素：{', '.join(missing)}",
                 DeliveryDecision.ASK,
             )
+        # A source-backed RESEARCH request asks what the retrieved authorities
+        # say; it is not yet an application of law to a user's five-W facts.
+        # Requiring invented case facts here would corrupt the audit trail.
+        if context.task_mode is TaskMode.RESEARCH and context.evidence and context.citations:
+            return _result(
+                self.gate_id,
+                True,
+                "研究檢索已有可核對來源；個案適用仍須另行補充事實",
+                DeliveryDecision.ASK,
+            )
         if len(facts) < 5:
             return _result(
                 self.gate_id,

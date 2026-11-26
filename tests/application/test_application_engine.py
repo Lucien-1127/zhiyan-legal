@@ -78,6 +78,8 @@ async def test_gate_pass_calls_provider_and_returns_answer_meta() -> None:
     assert response == "已通過閘門的受控回答"
     assert adapter.calls == 1
     assert adapter.requests[0].task_id == evaluated_context.execution_id
+    assert "可核對引註：[]" in adapter.requests[0].instructions
+    assert "清單為空時不得聲稱有判決或其他來源支持" in adapter.requests[0].instructions
 
 
 @pytest.mark.asyncio
