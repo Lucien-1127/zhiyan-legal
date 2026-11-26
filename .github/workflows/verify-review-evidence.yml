@@ -1,0 +1,44 @@
+name: Verify independent review evidence
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: PR number
+        type: number
+        required: true
+
+permissions: {}
+
+jobs:
+  verify:
+    name: Independent review evidence
+    if: >-
+      github.repository == 'Lucien-1127/zhiyan-legal' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name != 'issue_comment' ||
+      (github.event.issue.pull_request &&
+      github.event.comment.body == '/verify-review' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+      statuses: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - name: Verify authenticated evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INDEPENDENT_REVIEWER_IDS: ${{ vars.INDEPENDENT_REVIEWER_IDS }}
+        run: python3 scripts/verify_review.py
