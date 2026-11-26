@@ -10,7 +10,7 @@ from scripts.verify_review import (
     REPOSITORY,
     REVIEW_SCOPE,
     WORKFLOW,
-    Decision,
+    ReviewDecision,
     GitHub,
     InvalidEvidence,
     Invocation,
@@ -101,12 +101,14 @@ def run(api, invocation=None, allowed=None):
 def test_t01_independent_current_head_approval_passes():
     api = EvidenceAPI()
     result = run(api)
-    assert (result.decision, result.head_sha, result.review_id) == (Decision.PASS, HEAD, 10)
+    assert (result.decision, result.head_sha, result.review_id) == (ReviewDecision.PASS, HEAD, 10)
     assert api.queries.count(PULL) == 2
     assert api.queries.count("/graphql") == 2
 
 
-@pytest.mark.parametrize("mutation", ["absent", "comment", "missing-scope", "no-allowlist"])
+@pytest.mark.parametrize(
+    "mutation", ["absent", "comment", "missing-scope", "no-allowlist", "hidden-comments", "hidden-html"],
+)
 def test_t02_missing_review_evidence_is_blocked(mutation):
     api = EvidenceAPI()
     allowed = {20}
@@ -116,15 +118,18 @@ def test_t02_missing_review_evidence_is_blocked(mutation):
         api.reviews[0]["state"] = "COMMENTED"
     elif mutation == "missing-scope":
         api.reviews[0]["body"] = "OK"
+    elif mutation in {"hidden-comments", "hidden-html"}:
+        placeholder = "<!-- hidden review placeholder -->" if mutation == "hidden-comments" else "<div hidden>hidden review placeholder</div>"
+        api.reviews[0]["body"] = "\n".join(f"## {area}\n{placeholder}" for area in REVIEW_SCOPE)
     else:
         allowed.clear()
-    assert run(api, allowed=allowed).decision is Decision.BLOCKED
+    assert run(api, allowed=allowed).decision is ReviewDecision.BLOCKED
 
 
 def test_t03_old_approval_is_blocked():
     api = EvidenceAPI()
     api.reviews[0]["commit_id"] = OLD
-    assert run(api).decision is Decision.BLOCKED
+    assert run(api).decision is ReviewDecision.BLOCKED
 
 
 @pytest.mark.parametrize("evidence", ["unresolved-thread", "changes-requested"])
@@ -134,7 +139,7 @@ def test_t04_outstanding_review_findings_fail(evidence):
         api.threads = [{"id": "thread", "isResolved": False}]
     else:
         api.reviews[0]["state"] = "CHANGES_REQUESTED"
-    assert run(api).decision is Decision.FAIL
+    assert run(api).decision is ReviewDecision.FAIL
 
 
 @pytest.mark.parametrize("status", [503, 403, 401], ids=["T05-unavailable", "T06-forbidden", "T06-unauthenticated"])
@@ -147,7 +152,7 @@ def test_api_failure_is_blocked(monkeypatch, status):
 
     monkeypatch.setattr(api.opener, "open", unavailable)
     result = run(api)
-    assert result.decision is Decision.BLOCKED
+    assert result.decision is ReviewDecision.BLOCKED
     assert "unit-test-token" not in result.reason
 
 
@@ -168,18 +173,18 @@ def test_t07_untrusted_approval_fails(case):
     else:
         api.permission["user"]["id"] = 999
     result = run(api, allowed={wanted})
-    assert result.decision is Decision.FAIL
+    assert result.decision is ReviewDecision.FAIL
     assert result.review_id is None
 
 
 def test_t08_push_or_dismissal_during_verification_blocks_approval():
     api = EvidenceAPI()
     api.changed_head = OLD
-    assert run(api).decision is Decision.BLOCKED
+    assert run(api).decision is ReviewDecision.BLOCKED
     api = EvidenceAPI()
     api.replace_reviews = [{**APPROVAL, "state": "DISMISSED"}]
-    assert run(api).decision is Decision.BLOCKED
-    assert run(api, Invocation(20, BASE, OLD)).decision is Decision.BLOCKED
+    assert run(api).decision is ReviewDecision.BLOCKED
+    assert run(api, Invocation(20, BASE, OLD)).decision is ReviewDecision.BLOCKED
 
 
 def test_t09_pr_branch_cannot_supply_workflow_or_event():
@@ -220,7 +225,7 @@ def test_t10_green_test_matrix_does_not_replace_review():
     api.reviews.clear()
     api.checks = [{"name": name, "conclusion": "success"} for name in
                   ("test (3.10)", "test (3.11)", "test (3.12)", "frontend")]
-    assert run(api).decision is Decision.BLOCKED
+    assert run(api).decision is ReviewDecision.BLOCKED
 
 
 @pytest.mark.parametrize("source", ["check-run", "commit-status", "both"])
@@ -230,4 +235,19 @@ def test_t11_same_name_without_authenticated_publisher_fails(source):
         api.checks = [{"name": "review", "conclusion": "success"}]
     if source in {"commit-status", "both"}:
         api.statuses = [{"context": "Review", "state": "success"}]
-    assert run(api).decision is Decision.FAIL
+    assert run(api).decision is ReviewDecision.FAIL
+
+
+
+def test_t11_same_name_status_appearing_during_verification_fails(monkeypatch):
+    api = EvidenceAPI()
+    read_pages = api.pages
+
+    def add_status_after_review(path, key=None):
+        rows = read_pages(path, key)
+        if path == f"{PULL}/reviews":
+            api.statuses = [{"context": "review", "state": "success"}]
+        return rows
+
+    monkeypatch.setattr(api, "pages", add_status_after_review)
+    assert run(api).decision is ReviewDecision.FAIL

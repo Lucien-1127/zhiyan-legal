@@ -38,7 +38,7 @@ query($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
 """
 
 
-class Decision(str, Enum):
+class ReviewDecision(str, Enum):
     PASS = "PASS"
     FAIL = "FAIL"
     BLOCKED = "BLOCKED"
@@ -46,7 +46,7 @@ class Decision(str, Enum):
 
 @dataclass(frozen=True)
 class Result:
-    decision: Decision
+    decision: ReviewDecision
     reason: str
     head_sha: str | None = None
     review_id: int | None = None
@@ -157,9 +157,12 @@ def read_invocation(env: dict, event: dict) -> Invocation:
 
 def approved_scope(body: str) -> bool:
     """Require the independent reviewer to record evidence in each review area."""
+    visible_body = re.sub(r"<!--.*?-->", "", body, flags=re.DOTALL)
+    if re.search(r"</?[A-Za-z][^>\n]*>", visible_body):
+        return False
     sections: dict[str, list[str]] = {}
     current = None
-    for line in body.splitlines():
+    for line in visible_body.splitlines():
         if line.startswith("## "):
             current = line[3:].strip()
             if current in sections:
@@ -167,7 +170,7 @@ def approved_scope(body: str) -> bool:
             sections[current] = []
         elif current and line.strip():
             sections[current].append(line.strip())
-    return all(sections.get(name) for name in REVIEW_SCOPE)
+    return all(re.search(r"[^\W_]", " ".join(sections.get(name, []))) for name in REVIEW_SCOPE)
 
 
 def read_threads(api: GitHub, number: int, head: str, base: str) -> list[dict]:
@@ -196,6 +199,13 @@ def read_threads(api: GitHub, number: int, head: str, base: str) -> list[dict]:
             break
         cursor = page["endCursor"]
     raise MissingEvidence("Review thread pagination is incomplete")
+
+
+def check_review_context(api: GitHub, commits_path: str) -> None:
+    for endpoint, name, key in (("check-runs?filter=all", "name", "check_runs"), ("statuses", "context", None)):
+        rows = api.pages(f"{commits_path}/{endpoint}", key)
+        if any(row[name].casefold() == "review" for row in rows):
+            raise InvalidEvidence("A same-name review status exists without an approved publisher binding")
 
 
 def evaluate(api: GitHub, invocation: Invocation, allowed_reviewers: set[int]) -> Result:
@@ -245,10 +255,8 @@ def evaluate(api: GitHub, invocation: Invocation, allowed_reviewers: set[int]) -
                     raise MissingEvidence("A PR commit contributor has no verifiable GitHub identity")
                 contributors.add(identity["id"])
 
-        for endpoint, name, key in (("check-runs?filter=all", "name", "check_runs"), ("statuses", "context", None)):
-            rows = api.pages(f"{repository_path}/commits/{head}/{endpoint}", key)
-            if any(row[name].casefold() == "review" for row in rows):
-                raise InvalidEvidence("A same-name review status exists without an approved publisher binding")
+        commits_path = f"{repository_path}/commits/{head}"
+        check_review_context(api, commits_path)
 
         if any(thread["isResolved"] is not True for thread in read_threads(api, invocation.number, head, base)):
             raise InvalidEvidence("An unresolved GitHub review thread remains")
@@ -295,14 +303,15 @@ def evaluate(api: GitHub, invocation: Invocation, allowed_reviewers: set[int]) -
                 raise MissingEvidence("Reviews changed during verification")
             if any(thread["isResolved"] is not True for thread in read_threads(api, invocation.number, head, base)):
                 raise InvalidEvidence("An unresolved GitHub review thread remains")
-            return Result(Decision.PASS, "Independent approval includes current-head review evidence", head, review["id"])
+            check_review_context(api, commits_path)
+            return Result(ReviewDecision.PASS, "Independent approval includes current-head review evidence", head, review["id"])
         raise MissingEvidence("No complete independent approval for the current head")
     except InvalidEvidence as exc:
-        return Result(Decision.FAIL, str(exc), head)
+        return Result(ReviewDecision.FAIL, str(exc), head)
     except MissingEvidence as exc:
-        return Result(Decision.BLOCKED, str(exc), head)
+        return Result(ReviewDecision.BLOCKED, str(exc), head)
     except (KeyError, ValueError, TypeError, AttributeError, IndexError):
-        return Result(Decision.BLOCKED, "GitHub response was incomplete or malformed", head)
+        return Result(ReviewDecision.BLOCKED, "GitHub response was incomplete or malformed", head)
 
 
 def main() -> int:
@@ -312,11 +321,11 @@ def main() -> int:
         reviewer_ids = {int(value) for value in os.environ.get("INDEPENDENT_REVIEWER_IDS", "").split()}
         result = evaluate(GitHub(os.environ.get("GH_TOKEN", "")), invocation, reviewer_ids)
     except InvalidEvidence as exc:
-        result = Result(Decision.FAIL, str(exc))
+        result = Result(ReviewDecision.FAIL, str(exc))
     except (MissingEvidence, OSError, KeyError, ValueError, TypeError, AttributeError):
-        result = Result(Decision.BLOCKED, "Trusted invocation or GitHub credentials are incomplete")
+        result = Result(ReviewDecision.BLOCKED, "Trusted invocation or GitHub credentials are incomplete")
     print(json.dumps(asdict(result)))
-    return {Decision.PASS: 0, Decision.FAIL: 1, Decision.BLOCKED: 2}[result.decision]
+    return {ReviewDecision.PASS: 0, ReviewDecision.FAIL: 1, ReviewDecision.BLOCKED: 2}[result.decision]
 
 
 if __name__ == "__main__":
