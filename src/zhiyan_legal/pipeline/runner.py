@@ -8,6 +8,7 @@ from typing import Iterable
 
 from ..domain import (
     AnswerMeta,
+    ClaimMateriality,
     ClaimStatus,
     DecisionRecord,
     DecisionReducer,
@@ -15,7 +16,9 @@ from ..domain import (
     DeliveryDecision,
     ExecutionContext,
     ExecutionStatus,
+    GateId,
     GateResult,
+    TaskMode,
 )
 from .base import BaseGate
 from .gates import (
@@ -28,6 +31,7 @@ from .gates import (
     SourceGate,
     SupportGate,
     TemporalGate,
+    claim_support_statuses,
 )
 
 
@@ -112,7 +116,30 @@ class GatePipeline:
             working = working.model_copy(update={"gate_results": list(results)})
 
         decision, strictness = DecisionReducer.reduce(results)
-        working = working.model_copy(update={"status": ExecutionStatus.DECIDE})
+        if (
+            decision is DeliveryDecision.DELIVER
+            and working.task_mode is not TaskMode.RESEARCH
+            and not any(claim.materiality is ClaimMateriality.CORE for claim in working.claims)
+        ):
+            results = [
+                result.model_copy(update={
+                    "passed": False,
+                    "target_decision": DeliveryDecision.STOP,
+                    "reason": "未取得可核對的核心法律命題",
+                }) if result.gate_id is GateId.G_SUPPORT else result
+                for result in results
+            ]
+            decision, strictness = DecisionReducer.reduce(results)
+
+        statuses = claim_support_statuses(working)
+        claims = [
+            claim if claim.status in {ClaimStatus.STALE, ClaimStatus.CONFLICT} else
+            claim.model_copy(update={"status": ClaimStatus(statuses[claim.claim_id].value)})
+            for claim in working.claims
+        ]
+        working = working.model_copy(update={
+            "status": ExecutionStatus.DECIDE, "claims": claims, "gate_results": results,
+        })
         evaluated_at = datetime.now(timezone.utc)
         answer_meta = AnswerMeta(
             execution_id=working.execution_id,

@@ -178,27 +178,21 @@ def test_search_only_returns_current_active_manifest_version(tmp_path):
     record = rag.parse_jdoc(payload())
     try:
         index.index_record(record)
+        chunk = store.upsert.call_args.args[0][0]
+        current = {
+            "id": chunk.chunk_id, "jid": JID, "content_hash": record.content_hash,
+            "source_url": record.source_url, "text": chunk.text, "score": 0.98,
+        }
         store.search.return_value = [
-            {
-                "jid": JID,
-                "content_hash": "superseded-hash",
-                "text": "舊版本",
-                "score": 0.99,
-            },
-            {
-                "jid": JID,
-                "content_hash": record.content_hash,
-                "text": "目前版本",
-                "score": 0.98,
-            },
-            {
-                "jid": "UNKNOWN-JID",
-                "content_hash": "unknown-hash",
-                "text": "manifest 無此資料",
-                "score": 0.97,
-            },
+            {**current, "content_hash": "superseded-hash", "text": "舊版本", "score": 0.99},
+            {**current, "title": "Qdrant 的標題不應覆寫原文資料"},
+            {**current, "jid": "UNKNOWN-JID", "score": 0.97},
         ]
-
-        assert index.search("合成查詢", top_k=2) == [store.search.return_value[1]]
+        results = index.search("合成查詢", top_k=2)
+        assert len(results) == 1
+        assert results[0]["id"] == chunk.chunk_id
+        assert results[0]["text"] == chunk.text
+        assert results[0]["title"] == record.title
+        assert results[0]["source_url"] == record.source_url
     finally:
         index.close()

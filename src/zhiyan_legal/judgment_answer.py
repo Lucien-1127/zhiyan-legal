@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any, Iterable, Mapping
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from .domain import (
     Citation,
@@ -74,11 +74,19 @@ def build_judgment_research_context(
 
     for position, result in enumerate(results):
         jid = _text(result.get("jid"))
-        excerpt = _text(result.get("text"))
+        excerpt = result.get("text")
+        if not isinstance(excerpt, str) or not excerpt.strip():
+            continue
         source_url = _text(result.get("source_url"))
         chunk_id = _text(result.get("id"))
         judgment_date = _judgment_date(result.get("judgment_date"))
-        if not all((jid, excerpt, source_url, chunk_id)) or judgment_date is None:
+        if not all((jid, source_url, chunk_id)) or judgment_date is None:
+            continue
+        try:
+            url = urlsplit(source_url)
+        except ValueError:
+            continue
+        if url.scheme != "https" or not url.hostname or url.username is not None or url.fragment:
             continue
         if chunk_id in seen_chunks:
             continue
@@ -102,6 +110,8 @@ def build_judgment_research_context(
             locator=locator,
             retrieved_at=now,
             effective_at=judgment_date,
+            original_text=excerpt,
+            version=_text(result.get("content_hash")) or None,
             supports_claims=[claim.claim_id],
             verification=VerificationStatus.PARTIAL,
             level=EvidenceLevel.NEED_CHECK,

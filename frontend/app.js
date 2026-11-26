@@ -76,7 +76,10 @@ async function sendMessage() {
     // 受控決策保留原有 HTTP 狀態；502 等服務故障仍須走錯誤處理。
     const controlledStatuses = { ASK: 400, SAFE: 403, HUMAN_REVIEW: 403, STOP: 422 };
     const hasContent = typeof data?.content === 'string' && data.content.trim().length > 0;
-    const isControlled = hasContent && controlledStatuses[data.decision] === res.status;
+    const isControlled = hasContent && (
+      controlledStatuses[data.decision] === res.status ||
+      (data.decision === 'STOP' && res.status === 503)
+    );
 
     if (!res.ok && !isControlled) {
       throw new Error(typeof data?.detail === 'string' && data.detail ? data.detail : '伺服器錯誤');
@@ -122,7 +125,7 @@ function addMessage(text, role, meta = null, isError = false) {
     metaDiv.className = 'message-meta';
     metaDiv.innerHTML = `
       <span class="mode-tag">${escapeHtml(meta.mode_label || '法律研究')}</span>
-      <span>${decisionLabel(meta.decision)}</span>
+      <span>${decisionLabel(meta.decision, meta.citations)}</span>
     `;
     bubble.appendChild(metaDiv);
   }
@@ -166,13 +169,26 @@ function appendCitations(bubble, citations) {
       item.appendChild(locator);
     }
 
+    if (citation.verification && citation.verification !== 'VERIFIED') {
+      const status = document.createElement('div');
+      status.className = 'citation-locator';
+      status.textContent = {
+        STALE: '來源時效需確認',
+        CONFLICT: '來源存在衝突',
+      }[citation.verification] || '僅供查閱，法律適用待核對';
+      item.appendChild(status);
+    }
+
     section.appendChild(item);
   });
 
   bubble.appendChild(section);
 }
 
-function decisionLabel(decision) {
+function decisionLabel(decision, citations) {
+  if (decision === 'DELIVER' && Array.isArray(citations) && citations.some(item => item.verification === 'PARTIAL')) {
+    return '已取得研究來源，法律適用待核對';
+  }
   const labels = {
     DELIVER: '已完成來源與風險檢查',
     ASK: '需要補充資料',

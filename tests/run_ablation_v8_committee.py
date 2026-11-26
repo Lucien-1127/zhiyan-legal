@@ -33,8 +33,7 @@ from dotenv import dotenv_values
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-D = Path.home() / "zhiyan-legal" / "tests" / "ablation_results"
-D.mkdir(parents=True, exist_ok=True)
+D = Path(__file__).resolve().parent / "ablation_results"
 LOG = D / "run_v8_committee.log"
 
 K1 = ""
@@ -354,4 +353,5 @@ def main():
 
 
 if __name__ == "__main__":
+    D.mkdir(parents=True, exist_ok=True)
     main()

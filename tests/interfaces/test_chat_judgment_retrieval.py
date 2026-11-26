@@ -72,7 +72,7 @@ async def test_chat_searches_off_thread_and_passes_context(monkeypatch) -> None:
 
     monkeypatch.setattr(backend_main, "get_judgment_index", lambda: index)
     monkeypatch.setattr(backend_main, "get_engine", lambda: engine)
-    monkeypatch.setattr(backend_main, "run_in_threadpool", fake_threadpool)
+    monkeypatch.setattr(backend_main.asyncio, "to_thread", fake_threadpool)
 
     response = await backend_main.chat(
         _request(),
@@ -85,7 +85,7 @@ async def test_chat_searches_off_thread_and_passes_context(monkeypatch) -> None:
         ),
     )
 
-    assert offloaded == [index.search]
+    assert offloaded == [backend_main._search_judgments]
     assert index.calls == [("再犯期間如何判斷？", 3, "", "110")]
     assert engine.context.citations[0].exact_quote == HIT["text"]
     assert response.citations[0]["verification"] == "PARTIAL"

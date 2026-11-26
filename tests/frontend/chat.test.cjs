@@ -167,3 +167,26 @@ test('network failure clears the loading state', async () => {
   assert.equal(elements.loadingOverlay.style.display, 'none');
   assert.equal(vm.runInContext('state.sending', context), false);
 });
+
+test('partial research citations preserve whitespace and show the applicability limit', async () => {
+  const exact = ' 來源\t原文\r\n第二行 ';
+  const { context, elements } = loadApp(async () => reply(200, {
+    content: '研究摘錄', decision: 'DELIVER', mode: 'legal',
+    citations: [{ title: '合成來源', locator: '來源位置', exact_quote: exact, verification: 'PARTIAL' }],
+  }));
+  await context.sendMessage();
+  const bubble = aiBubble(elements);
+  const section = bubble.children.find(child => child.className === 'citation-list');
+  assert.equal(section.children[1].children[1].textContent, exact);
+  assert.equal(section.children[1].children[3].textContent, '僅供查閱，法律適用待核對');
+  assert.match(bubble.children.find(child => child.className === 'message-meta').innerHTML, /法律適用待核對/);
+});
+
+test('a controlled lookup timeout displays a stop without citations', async () => {
+  const { context, elements } = loadApp(async () => reply(503, {
+    content: '來源暫時無法查詢', decision: 'STOP', mode: 'legal', citations: [],
+  }));
+  await context.sendMessage();
+  assert.equal(aiBubble(elements).innerHTML, '<p>來源暫時無法查詢</p>');
+  assert.equal(aiBubble(elements).children.some(child => child.className === 'citation-list'), false);
+});

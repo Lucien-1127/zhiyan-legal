@@ -17,7 +17,9 @@ from __future__ import annotations
 import os
 import uuid
 import time
+import asyncio
 import logging
+from collections import Counter
 from pathlib import Path
 from contextlib import asynccontextmanager
 from threading import Lock
@@ -32,15 +34,18 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from starlette.concurrency import run_in_threadpool
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from zhiyan_legal.application import ZhiyanApplicationEngine
-from zhiyan_legal.domain import AnswerMeta, DeliveryDecision, ExecutionContext
+from zhiyan_legal.domain import (
+    AnswerMeta, ClaimMateriality, DeliveryDecision, ExecutionContext, TaskMode, VerificationStatus,
+)
+from zhiyan_legal.pipeline.gates import applicable_dates
 from zhiyan_legal.providers import ProviderError
+from zhiyan_legal.domain.support import assess_support, matches_citation
 
 # ─── 設定 ────────────────────────────────────────────────
 
@@ -174,11 +179,11 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 2. CORS（可透過環境變數限制）
-_cors_origins = os.getenv("ZHIYAN_CORS_ORIGINS", "*")
+_cors_origins = [origin.strip() for origin in os.getenv("ZHIYAN_CORS_ORIGINS", "").split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_origins.split(","),
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=bool(_cors_origins) and "*" not in _cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -203,7 +208,7 @@ async def add_request_id(request: Request, call_next):
     try:
         response = await call_next(request)
     except Exception as e:
-        logger.exception("[%s] 未處理例外: %s", rid, e)
+        logger.error("[%s] 未處理例外 (%s)", rid, type(e).__name__)
         return JSONResponse(
             status_code=500,
             content=ErrorResponse(
@@ -279,8 +284,12 @@ def get_judgment_status(request: Request):
     try:
         return get_judgment_index().status()
     except Exception as exc:
-        logger.exception("判決向量庫狀態讀取失敗")
-        raise HTTPException(status_code=503, detail=f"判決向量庫未就緒：{exc}") from exc
+        logger.warning("判決向量庫狀態讀取失敗 (%s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="判決向量庫未就緒") from exc
+
+
+def _search_judgments(query: str, top_k: int, *, jid: str = "", year: str = ""):
+    return get_judgment_index().search(query, top_k, jid=jid, year=year)
 
 
 @app.post("/api/judgments/search")
@@ -290,22 +299,18 @@ def search_local_judgments(request: Request, body: JudgmentSearchRequest):
     try:
         return {
             "query": body.query,
-            "results": get_judgment_index().search(
-                body.query, top_k=body.top_k, jid=body.jid, year=body.year
-            ),
+            "results": _search_judgments(body.query, body.top_k, jid=body.jid, year=body.year),
         }
     except Exception as exc:
-        logger.exception("本地判決檢索失敗")
-        raise HTTPException(status_code=503, detail=f"判決向量庫未就緒：{exc}") from exc
+        logger.warning("本地判決檢索失敗 (%s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="判決向量庫未就緒") from exc
 
 
 @app.post("/api/chat", response_model=ChatResponse)
 @limiter.limit(_RATE_LIMIT)
 async def chat(request: Request, body: ChatRequest):
     """法律 AI 對話 — 傳送問題，取得法律分析回應"""
-    engine = get_engine()
     rid = request.state.request_id
-
     context = None
     if body.use_judgments:
         if body.task.strip().upper() != "RESEARCH":
@@ -314,16 +319,25 @@ async def chat(request: Request, body: ChatRequest):
                 detail="use_judgments 只能搭配 task=RESEARCH，避免把研究檢索誤當個案法律結論",
             )
         try:
-            results = await run_in_threadpool(
-                get_judgment_index().search,
+            results = await asyncio.to_thread(
+                _search_judgments,
                 body.message,
                 body.judgment_top_k,
                 jid=body.judgment_jid,
                 year=body.judgment_year,
             )
         except Exception as exc:
-            logger.exception("[%s] 對話主鏈的判決檢索失敗", rid)
-            raise HTTPException(status_code=503, detail=f"判決向量庫未就緒：{exc}") from exc
+            logger.warning("[%s] 判決檢索失敗 (%s)", rid, type(exc).__name__)
+            context = ExecutionContext(execution_id=rid, user_goal=body.message, task_mode=TaskMode.RESEARCH)
+            meta = AnswerMeta(
+                execution_id=rid, task_mode=context.task_mode, risk_level=context.risk_level,
+                decision=DeliveryDecision.STOP, strictness_level=DeliveryDecision.STOP.strictness,
+                tool_failures=["judgment: unavailable"],
+            )
+            return JSONResponse(
+                status_code=503,
+                content=_chat_payload(body, context, meta, "判決來源暫時無法查詢，請稍後重試。", rid),
+            )
 
         from zhiyan_legal.judgment_answer import build_judgment_research_context
 
@@ -334,20 +348,20 @@ async def chat(request: Request, body: ChatRequest):
         )
 
     try:
-        context, meta, content = await engine.query_async(
+        context, meta, content = await get_engine().query_async(
             body.message,
             conversation_history=body.conversation_history,
             task=body.task,
             context=context,
         )
     except ProviderError as exc:
-        logger.error("[%s] 提供商錯誤: %s", rid, exc)
-        raise HTTPException(status_code=502, detail=f"提供商錯誤：{exc}") from exc
+        logger.warning("[%s] 提供商錯誤 (%s)", rid, type(exc).__name__)
+        raise HTTPException(status_code=502, detail="模型供應商無法完成請求") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        logger.exception("[%s] 不明錯誤", rid)
-        raise HTTPException(status_code=500, detail=f"查詢失敗：{exc}") from exc
+        logger.error("[%s] 查詢失敗 (%s)", rid, type(exc).__name__)
+        raise HTTPException(status_code=500, detail="查詢失敗") from exc
 
     payload = _chat_payload(body, context, meta, content, rid)
     status_code = _chat_status_code(meta)
@@ -375,27 +389,43 @@ def _chat_payload(body: ChatRequest, context: ExecutionContext, meta: AnswerMeta
     }
 
 
-def _chat_citations(context) -> list[dict[str, Any]]:
-    """Return only citations that still resolve to canonical evidence."""
-
-    evidence_by_id = {
-        str(item.source_id): item for item in getattr(context, "evidence", [])
-    }
+def _chat_citations(context: ExecutionContext) -> list[dict[str, Any]]:
+    """Export the canonical provenance and suppress broken or withdrawn references."""
+    sources = {item.source_id: item for item in context.evidence}
+    claims = {item.claim_id: item for item in context.claims}
+    citation_ids = Counter(item.citation_id for item in context.citations)
+    if len(sources) != len(context.evidence) or len(claims) != len(context.claims):
+        return []
+    dates = applicable_dates(context)
     output: list[dict[str, Any]] = []
-    for citation in getattr(context, "citations", []):
-        evidence = evidence_by_id.get(str(citation.source_id))
-        if evidence is None:
+    for citation in context.citations:
+        evidence = sources.get(citation.source_id)
+        claim = claims.get(citation.claim_id)
+        if (
+            evidence is None or claim is None or evidence.withdrawn
+            or citation_ids[citation.citation_id] != 1
+            or not matches_citation(claim, citation, evidence)
+        ):
             continue
+        status = evidence.verification
+        if claim.materiality is ClaimMateriality.CORE:
+            results = [assess_support(claim, citation, evidence, context.jurisdiction, day) for day in dates]
+            for adverse_status in (VerificationStatus.CONFLICT, VerificationStatus.STALE, VerificationStatus.UNVERIFIED):
+                if adverse_status in results:
+                    status = adverse_status
+                    break
         output.append(
             {
                 "citation_id": str(citation.citation_id),
+                "claim_id": str(citation.claim_id),
                 "source_id": str(citation.source_id),
                 "source_type": evidence.source_type.value,
                 "title": evidence.title,
                 "locator": citation.locator,
                 "exact_quote": citation.exact_quote,
                 "evidence_level": citation.evidence_level.value,
-                "verification": evidence.verification.value,
+                "verification": status.value,
+                "version": evidence.version,
                 "effective_at": (
                     evidence.effective_at.isoformat()
                     if evidence.effective_at is not None

@@ -34,9 +34,10 @@ class RecordingAdapter(BaseProviderAdapter):
         )
 
 
-def _context() -> ExecutionContext:
+def _context(bound_citation_fields) -> ExecutionContext:
     return ExecutionContext(
         execution_id="committee-application-integration",
+        **bound_citation_fields,
         user_goal="檢視一般契約",
         known_facts=["甲", "2025-01-01", "臺北", "簽署契約", "發生損害"],
     )
@@ -61,14 +62,14 @@ def _registry(contents: tuple[str, str]):
 
 
 @pytest.mark.asyncio
-async def test_disagreement_is_raised_to_human_review_and_blocks_delivery() -> None:
+async def test_disagreement_is_raised_to_human_review_and_blocks_delivery(bound_citation_fields) -> None:
     registry, adapters = _registry((json.dumps({"verdict": "PASS"}), json.dumps({"verdict": "FAIL"})))
     engine = ZhiyanApplicationEngine(
         provider_registry=registry,
         committee_engine=CommitteeEngine(provider_registry=registry),
     )
 
-    _evaluated, meta, response = await engine.execute(_context())
+    _evaluated, meta, response = await engine.execute(_context(bound_citation_fields))
 
     assert engine.last_committee_report is not None
     assert engine.last_committee_report.status is ConsensusStatus.DISAGREEMENT
@@ -79,14 +80,14 @@ async def test_disagreement_is_raised_to_human_review_and_blocks_delivery() -> N
 
 
 @pytest.mark.asyncio
-async def test_blind_spot_is_raised_to_stop_and_cannot_degrade_to_deliver() -> None:
+async def test_blind_spot_is_raised_to_stop_and_cannot_degrade_to_deliver(bound_citation_fields) -> None:
     registry, adapters = _registry(("not-json", "also-not-json"))
     engine = ZhiyanApplicationEngine(
         provider_registry=registry,
         committee_engine=CommitteeEngine(provider_registry=registry),
     )
 
-    _evaluated, meta, response = await engine.execute(_context())
+    _evaluated, meta, response = await engine.execute(_context(bound_citation_fields))
 
     assert engine.last_committee_report is not None
     assert engine.last_committee_report.status is ConsensusStatus.BLIND_SPOT

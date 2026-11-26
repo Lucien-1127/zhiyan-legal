@@ -21,41 +21,20 @@ from ..domain import (
     ClaimStatus,
     Citation,
     Evidence,
-    SourceId,
+    Jurisdiction,
     VerificationStatus,
 )
 
-
-def _value(item: Any, name: str, default: Any = None) -> Any:
-    """Read a field from either a canonical model or an adapter payload."""
-
-    if isinstance(item, Mapping):
-        return item.get(name, default)
-    return getattr(item, name, default)
+from ..domain.support import assess_support, matches_citation
 
 
 def _normalise(value: str) -> str:
     return "".join(value.split()).casefold()
 
 
-def _source_text(evidence: Any, contents: Mapping[Any, str] | None = None) -> str:
-    """Return searchable source text without requiring a domain field.
-
-    ``Evidence`` intentionally contains only canonical provenance fields.  A
-    retrieval adapter may nevertheless carry source text beside it, so these
-    conventional names are accepted as read-only optional attributes.
-    """
-
-    source_id = _value(evidence, "source_id")
-    if contents:
-        for key in (source_id, str(source_id)):
-            if key in contents and str(contents[key]).strip():
-                return str(contents[key])
-    for name in ("content", "full_text", "text", "raw_text"):
-        value = _value(evidence, name)
-        if value is not None and str(value).strip():
-            return str(value)
-    return str(_value(evidence, "locator", "") or "")
+def _source_text(evidence: Evidence, contents: Mapping[Any, str] | None = None) -> str | None:
+    # Canonical evidence takes precedence over an adapter's sidecar mapping.
+    return evidence.original_text if evidence.original_text is not None else (contents or {}).get(evidence.source_id)
 
 
 @dataclass
@@ -121,14 +100,7 @@ class BindingResult(Sequence[Citation]):
 
 
 class ClaimEvidenceBinder:
-    """Create valid Claim -> Citation -> Evidence semantic edges.
-
-    Evidence is eligible when it explicitly advertises ``supports_claims`` or
-    when the claim text can be found in the source material.  In both cases a
-    citation is emitted only after an exact quote can be located in the
-    locator/content.  This prevents a declared support edge from becoming a
-    false VERIFIED claim without source text.
-    """
+    """Bind auditable quotes and verify only supported, eligible claims."""
 
     def __init__(self, citation_id_factory: Any | None = None) -> None:
         self._citation_id_factory = citation_id_factory or (lambda: f"citation-{uuid4().hex}")
@@ -141,6 +113,8 @@ class ClaimEvidenceBinder:
         citations: Iterable[Citation] | None = None,
         contents: Mapping[Any, str] | None = None,
         verified_at: datetime | None = None,
+        applicable_at: datetime | None = None,
+        jurisdiction: Jurisdiction = Jurisdiction.TW,
     ) -> BindingResult:
         claim_list = [claims] if isinstance(claims, Claim) else list(claims)
         evidence_list = [evidence] if isinstance(evidence, Evidence) else list(evidence)
@@ -148,82 +122,77 @@ class ClaimEvidenceBinder:
             raise TypeError("evidence items must be canonical Evidence instances")
         citation_list = list(citations or [])
         now = verified_at or datetime.now(timezone.utc)
-        generated_keys: set[tuple[ClaimId, SourceId, str]] = set()
-        updated_supports = {item.source_id: list(item.supports_claims) for item in evidence_list}
+        sources = [
+            item.model_copy(update={"original_text": _source_text(item, contents)})
+            for item in evidence_list
+        ]
+        if len({item.source_id for item in sources}) != len(sources):
+            raise ValueError("Evidence source IDs must be unique")
+        if len({item.claim_id for item in claim_list}) != len(claim_list):
+            raise ValueError("Claim IDs must be unique")
+        searchable = {
+            item.source_id: _SourceText(item.original_text) for item in sources
+            if item.original_text and not item.withdrawn
+        }
+        citations_by_claim: dict[ClaimId, list[Citation]] = {}
+        for citation in citation_list:
+            citations_by_claim.setdefault(citation.claim_id, []).append(citation)
         statuses: dict[ClaimId, VerificationStatus] = {}
         failures: list[str] = []
-
-        blocked_claims = (ClaimStatus.STALE, ClaimStatus.CONFLICT)
-        eligible_claims = {claim.claim_id for claim in claim_list if claim.status not in blocked_claims}
-        sources = [
-            (item, _SourceText(_source_text(item, contents))) for item in evidence_list
-            if item.verification not in (VerificationStatus.STALE, VerificationStatus.CONFLICT)
-        ]
-        sources_by_id = {item.source_id: (item, source) for item, source in sources}
-        verified: set[ClaimId] = set()
-        # Preserve supplied citations as audit records. Only eligible, literal
-        # source quotes may contribute a verified edge.
-        for citation in citation_list:
-            claim_id = _value(citation, "claim_id")
-            pair = sources_by_id.get(_value(citation, "source_id"))
-            if claim_id not in eligible_claims or pair is None:
-                continue
-            item, source = pair
-            quote = _value(citation, "exact_quote")
-            if isinstance(quote, str) and quote.strip() and claim_id in item.supports_claims and quote in source.raw:
-                verified.add(claim_id)
-                generated_keys.add((claim_id, item.source_id, quote))
-
+        blocked = {ClaimStatus.STALE, ClaimStatus.CONFLICT}
         for claim in claim_list:
-            if claim.status in blocked_claims:
+            statuses[claim.claim_id] = VerificationStatus.UNVERIFIED
+            if claim.status in blocked:
                 statuses[claim.claim_id] = VerificationStatus(claim.status.value)
-                failures.append(f"命題 {claim.claim_id} 為 {claim.status.value}，不能綁定為 VERIFIED")
                 continue
-
             text = claim.text.strip()
             needle = _normalise(text)
-            for item, source in sources:
+            supplied = citations_by_claim.get(claim.claim_id, [])
+            for index, item in enumerate(sources):
+                source = searchable.get(item.source_id)
+                if source is None:
+                    continue
+                existing = [
+                    citation for citation in supplied
+                    if matches_citation(claim, citation, item)
+                ]
                 quote = source.quote(text, needle)
-                if quote is None:
-                    continue
-                key = (claim.claim_id, item.source_id, quote)
-                if key in generated_keys:
-                    continue
-                citation_list.append(
-                    Citation(
-                        citation_id=self._citation_id_factory(),
-                        claim_id=claim.claim_id,
-                        source_id=item.source_id,
-                        locator=item.locator,
-                        exact_quote=quote,
-                        evidence_level=item.level,
-                        verified_at=now,
+                if (
+                    quote is not None
+                    and item.verification not in {VerificationStatus.STALE, VerificationStatus.CONFLICT}
+                    and all(citation.exact_quote != quote for citation in existing)
+                ):
+                    if claim.claim_id not in item.supports_claims:
+                        item = item.model_copy(update={"supports_claims": [*item.supports_claims, claim.claim_id]})
+                        sources[index] = item
+                    citation = Citation(
+                        citation_id=self._citation_id_factory(), claim_id=claim.claim_id,
+                        source_id=item.source_id, locator=item.locator, exact_quote=quote,
+                        evidence_level=item.level, verified_at=now,
                     )
-                )
-                generated_keys.add(key)
-                updated_supports[item.source_id].append(claim.claim_id)
-                verified.add(claim.claim_id)
-
-            if claim.claim_id in verified:
-                statuses[claim.claim_id] = VerificationStatus.VERIFIED
-            else:
-                statuses[claim.claim_id] = VerificationStatus.UNVERIFIED
-                failures.append(f"命題 {claim.claim_id} 找不到可核對的 exact_quote")
+                    citation_list.append(citation)
+                    existing.append(citation)
+                for citation in existing:
+                    status = assess_support(claim, citation, item, jurisdiction, applicable_at)
+                    current = statuses[claim.claim_id]
+                    if status is VerificationStatus.CONFLICT or (
+                        current is not VerificationStatus.CONFLICT
+                        and (status is VerificationStatus.VERIFIED or current is VerificationStatus.UNVERIFIED)
+                    ):
+                        statuses[claim.claim_id] = status
+            if statuses[claim.claim_id] is not VerificationStatus.VERIFIED:
+                failures.append(f"命題 {claim.claim_id} 缺少通過原文與支撐驗證的引註")
 
         updated_claims = [
             claim.model_copy(update={"status": ClaimStatus(statuses[claim.claim_id].value)})
             for claim in claim_list
-        ]
-        updated_evidence = [
-            item.model_copy(update={"supports_claims": list(dict.fromkeys(updated_supports[item.source_id]))})
-            for item in evidence_list
         ]
         overall = (
             VerificationStatus.VERIFIED
             if claim_list and all(status is VerificationStatus.VERIFIED for status in statuses.values())
             else VerificationStatus.UNVERIFIED
         )
-        return BindingResult(updated_claims, updated_evidence, citation_list, statuses, failures, overall)
+        return BindingResult(updated_claims, sources, citation_list, statuses, failures, overall)
 
     def bind_context(
         self,
@@ -240,6 +209,8 @@ class ClaimEvidenceBinder:
             citations=context.citations,
             contents=contents,
             verified_at=verified_at,
+            applicable_at=context.applicable_at,
+            jurisdiction=context.jurisdiction,
         )
         return context.model_copy(
             update={

@@ -7,6 +7,8 @@ from backend.main import ChatRequest, _chat_citations, _chat_payload, _chat_stat
 from zhiyan_legal.domain import (
     AnswerMeta,
     Citation,
+    Claim,
+    ClaimKind,
     DecisionStrictness,
     DeliveryDecision,
     Evidence,
@@ -47,6 +49,8 @@ def _context() -> ExecutionContext:
         retrieved_at=STAMP,
         effective_at=datetime(2021, 8, 31, tzinfo=timezone.utc),
         supports_claims=["claim-1"],
+        version="synthetic-v1",
+        original_text="再犯期間為三年",
         verification=VerificationStatus.VERIFIED,
         level=EvidenceLevel.VERIFIED,
     )
@@ -63,6 +67,7 @@ def _context() -> ExecutionContext:
         execution_id="judgment-answer-test",
         user_goal="毒品案件再犯期間如何計算？",
         evidence=[evidence],
+        claims=[Claim(claim_id="claim-1", text=citation.exact_quote, kind=ClaimKind.FACT)],
         citations=[citation],
     )
 
@@ -80,6 +85,8 @@ def test_chat_payload_returns_verifiable_judgment_citation() -> None:
     assert payload["citations"] == [
         {
             "citation_id": "citation-1",
+            "claim_id": "claim-1",
+            "version": "synthetic-v1",
             "source_id": "TPHM,110,毒抗,1212,20210831,1",
             "source_type": "JUDGMENT",
             "title": "臺灣高等法院 110年度毒抗字第1212號",

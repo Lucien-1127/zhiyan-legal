@@ -29,19 +29,24 @@ def make_claim(status=ClaimStatus.UNVERIFIED):
     )
 
 
-def make_evidence(locator="law.example/#契約須以書面確認"):
+def make_evidence(locator="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=SYNTHETIC", original=None):
     return Evidence(
         source_id="s-1",
         source_type=SourceType.STATUTE,
         title="法規",
         locator=locator,
         retrieved_at=NOW,
+        effective_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
+        version="synthetic-v1",
+        original_text=original,
+        verification=VerificationStatus.VERIFIED,
         level=EvidenceLevel.VERIFIED,
     )
 
 
 def test_binder_creates_citation_and_support_edge_without_mutating_inputs():
-    claim, evidence = make_claim(), make_evidence()
+    claim = make_claim()
+    evidence = make_evidence(original=claim.text)
     result = ClaimEvidenceBinder(citation_id_factory=lambda: "cite-1").bind([claim], [evidence])
 
     assert result.status is VerificationStatus.VERIFIED
@@ -62,7 +67,7 @@ def test_invalid_exact_quote_does_not_verify_claim():
 def test_bind_context_produces_context_compatible_verified_core_claim():
     from zhiyan_legal.domain import ExecutionContext
 
-    context = ExecutionContext(execution_id="e-1", user_goal="test", claims=[make_claim()], evidence=[make_evidence()])
+    context = ExecutionContext(execution_id="e-1", user_goal="test", claims=[make_claim()], evidence=[make_evidence(original=make_claim().text)])
     bound = ClaimEvidenceBinder(citation_id_factory=lambda: "cite-1").bind_context(context)
     assert bound.claims[0].status is ClaimStatus.VERIFIED
     assert bound.citations[0].claim_id == bound.claims[0].claim_id
@@ -111,7 +116,7 @@ def test_generated_quote_retains_source_spelling_and_layout_on_rebind():
     assert [c.exact_quote for c in first] == ["Straße 甲\n乙"]
     second = binder.bind(first.claims, first.evidence, citations=first, contents=contents)
     assert second.citations == first.citations
-    assert second.verified_claim_ids == [claim.claim_id]
+    assert second.verified_claim_ids == []
 
 
 def test_casefold_match_must_cover_complete_source_characters():

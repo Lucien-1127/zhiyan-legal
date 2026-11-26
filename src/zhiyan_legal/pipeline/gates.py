@@ -7,7 +7,8 @@ execution context are treated as unverified rather than guessed.
 
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from collections import Counter
+from datetime import date, datetime, time, timezone
 import re
 from typing import Any, ClassVar, Iterable
 
@@ -15,17 +16,17 @@ from ..domain import (
     ClaimMateriality,
     ClaimStatus,
     DeliveryDecision,
-    Evidence,
     ExecutionContext,
     GateId,
     GateResult,
     Jurisdiction,
     ProcedureStage,
     RiskLevel,
-    SourceType,
     TaskMode,
     VerificationStatus,
 )
+from ..domain.support import PRIMARY_SOURCE_TYPES, assess_support, matches_citation
+from ..domain.temporal import TemporalVerifier
 from .base import BaseGate
 
 
@@ -58,10 +59,6 @@ def _combined_text(context: ExecutionContext) -> str:
             *context.missing_facts,
         ]
     ).lower()
-
-
-def _normalise(value: str) -> str:
-    return re.sub(r"\s+", "", value).casefold()
 
 
 class SafetyGate(BaseGate):
@@ -152,11 +149,6 @@ class FactsGate(BaseGate):
         return _result(self.gate_id, True, "核心事實已具備五要素", DeliveryDecision.ASK)
 
 
-_PRIMARY_SOURCE_TYPES = frozenset(
-    {SourceType.STATUTE, SourceType.JUDGMENT, SourceType.OFFICIAL}
-)
-
-
 class SourceGate(BaseGate):
     gate_id: ClassVar[GateId] = GateId.G_SOURCE
 
@@ -167,13 +159,9 @@ class SourceGate(BaseGate):
         unsupported: list[str] = []
         for claim in core_claims:
             has_primary = any(
-                evidence.source_type in _PRIMARY_SOURCE_TYPES
+                evidence.source_type in PRIMARY_SOURCE_TYPES
                 and bool(evidence.locator.strip())
                 and claim.claim_id in evidence.supports_claims
-                and evidence.verification not in {
-                    VerificationStatus.STALE,
-                    VerificationStatus.CONFLICT,
-                }
                 for evidence in context.evidence
             )
             if not has_primary:
@@ -189,53 +177,65 @@ class SourceGate(BaseGate):
         return _result(self.gate_id, True, "所有核心命題均有一手來源定位", DeliveryDecision.STOP)
 
 
-def _supporting_text(quote: str, claim_text: str, evidence: Evidence) -> bool:
-    quote_n = _normalise(quote)
-    claim_n = _normalise(claim_text)
-    if not quote_n or not claim_n:
-        return False
-    # When an adapter supplies the original text, the quotation must
-    # actually occur there. The claim cannot corroborate its own wording.
-    for attr in ("content", "full_text", "text", "raw_text"):
-        source = getattr(evidence, attr, None)
-        if isinstance(source, str) and source.strip():
-            return quote in source
+def applicable_dates(context: ExecutionContext) -> list[datetime | None]:
+    if context.applicable_at is not None:
+        return [context.applicable_at]
+    dates = _dates_in(context.known_facts)
+    return [datetime.combine(day, time.min) for day in sorted(set(dates))] or [None]
 
-    # Canonical Evidence may contain only provenance and the support edge.
-    return quote_n in claim_n or claim_n in quote_n or quote_n in _normalise(evidence.locator)
+
+def claim_support_statuses(context: ExecutionContext) -> dict[str, VerificationStatus]:
+    claims = {claim.claim_id: claim for claim in context.claims}
+    sources = {item.source_id: item for item in context.evidence}
+    citation_ids = Counter(item.citation_id for item in context.citations)
+    statuses = {claim_id: VerificationStatus.UNVERIFIED for claim_id in claims}
+    if len(claims) != len(context.claims) or len(sources) != len(context.evidence):
+        return statuses
+    dates = applicable_dates(context)
+    for citation in context.citations:
+        claim = claims.get(citation.claim_id)
+        source = sources.get(citation.source_id)
+        if claim is None or source is None or citation_ids[citation.citation_id] != 1:
+            continue
+        checks = [assess_support(claim, citation, source, context.jurisdiction, day) for day in dates]
+        if VerificationStatus.CONFLICT in checks:
+            statuses[claim.claim_id] = VerificationStatus.CONFLICT
+        elif statuses[claim.claim_id] is not VerificationStatus.CONFLICT:
+            if all(status is VerificationStatus.VERIFIED for status in checks):
+                statuses[claim.claim_id] = VerificationStatus.VERIFIED
+            elif VerificationStatus.STALE in checks and statuses[claim.claim_id] is not VerificationStatus.VERIFIED:
+                statuses[claim.claim_id] = VerificationStatus.STALE
+    return statuses
 
 
 class SupportGate(BaseGate):
     gate_id: ClassVar[GateId] = GateId.G_SUPPORT
 
     def evaluate(self, context: ExecutionContext) -> GateResult:
-        claims_by_id = {claim.claim_id: claim for claim in context.claims}
-        evidence_by_id = {evidence.source_id: evidence for evidence in context.evidence}
-        cited_claims = set()
+        claims = {claim.claim_id: claim for claim in context.claims}
+        sources = {item.source_id: item for item in context.evidence}
+        if (
+            len(claims) != len(context.claims)
+            or len(sources) != len(context.evidence)
+            or len({item.citation_id for item in context.citations}) != len(context.citations)
+        ):
+            return _result(self.gate_id, False, "命題、來源或引註的識別碼重複", DeliveryDecision.STOP)
         for citation in context.citations:
-            quote = citation.exact_quote.strip()
-            claim = claims_by_id.get(citation.claim_id)
-            evidence = evidence_by_id.get(citation.source_id)
-            if not quote:
-                return _result(self.gate_id, False, "引註 exact_quote 不得為空", DeliveryDecision.STOP)
-            if claim is None or evidence is None:
-                return _result(self.gate_id, False, "引註未能對應命題與來源", DeliveryDecision.STOP)
-            if not citation.locator.strip() or not evidence.locator.strip():
-                return _result(self.gate_id, False, "引註或來源缺少定位資訊", DeliveryDecision.STOP)
-            if citation.locator != evidence.locator and not citation.locator.startswith(evidence.locator):
-                return _result(self.gate_id, False, "引註定位與 Evidence 來源不一致", DeliveryDecision.STOP)
-            if claim.claim_id not in evidence.supports_claims:
-                return _result(self.gate_id, False, "Evidence 未宣告支撐該命題", DeliveryDecision.STOP)
-            if not _supporting_text(quote, claim.text, evidence):
-                return _result(self.gate_id, False, f"引註無法實質支撐命題：{claim.claim_id}", DeliveryDecision.STOP)
-            cited_claims.add(claim.claim_id)
-        missing = [
-            claim.claim_id for claim in context.claims
-            if claim.materiality is ClaimMateriality.CORE and claim.claim_id not in cited_claims
-        ]
+            claim = claims.get(citation.claim_id)
+            source = sources.get(citation.source_id)
+            if claim is None or source is None or source.withdrawn or not matches_citation(claim, citation, source):
+                return _result(self.gate_id, False, "引註與命題、來源定位或原文不一致", DeliveryDecision.STOP)
+
+        statuses = claim_support_statuses(context)
+        core = [claim for claim in context.claims if claim.materiality is ClaimMateriality.CORE]
+        missing = [claim.claim_id for claim in core if statuses[claim.claim_id] is VerificationStatus.UNVERIFIED]
         if missing:
-            return _result(self.gate_id, False, f"核心命題缺少引註：{', '.join(missing)}", DeliveryDecision.STOP)
-        return _result(self.gate_id, True, "引註原文非空且可支撐對應命題", DeliveryDecision.STOP)
+            return _result(self.gate_id, False, f"核心命題缺少已驗證引註：{', '.join(missing)}", DeliveryDecision.STOP)
+        if any(status in {VerificationStatus.CONFLICT, VerificationStatus.STALE} for status in statuses.values()):
+            return _result(self.gate_id, False, "引用的法源有衝突或不適用於案件時點", DeliveryDecision.HUMAN_REVIEW)
+        if not core and context.task_mode is TaskMode.RESEARCH and not context.citations:
+            return _result(self.gate_id, False, "研究查無具備原文與來源定位的資料", DeliveryDecision.STOP)
+        return _result(self.gate_id, True, "已核對引註與對應原文", DeliveryDecision.STOP)
 
 
 def _dates_in(values: Iterable[str]) -> list[date]:
@@ -256,23 +256,16 @@ class TemporalGate(BaseGate):
         if any(claim.status is ClaimStatus.STALE for claim in context.claims):
             return _result(self.gate_id, False, "命題標記為過期，適用時點需人工確認", DeliveryDecision.HUMAN_REVIEW)
 
-        relevant_dates = _dates_in([*context.known_facts, *context.missing_facts])
+        verifier = TemporalVerifier()
+        dates = applicable_dates(context)
         for evidence in context.evidence:
-            if evidence.verification in {VerificationStatus.STALE, VerificationStatus.CONFLICT}:
-                return _result(self.gate_id, False, "來源已過期或時效狀態衝突", DeliveryDecision.HUMAN_REVIEW)
-            if evidence.source_type in _PRIMARY_SOURCE_TYPES and evidence.effective_at is None:
-                return _result(self.gate_id, False, "一手法源缺少適用時點", DeliveryDecision.HUMAN_REVIEW)
-            if evidence.effective_at is not None:
-                retrieved = evidence.retrieved_at
-                effective_at = evidence.effective_at
-                if effective_at.tzinfo is None and retrieved.tzinfo is not None:
-                    effective_at = effective_at.replace(tzinfo=retrieved.tzinfo)
-                elif retrieved.tzinfo is None and effective_at.tzinfo is not None:
-                    retrieved = retrieved.replace(tzinfo=effective_at.tzinfo)
-                if effective_at > retrieved:
-                    return _result(self.gate_id, False, "法源生效日晚於取得日，時序不一致", DeliveryDecision.HUMAN_REVIEW)
-                if relevant_dates and effective_at.date() > min(relevant_dates):
-                    return _result(self.gate_id, False, "法源於案件適用時點尚未生效", DeliveryDecision.HUMAN_REVIEW)
+            if evidence.withdrawn:
+                return _result(self.gate_id, False, "判決來源已撤下", DeliveryDecision.STOP)
+            if evidence.source_type not in PRIMARY_SOURCE_TYPES:
+                continue
+            if any(verifier.verify(evidence, day) is not VerificationStatus.VERIFIED for day in dates):
+                return _result(self.gate_id, False, "法源缺少適用時點、已過期或存在衝突", DeliveryDecision.HUMAN_REVIEW)
+
         return _result(self.gate_id, True, "未發現適用時點衝突或過期來源", DeliveryDecision.HUMAN_REVIEW)
 
 

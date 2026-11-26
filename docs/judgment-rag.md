@@ -349,3 +349,7 @@ PYTHONPATH=src python -m pytest \
 - [司法院裁判書批次資源分類](https://opendata.judicial.gov.tw/data/api/rest/categories/051/resources)
 
 所有官方資料的使用仍應遵循司法院當期公告、授權條款與個資／隱私要求。
+
+### 原文切片索引版本
+
+索引指紋版本 3 保留 JDoc 原始空白和換行。既有版本 2 索引須依本文件的索引指紋重建流程選用空集合並執行 `rebuild-index`。若使用版本 2 儲存的全文，應從授權的 JDoc 重新同步以補齊先前儲存時刪除的空白。查詢只回傳 SQLite 已確認索引完成、來源定位與切片原文相符的判決。

@@ -96,7 +96,7 @@ def test_builder_preserves_exact_qdrant_excerpt_and_source_locator() -> None:
 
 
 @pytest.mark.asyncio
-async def test_source_backed_research_runs_all_gates_and_reaches_provider() -> None:
+async def test_source_backed_research_runs_all_gates_without_sending_excerpt_to_provider() -> None:
     context = build_judgment_research_context(
         "毒品再犯期間如何判斷？",
         [HIT],
@@ -108,16 +108,15 @@ async def test_source_backed_research_runs_all_gates_and_reaches_provider() -> N
     evaluated, meta, content = await engine.execute(context)
 
     assert meta.decision is DeliveryDecision.DELIVER
-    assert provider.requests
-    assert HIT["text"] in provider.requests[0].instructions
-    assert context.citations[0].locator in provider.requests[0].instructions
+    assert provider.requests == []
+    assert evaluated.citations[0].exact_quote == HIT["text"]
     assert evaluated.gate_results[2].gate_id is GateId.G_FACTS
     assert evaluated.gate_results[2].passed is True
     assert "人工覆核" in content
 
 
 @pytest.mark.asyncio
-async def test_missing_or_unlocatable_results_ask_without_calling_provider() -> None:
+async def test_missing_or_unlocatable_results_stop_without_calling_provider() -> None:
     context = build_judgment_research_context(
         "沒有來源的問題",
         [{**HIT, "source_url": ""}],
@@ -129,13 +128,13 @@ async def test_missing_or_unlocatable_results_ask_without_calling_provider() -> 
     evaluated, meta, _content = await engine.execute(context)
 
     assert evaluated.citations == []
-    assert meta.decision is DeliveryDecision.ASK
+    assert meta.decision is DeliveryDecision.STOP
     assert provider.requests == []
     assert context.missing_facts == ["未找到同時具備原文、裁判日期與來源定位的判決切片"]
 
 
 @pytest.mark.asyncio
-async def test_model_failure_stops_delivery_but_retains_retrieved_citation() -> None:
+async def test_research_citations_remain_available_without_a_model() -> None:
     context = build_judgment_research_context(
         "毒品再犯期間如何判斷？",
         [HIT],
@@ -146,8 +145,9 @@ async def test_model_failure_stops_delivery_but_retains_retrieved_citation() -> 
 
     evaluated, meta, _content = await _engine_with(provider).execute(context)
 
-    assert meta.decision is DeliveryDecision.STOP
-    assert meta.tool_failures and meta.tool_failures[0].startswith("provider:")
+    assert meta.decision is DeliveryDecision.DELIVER
+    assert meta.tool_failures == []
+    assert provider.requests == []
     assert evaluated.citations[0].exact_quote == HIT["text"]
 
 

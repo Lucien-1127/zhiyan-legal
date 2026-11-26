@@ -5,6 +5,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, call, patch
+import pytest
 
 from zhiyan_legal import judgment_rag as rag
 
@@ -190,3 +191,38 @@ class JudgmentIndexRecoveryTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_partial_or_mismatched_points_are_hidden_until_the_judgment_is_complete(tmp_path):
+    judgment = record()
+    chunks = rag.chunk_judgment(judgment, max_chars=100, overlap=10)
+    manifest = rag.JudgmentManifest(str(tmp_path / "proof.sqlite3"))
+    try:
+        manifest.upsert_record(judgment, chunks)
+        chunk = chunks[0]
+        manifest.set_indexed([chunk.chunk_id])
+        candidate = {
+            "id": chunk.chunk_id, "jid": judgment.jid, "content_hash": judgment.content_hash,
+            "text": chunk.text, "source_url": judgment.source_url,
+        }
+        assert len(chunks) > 1
+        assert manifest.filter_live_search_results([candidate]) == []
+        manifest.set_indexed(item.chunk_id for item in chunks)
+        assert manifest.filter_live_search_results([candidate])
+        assert manifest.filter_live_search_results([{**candidate, "source_url": "https://stale.invalid"}]) == []
+        assert manifest.filter_live_search_results([{**candidate, "text": "不在原文中的內容"}]) == []
+    finally:
+        manifest.close()
+
+
+def test_jdoc_and_chunking_preserve_raw_whitespace():
+    raw = "  换行\t不變\r\n\r\n第二段  有空格\r\n"
+    judgment = rag.parse_jdoc({"JID": JID, "JFULLX": {"JFULLCONTENT": raw}})
+    assert judgment.content == raw
+    chunks = rag.chunk_judgment(judgment, max_chars=100, overlap=10)
+    assert [chunk.text for chunk in chunks] == [raw]
+
+
+def test_jdoc_rejects_a_response_for_a_different_judgment():
+    with pytest.raises(rag.JudgmentRagError, match="JID"):
+        rag.parse_jdoc({"JID": "DIFFERENT", "JFULLX": {"JFULLCONTENT": "合成原文"}}, jid_hint=JID)

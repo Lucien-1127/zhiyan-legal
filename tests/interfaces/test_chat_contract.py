@@ -9,6 +9,8 @@ from backend import main as backend_main
 from zhiyan_legal.domain import (
     AnswerMeta,
     Citation,
+    Claim,
+    ClaimKind,
     DeliveryDecision,
     Evidence,
     EvidenceLevel,
@@ -56,6 +58,8 @@ async def test_chat_http_preserves_decision_content_and_canonical_citations(
             locator=f"測試來源第 {index} 段",
             retrieved_at=datetime(2026, 10, 6, tzinfo=timezone.utc),
             supports_claims=["claim-1"],
+            version=f"synthetic-{index}",
+            original_text=citations[index - 1].exact_quote,
             verification=VerificationStatus.VERIFIED,
             level=EvidenceLevel.VERIFIED,
         )
@@ -65,6 +69,7 @@ async def test_chat_http_preserves_decision_content_and_canonical_citations(
         execution_id="chat-contract",
         user_goal="法律問題",
         evidence=evidence,
+        claims=[Claim(claim_id="claim-1", text="合成引用對照", kind=ClaimKind.FACT)] if with_citations else [],
         citations=citations,
     )
     meta = AnswerMeta(
@@ -101,6 +106,8 @@ async def test_chat_http_preserves_decision_content_and_canonical_citations(
     expected_citations = [
         {
             "citation_id": f"citation-{index}",
+            "claim_id": "claim-1",
+            "version": f"synthetic-{index}",
             "source_id": f"source-{index}",
             "source_type": "JUDGMENT",
             "title": f"測試判決 {index}",

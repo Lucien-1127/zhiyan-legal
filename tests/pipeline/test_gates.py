@@ -56,10 +56,12 @@ def source_context(**updates) -> ExecutionContext:
         source_id="s-law",
         source_type=SourceType.STATUTE,
         title="法規",
-        locator="law.example/statute#1",
+        locator="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=SYNTHETIC#1",
         retrieved_at=NOW,
         effective_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
         supports_claims=[claim.claim_id],
+        original_text=claim.text,
+        version="synthetic-v1",
         verification=VerificationStatus.VERIFIED,
         level=EvidenceLevel.VERIFIED,
     )
@@ -115,7 +117,7 @@ def test_support_gate_requires_nonempty_quote_that_supports_claim():
                 citation_id="cite-1",
                 claim_id="c-core",
                 source_id="s-law",
-                locator="law.example/statute#1",
+                locator="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=SYNTHETIC#1",
                 exact_quote="完全不相關的文字",
                 evidence_level=EvidenceLevel.VERIFIED,
                 verified_at=NOW,
@@ -196,9 +198,9 @@ def test_pipeline_stops_when_a_core_claim_lacks_its_own_citation(include_other_c
 
 def test_quote_copied_from_claim_cannot_override_available_source_text():
     base = source_context()
-    source = base.evidence[0].model_copy(update={"full_text": "此處記錄的是另一段文字。"})
+    source = base.evidence[0].model_copy(update={"original_text": "此處記錄的是另一段文字。"})
     result = GatePipeline().run(base.model_copy(update={"evidence": [source]}))
     assert result.decision.value == "STOP"
 
-    matching = source.model_copy(update={"full_text": "原文：" + base.citations[0].exact_quote})
+    matching = source.model_copy(update={"original_text": base.citations[0].exact_quote})
     assert SupportGate().evaluate(base.model_copy(update={"evidence": [matching]})).passed

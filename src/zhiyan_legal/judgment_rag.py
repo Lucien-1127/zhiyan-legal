@@ -38,7 +38,7 @@ DEFAULT_COLLECTION = "zhiyan_legal_judgments"
 DEFAULT_QDRANT_PATH = "data/qdrant"
 DEFAULT_MANIFEST_PATH = "data/judgments/manifest.sqlite3"
 DEFAULT_EMBED_MODEL = "paraphrase-multilingual-MiniLM-L12-v2"
-INDEX_FINGERPRINT_VERSION = 2
+INDEX_FINGERPRINT_VERSION = 3
 INDEX_INPUT_TEMPLATE_VERSION = "title-section-text-v2-token-aware"
 
 _REMOVED_MARKERS = ("查無資料", "已從系統移除", "不再公開", "未公開")
@@ -258,6 +258,9 @@ def parse_jdoc(
 ) -> JudgmentRecord | None:
     """將官方 JDoc JSON 正規化成穩定主檔。"""
     source_base_url = _text(source_base_url) or OFFICIAL_API_BASE
+    response_jid = _text(payload.get("JID"))
+    if response_jid and jid_hint and response_jid != jid_hint:
+        raise JudgmentRagError("JDoc JID 與查詢不一致")
     if _is_removed(payload):
         return None
     if _text(payload.get("error")):
@@ -266,8 +269,10 @@ def parse_jdoc(
     full = payload.get("JFULLX") or {}
     if not isinstance(full, dict):
         full = {}
-    jid = _text(payload.get("JID")) or jid_hint
-    content = _text(full.get("JFULLCONTENT"))
+    jid = response_jid or jid_hint
+    content = full.get("JFULLCONTENT") or ""
+    if not isinstance(content, str):
+        raise JudgmentRagError("JDoc 全文格式不正確")
     if not jid:
         raise JudgmentRagError("JDoc 缺少 JID")
     attachments = payload.get("ATTACHMENTS") or []
@@ -292,13 +297,6 @@ def parse_jdoc(
     )
 
 
-def _normalise_text(text: str) -> str:
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    return text.strip()
-
-
 def extract_pdf_text(pdf_bytes: bytes) -> str:
     """從可選取文字的 PDF 抽取全文；掃描影像 PDF 回傳空字串。"""
     try:
@@ -307,7 +305,7 @@ def extract_pdf_text(pdf_bytes: bytes) -> str:
         raise JudgmentRagError("file 型判決需要 pypdf：請安裝專案依賴") from exc
     reader = PdfReader(BytesIO(pdf_bytes))
     pages = [page.extract_text() or "" for page in reader.pages]
-    return _normalise_text("\n\n".join(pages))
+    return "\n\n".join(pages)
 
 
 def _detect_section(text: str) -> str:
@@ -329,35 +327,24 @@ def chunk_judgment(
         raise ValueError("max_chars 不應小於 100")
     if overlap < 0 or overlap >= max_chars:
         raise ValueError("overlap 必須大於等於 0 且小於 max_chars")
-    text = _normalise_text(record.content)
-    if not text:
+    text = record.content
+    if not text.strip():
         return []
 
-    paragraphs = [p.strip() for p in re.split(r"\n{2,}", text) if p.strip()]
     units: list[str] = []
-    current = ""
-    for paragraph in paragraphs:
-        if len(paragraph) <= max_chars:
-            candidate = f"{current}\n{paragraph}".strip() if current else paragraph
-            if len(candidate) <= max_chars:
-                current = candidate
-            else:
-                if current:
-                    units.append(current)
-                current = paragraph
-            continue
-        if current:
-            units.append(current)
-            current = ""
-        start = 0
-        while start < len(paragraph):
-            end = min(start + max_chars, len(paragraph))
-            units.append(paragraph[start:end])
-            if end >= len(paragraph):
-                break
-            start = end - overlap
-    if current:
-        units.append(current)
+    paragraph_endings = re.compile(r"(?:\r\n|(?<!\r)\n|\r(?!\n))[ \t]*(?:\r\n|(?<!\r)\n|\r(?!\n))")
+    start = 0
+    while start < len(text):
+        end = min(start + max_chars, len(text))
+        if end < len(text):
+            preferred_start = start + max(max_chars // 2, overlap)
+            boundaries = list(paragraph_endings.finditer(text, preferred_start, end))
+            if boundaries:
+                end = boundaries[-1].end()
+        units.append(text[start:end])
+        if end == len(text):
+            break
+        start = end - overlap
 
     chunks: list[JudgmentChunk] = []
     for sequence, text_unit in enumerate(units, start=1):
@@ -702,40 +689,39 @@ class JudgmentManifest:
         self,
         results: Sequence[dict[str, Any]],
     ) -> list[dict[str, Any]]:
-        """Keep only vectors that match the current active manifest version.
-
-        Qdrant deletion can fail after the SQLite tombstone has already scrubbed
-        the judgment.  Treat the manifest as the authority so those stale points
-        cannot be returned while cleanup is pending.  Matching the content hash
-        also hides superseded vectors during a failed version replacement.
-        """
-        jids = list(dict.fromkeys(
-            str(item.get("jid", "")).strip()
-            for item in results
-            if str(item.get("jid", "")).strip()
+        """Return canonical chunks only for complete, current SQLite versions."""
+        ids = list(dict.fromkeys(
+            str(item["id"]) for item in results if item.get("id")
         ))
-        if not jids:
+        if not ids:
             return []
-        placeholders = ",".join("?" for _ in jids)
         rows = self.conn.execute(
-            f"""
-            SELECT jid, content_hash FROM judgments
-            WHERE status='active' AND content != '' AND jid IN ({placeholders})
+            """
+            SELECT c.chunk_id AS id, c.jid, c.sequence, c.section, c.text, c.char_count,
+                   c.content_hash, j.year, j.case_word, j.case_number, j.judgment_date,
+                   j.title, j.full_type, j.pdf_url, j.source_url,
+                   j.last_retrieved_at AS retrieved_at
+            FROM chunks c JOIN judgments j ON j.jid=c.jid
+            WHERE c.chunk_id IN (SELECT value FROM json_each(?))
+              AND j.status='active' AND j.content != '' AND c.indexed=1
+              AND j.content_hash=c.content_hash AND instr(j.content, c.text) > 0
+              AND NOT EXISTS (SELECT 1 FROM chunks pending WHERE pending.jid=c.jid AND pending.indexed=0)
             """,
-            jids,
+            (json.dumps(ids),),
         ).fetchall()
-        active_hashes = {str(row["jid"]): str(row["content_hash"]) for row in rows}
-        return [
-            item for item in results
-            if active_hashes.get(str(item.get("jid", "")).strip())
-            == str(item.get("content_hash", "")).strip()
-        ]
+        by_id = {row["id"]: dict(row) for row in rows}
+        live = []
+        for item in results:
+            row = by_id.get(str(item.get("id", "")))
+            if row and all(item.get(key) == row[key] for key in ("jid", "content_hash", "text", "source_url")):
+                live.append({**row, "score": item.get("score")})
+        return live
 
     @_serialized
     def upsert_record(self, record: JudgmentRecord, chunks: Sequence[JudgmentChunk]) -> bool:
         previous = self.conn.execute(
             """
-            SELECT content_hash, status, source_url,
+            SELECT content_hash, status, source_url, title,
                    EXISTS(SELECT 1 FROM chunks WHERE chunks.jid = judgments.jid) AS has_chunks
             FROM judgments WHERE jid = ?
             """,
@@ -746,6 +732,7 @@ class JudgmentManifest:
             or str(previous["content_hash"]) != record.content_hash
             or str(previous["status"]) != "active"
             or str(previous["source_url"]) != record.source_url
+            or str(previous["title"]) != record.title
             or (bool(chunks) and not bool(previous["has_chunks"]))
         )
         now = _now_iso()
@@ -1133,7 +1120,7 @@ class JudgmentRagIndex:
 
     @_serialized
     def index_record(self, record: JudgmentRecord) -> dict[str, Any]:
-        if not record.content:
+        if not record.content.strip():
             self.manifest.upsert_record(record, [])
             self.manifest.mark_pending_text(record.jid, "JFULLCONTENT 空白；需要下載 PDF 後抽取文字")
             return {"jid": record.jid, "status": "pending_text", "changed": False, "chunks": 0}
@@ -1153,8 +1140,8 @@ class JudgmentRagIndex:
         if pending:
             # Remove every older or partially-written version before rebuilding.
             # A failed rebuild stays retryable because all manifest chunks are reset.
-            self.store.delete_judgment(record.jid)
             self.manifest.reset_indexed(record.jid)
+            self.store.delete_judgment(record.jid)
             pending = self.manifest.pending_chunks(record.jid)
             records = {record.jid: record}
             for start in range(0, len(pending), self.batch_size):
@@ -1205,11 +1192,11 @@ class JudgmentRagIndex:
                 result = self.index_record(record)
                 stats["changed"] += int(bool(result["changed"]))
             except Exception as exc:
-                logger.exception("judgment sync failed: %s", jid)
+                logger.warning("judgment sync failed (%s)", type(exc).__name__)
                 stats["failed"] += 1
                 self.manifest.record_sync_error(
                     jid,
-                    f"{type(exc).__name__}: {exc}",
+                    type(exc).__name__,
                 )
         return stats
 
@@ -1248,14 +1235,13 @@ class JudgmentRagIndex:
                     result = self.index_record(record)
                     stats["changed"] += int(bool(result["changed"]))
                 except Exception as exc:
-                    logger.exception("JSONL line %d failed", line_no)
+                    logger.warning("JSONL line %d failed (%s)", line_no, type(exc).__name__)
                     stats["failed"] += 1
         return stats
 
     @_serialized
     def search(self, query: str, top_k: int = 8, *, jid: str = "", year: str = "") -> list[dict[str, Any]]:
-        if self.index_state != "ready":
-            raise JudgmentRagError("索引仍在 rebuild_pending；完成 rebuild-index 前拒絕查詢部分索引")
+        self._require_search_ready()
         if top_k <= 0:
             return []
         vector = self.embedder.encode([query])[0]
@@ -1277,8 +1263,14 @@ class JudgmentRagIndex:
                 or len(candidates) < candidate_limit
                 or candidate_limit >= maximum_limit
             ):
+                self._require_search_ready()
                 return live[:top_k]
             candidate_limit = min(maximum_limit, candidate_limit * 2)
+
+    def _require_search_ready(self) -> None:
+        config = self.manifest.get_index_config()
+        if config is None or config["fingerprint"] != self.index_config.fingerprint or config["state"] != "ready":
+            raise JudgmentRagError("索引未完成或指紋不符；拒絕查詢部分索引")
 
     @_serialized
     def status(self) -> dict[str, Any]:
