@@ -288,22 +288,22 @@ def get_judgment_status(request: Request):
         raise HTTPException(status_code=503, detail="判決向量庫未就緒") from exc
 
 
-def _search_judgments(query: str, top_k: int, *, jid: str = "", year: str = ""):
-    return get_judgment_index().search(query, top_k, jid=jid, year=year)
+def _search_judgments(query: str, top_k: int, *, jid: str = "", year: str = "") -> list[dict] | None:
+    try:
+        return get_judgment_index().search(query, top_k, jid=jid, year=year)
+    except Exception as exc:
+        logger.warning("判決檢索失敗 (%s)", type(exc).__name__)
+        return None
 
 
 @app.post("/api/judgments/search")
 @limiter.limit(_RATE_LIMIT)
 def search_local_judgments(request: Request, body: JudgmentSearchRequest):
     """以本地判決向量庫檢索，回傳可供引用的 metadata 與原文切片。"""
-    try:
-        return {
-            "query": body.query,
-            "results": _search_judgments(body.query, body.top_k, jid=body.jid, year=body.year),
-        }
-    except Exception as exc:
-        logger.warning("本地判決檢索失敗 (%s)", type(exc).__name__)
-        raise HTTPException(status_code=503, detail="判決向量庫未就緒") from exc
+    results = _search_judgments(body.query, body.top_k, jid=body.jid, year=body.year)
+    if results is None:
+        raise HTTPException(status_code=503, detail="判決向量庫未就緒")
+    return {"query": body.query, "results": results}
 
 
 @app.post("/api/chat", response_model=ChatResponse)
@@ -318,16 +318,14 @@ async def chat(request: Request, body: ChatRequest):
                 status_code=400,
                 detail="use_judgments 只能搭配 task=RESEARCH，避免把研究檢索誤當個案法律結論",
             )
-        try:
-            results = await asyncio.to_thread(
-                _search_judgments,
-                body.message,
-                body.judgment_top_k,
-                jid=body.judgment_jid,
-                year=body.judgment_year,
-            )
-        except Exception as exc:
-            logger.warning("[%s] 判決檢索失敗 (%s)", rid, type(exc).__name__)
+        results = await asyncio.to_thread(
+            _search_judgments,
+            body.message,
+            body.judgment_top_k,
+            jid=body.judgment_jid,
+            year=body.judgment_year,
+        )
+        if results is None:
             context = ExecutionContext(execution_id=rid, user_goal=body.message, task_mode=TaskMode.RESEARCH)
             meta = AnswerMeta(
                 execution_id=rid, task_mode=context.task_mode, risk_level=context.risk_level,
@@ -462,8 +460,8 @@ async def reload_docs(request: Request):
         logger.info("[%s] 文件重新載入完成: %d 份", rid, doc_count)
         return {"status": "ok", "docs_loaded": doc_count, "request_id": rid}
     except Exception as e:
-        logger.exception("[%s] 重新載入失敗", rid)
-        raise HTTPException(status_code=500, detail=f"重新載入失敗：{e}")
+        logger.error("[%s] 重新載入失敗 (%s)", rid, type(e).__name__)
+        raise HTTPException(status_code=500, detail="重新載入失敗") from e
 
 
 # ─── 靜態檔案服務（前端 SPA） ──────────────────────────

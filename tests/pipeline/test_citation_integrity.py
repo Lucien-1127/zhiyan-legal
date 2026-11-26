@@ -1,6 +1,6 @@
 """Offline citation delivery regressions using synthetic source text only."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -114,3 +114,13 @@ def test_prior_verified_status_cannot_survive_invalid_quote():
     ))
     assert "core" not in result.answer_meta.verified_claim_ids
     assert result.context.claims[0].status is ClaimStatus.UNVERIFIED
+
+
+def test_current_inquiry_does_not_use_source_expired_after_retrieval():
+    yesterday = datetime.now(timezone.utc) - timedelta(days=1)
+    context = make_context(valid_until=yesterday, retrieved_at=yesterday - timedelta(days=1)).model_copy(update={
+        "known_facts": ["甲", "臺北", "申請", "收到回覆", "個案紀錄"],
+    })
+    result = GatePipeline().run(context)
+    assert result.decision is DeliveryDecision.HUMAN_REVIEW
+    assert result.answer_meta.verified_claim_ids == []

@@ -173,7 +173,7 @@ class ClaimEvidenceBinder:
                     citation_list.append(citation)
                     existing.append(citation)
                 for citation in existing:
-                    status = assess_support(claim, citation, item, jurisdiction, applicable_at)
+                    status = assess_support(claim, citation, item, jurisdiction, applicable_at or now)
                     current = statuses[claim.claim_id]
                     if status is VerificationStatus.CONFLICT or (
                         current is not VerificationStatus.CONFLICT

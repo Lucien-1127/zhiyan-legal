@@ -460,6 +460,8 @@ body {
 }
 
 .citation-item blockquote {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
   margin-top: 6px;
   padding-left: 10px;
   color: var(--text-secondary);

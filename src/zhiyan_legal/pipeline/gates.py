@@ -177,11 +177,11 @@ class SourceGate(BaseGate):
         return _result(self.gate_id, True, "所有核心命題均有一手來源定位", DeliveryDecision.STOP)
 
 
-def applicable_dates(context: ExecutionContext) -> list[datetime | None]:
+def applicable_dates(context: ExecutionContext) -> list[datetime]:
     if context.applicable_at is not None:
         return [context.applicable_at]
     dates = _dates_in(context.known_facts)
-    return [datetime.combine(day, time.min) for day in sorted(set(dates))] or [None]
+    return [datetime.combine(day, time.min) for day in sorted(set(dates))] or [datetime.now(timezone.utc)]
 
 
 def claim_support_statuses(context: ExecutionContext) -> dict[str, VerificationStatus]:
@@ -241,7 +241,7 @@ class SupportGate(BaseGate):
 def _dates_in(values: Iterable[str]) -> list[date]:
     found: list[date] = []
     for value in values:
-        for match in re.findall(r"(?<!\d)(20\d{2})[-/]([01]?\d)[-/]([0-3]?\d)(?!\d)", value):
+        for match in re.findall(r"(?<!\d)(\d{4})[-/]([01]?\d)[-/]([0-3]?\d)(?!\d)", value):
             try:
                 found.append(date(int(match[0]), int(match[1]), int(match[2])))
             except ValueError:
