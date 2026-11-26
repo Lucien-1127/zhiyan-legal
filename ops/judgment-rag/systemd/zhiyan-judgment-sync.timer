@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Zhiyan judgment sync during the Judicial Yuan API window
+
+[Timer]
+OnCalendar=*-*-* 02:15:00 Asia/Taipei
+RandomizedDelaySec=10m
+Persistent=false
+Unit=zhiyan-judgment-sync.service
+
+[Install]
+WantedBy=timers.target

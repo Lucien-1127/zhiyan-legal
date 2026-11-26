@@ -17,9 +17,13 @@ from __future__ import annotations
 import os
 import uuid
 import time
+import asyncio
 import logging
+from collections import Counter
 from pathlib import Path
 from contextlib import asynccontextmanager
+from threading import Lock
+from typing import Any
 
 from dotenv import load_dotenv
 load_dotenv()  # 載入 .env（含 ZHIYAN_API_KEY）
@@ -36,8 +40,12 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from zhiyan_legal.application import ZhiyanApplicationEngine
-from zhiyan_legal.domain import AnswerMeta, DeliveryDecision
+from zhiyan_legal.domain import (
+    AnswerMeta, ClaimMateriality, DeliveryDecision, ExecutionContext, TaskMode, VerificationStatus,
+)
+from zhiyan_legal.pipeline.gates import applicable_dates
 from zhiyan_legal.providers import ProviderError
+from zhiyan_legal.domain.support import assess_support, matches_citation
 
 # ─── 設定 ────────────────────────────────────────────────
 
@@ -65,6 +73,13 @@ class ChatRequest(BaseModel):
     max_tokens: int = Field(default=4096, ge=1, le=16384)
     task: str = Field(default="QC", description="application engine task mode")
     conversation_history: list[dict[str, str]] = Field(default_factory=list)
+    use_judgments: bool = Field(
+        default=False,
+        description="以本地判決庫建立可核對的研究引註；僅支援 RESEARCH task",
+    )
+    judgment_top_k: int = Field(default=5, ge=1, le=8)
+    judgment_jid: str = Field(default="", max_length=300)
+    judgment_year: str = Field(default="", max_length=10)
 
 
 class ChatResponse(BaseModel):
@@ -77,6 +92,7 @@ class ChatResponse(BaseModel):
     request_id: str = ""
     decision: str
     answer_meta: dict
+    citations: list[dict[str, Any]] = Field(default_factory=list)
     error: str | None = None
 
 
@@ -96,9 +112,19 @@ class ErrorResponse(BaseModel):
     request_id: str = ""
 
 
+class JudgmentSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=5000, description="判決檢索問題")
+    top_k: int = Field(default=8, ge=1, le=50)
+    jid: str = Field(default="", max_length=300)
+    year: str = Field(default="", max_length=10)
+
+
 # ─── 引擎相依注入 ──────────────────────────────────────
 
 _engine: ZhiyanApplicationEngine | None = None
+_judgment_index: Any = None
+_judgment_index_lock = Lock()
+_judgment_index_closing = False
 
 
 def get_engine() -> ZhiyanApplicationEngine:
@@ -112,17 +138,29 @@ def get_engine() -> ZhiyanApplicationEngine:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """啟動/關閉：引擎初始化 + 資源釋放"""
-    global _engine
+    global _engine, _judgment_index, _judgment_index_closing
 
     logger.info("🚀 智研 SaaS 版 v2.0 啟動中...")
     _engine = ZhiyanApplicationEngine()
+    with _judgment_index_lock:
+        _judgment_index_closing = False
     logger.info("✅ application engine 就緒 | providers=%d", len(_engine.registry))
 
-    yield
-
-    # 關閉
-    _engine = None
-    logger.info("🛑 智研 SaaS 版已關閉")
+    try:
+        yield
+    finally:
+        # Detach the singleton while holding the same lock used for lazy
+        # initialization. New requests cannot recreate it during shutdown.
+        _engine = None
+        with _judgment_index_lock:
+            _judgment_index_closing = True
+            judgment_index = _judgment_index
+            _judgment_index = None
+        try:
+            if judgment_index is not None:
+                judgment_index.close()
+        finally:
+            logger.info("🛑 智研 SaaS 版已關閉")
 
 
 # ─── FastAPI 實例 ──────────────────────────────────────
@@ -141,11 +179,11 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # 2. CORS（可透過環境變數限制）
-_cors_origins = os.getenv("ZHIYAN_CORS_ORIGINS", "*")
+_cors_origins = [origin.strip() for origin in os.getenv("ZHIYAN_CORS_ORIGINS", "").split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_origins.split(","),
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=bool(_cors_origins) and "*" not in _cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -170,7 +208,7 @@ async def add_request_id(request: Request, call_next):
     try:
         response = await call_next(request)
     except Exception as e:
-        logger.exception("[%s] 未處理例外: %s", rid, e)
+        logger.error("[%s] 未處理例外 (%s)", rid, type(e).__name__)
         return JSONResponse(
             status_code=500,
             content=ErrorResponse(
@@ -226,27 +264,102 @@ async def get_status(request: Request):
     )
 
 
+def get_judgment_index():
+    """延遲載入本地判決向量庫，避免一般聊天啟動時載入嵌入模型。"""
+    global _judgment_index
+    with _judgment_index_lock:
+        if _judgment_index_closing:
+            raise RuntimeError("判決向量庫正在關閉")
+        if _judgment_index is None:
+            from zhiyan_legal.judgment_rag import index_from_env
+
+            _judgment_index = index_from_env()
+        return _judgment_index
+
+
+@app.get("/api/judgments/status")
+@limiter.limit(_RATE_LIMIT)
+def get_judgment_status(request: Request):
+    """回傳本地判決 manifest 與 Qdrant 狀態。"""
+    try:
+        return get_judgment_index().status()
+    except Exception as exc:
+        logger.warning("判決向量庫狀態讀取失敗 (%s)", type(exc).__name__)
+        raise HTTPException(status_code=503, detail="判決向量庫未就緒") from exc
+
+
+def _search_judgments(query: str, top_k: int, *, jid: str = "", year: str = "") -> list[dict] | None:
+    try:
+        return get_judgment_index().search(query, top_k, jid=jid, year=year)
+    except Exception as exc:
+        logger.warning("判決檢索失敗 (%s)", type(exc).__name__)
+        return None
+
+
+@app.post("/api/judgments/search")
+@limiter.limit(_RATE_LIMIT)
+def search_local_judgments(request: Request, body: JudgmentSearchRequest):
+    """以本地判決向量庫檢索，回傳可供引用的 metadata 與原文切片。"""
+    results = _search_judgments(body.query, body.top_k, jid=body.jid, year=body.year)
+    if results is None:
+        raise HTTPException(status_code=503, detail="判決向量庫未就緒")
+    return {"query": body.query, "results": results}
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 @limiter.limit(_RATE_LIMIT)
 async def chat(request: Request, body: ChatRequest):
     """法律 AI 對話 — 傳送問題，取得法律分析回應"""
-    engine = get_engine()
     rid = request.state.request_id
+    context = None
+    if body.use_judgments:
+        if body.task.strip().upper() != "RESEARCH":
+            raise HTTPException(
+                status_code=400,
+                detail="use_judgments 只能搭配 task=RESEARCH，避免把研究檢索誤當個案法律結論",
+            )
+        results = await asyncio.to_thread(
+            _search_judgments,
+            body.message,
+            body.judgment_top_k,
+            jid=body.judgment_jid,
+            year=body.judgment_year,
+        )
+        if results is None:
+            context = ExecutionContext(execution_id=rid, user_goal=body.message, task_mode=TaskMode.RESEARCH)
+            meta = AnswerMeta(
+                execution_id=rid, task_mode=context.task_mode, risk_level=context.risk_level,
+                decision=DeliveryDecision.STOP, strictness_level=DeliveryDecision.STOP.strictness,
+                tool_failures=["judgment: unavailable"],
+            )
+            return JSONResponse(
+                status_code=503,
+                content=_chat_payload(body, context, meta, "判決來源暫時無法查詢，請稍後重試。", rid),
+            )
+
+        from zhiyan_legal.judgment_answer import build_judgment_research_context
+
+        context = build_judgment_research_context(
+            body.message,
+            results,
+            execution_id=rid,
+        )
 
     try:
-        context, meta, content = await engine.query_async(
+        context, meta, content = await get_engine().query_async(
             body.message,
             conversation_history=body.conversation_history,
             task=body.task,
+            context=context,
         )
     except ProviderError as exc:
-        logger.error("[%s] 提供商錯誤: %s", rid, exc)
-        raise HTTPException(status_code=502, detail=f"提供商錯誤：{exc}") from exc
+        logger.warning("[%s] 提供商錯誤 (%s)", rid, type(exc).__name__)
+        raise HTTPException(status_code=502, detail="模型供應商無法完成請求") from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
-        logger.exception("[%s] 不明錯誤", rid)
-        raise HTTPException(status_code=500, detail=f"查詢失敗：{exc}") from exc
+        logger.error("[%s] 查詢失敗 (%s)", rid, type(exc).__name__)
+        raise HTTPException(status_code=500, detail="查詢失敗") from exc
 
     payload = _chat_payload(body, context, meta, content, rid)
     status_code = _chat_status_code(meta)
@@ -256,7 +369,7 @@ async def chat(request: Request, body: ChatRequest):
     return ChatResponse(**payload)
 
 
-def _chat_payload(body: ChatRequest, _context, meta: AnswerMeta, content: str, rid: str) -> dict:
+def _chat_payload(body: ChatRequest, context: ExecutionContext, meta: AnswerMeta, content: str, rid: str) -> dict:
     """Adapt one canonical execution result to the HTTP response contract."""
     legal = any(term in body.message for term in ("法", "契約", "判決", "訴訟", "條"))
     return {
@@ -269,8 +382,57 @@ def _chat_payload(body: ChatRequest, _context, meta: AnswerMeta, content: str, r
         "request_id": rid or meta.execution_id,
         "decision": meta.decision.value,
         "answer_meta": meta.model_dump(mode="json"),
+        "citations": _chat_citations(context),
         "error": "; ".join(meta.tool_failures) or None,
     }
+
+
+def _chat_citations(context: ExecutionContext) -> list[dict[str, Any]]:
+    """Export the canonical provenance and suppress broken or withdrawn references."""
+    sources = {item.source_id: item for item in context.evidence}
+    claims = {item.claim_id: item for item in context.claims}
+    citation_ids = Counter(item.citation_id for item in context.citations)
+    if len(sources) != len(context.evidence) or len(claims) != len(context.claims):
+        return []
+    dates = applicable_dates(context)
+    output: list[dict[str, Any]] = []
+    for citation in context.citations:
+        evidence = sources.get(citation.source_id)
+        claim = claims.get(citation.claim_id)
+        if (
+            evidence is None or claim is None or evidence.withdrawn
+            or citation_ids[citation.citation_id] != 1
+            or not matches_citation(claim, citation, evidence)
+        ):
+            continue
+        status = evidence.verification
+        if claim.materiality is ClaimMateriality.CORE:
+            results = [assess_support(claim, citation, evidence, context.jurisdiction, day) for day in dates]
+            for adverse_status in (VerificationStatus.CONFLICT, VerificationStatus.STALE, VerificationStatus.UNVERIFIED):
+                if adverse_status in results:
+                    status = adverse_status
+                    break
+        output.append(
+            {
+                "citation_id": str(citation.citation_id),
+                "claim_id": str(citation.claim_id),
+                "source_id": str(citation.source_id),
+                "source_type": evidence.source_type.value,
+                "title": evidence.title,
+                "locator": citation.locator,
+                "exact_quote": citation.exact_quote,
+                "evidence_level": citation.evidence_level.value,
+                "verification": status.value,
+                "version": evidence.version,
+                "effective_at": (
+                    evidence.effective_at.isoformat()
+                    if evidence.effective_at is not None
+                    else None
+                ),
+                "verified_at": citation.verified_at.isoformat(),
+            }
+        )
+    return output
 
 
 def _chat_status_code(meta: AnswerMeta) -> int:
@@ -298,8 +460,8 @@ async def reload_docs(request: Request):
         logger.info("[%s] 文件重新載入完成: %d 份", rid, doc_count)
         return {"status": "ok", "docs_loaded": doc_count, "request_id": rid}
     except Exception as e:
-        logger.exception("[%s] 重新載入失敗", rid)
-        raise HTTPException(status_code=500, detail=f"重新載入失敗：{e}")
+        logger.error("[%s] 重新載入失敗 (%s)", rid, type(e).__name__)
+        raise HTTPException(status_code=500, detail="重新載入失敗") from e
 
 
 # ─── 靜態檔案服務（前端 SPA） ──────────────────────────

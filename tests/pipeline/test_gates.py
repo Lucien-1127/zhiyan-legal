@@ -20,6 +20,7 @@ from zhiyan_legal.domain import (
 from zhiyan_legal.pipeline import (
     ConflictGate,
     FactsGate,
+    GatePipeline,
     HighImpactGate,
     JurisdictionGate,
     OutputGate,
@@ -55,10 +56,12 @@ def source_context(**updates) -> ExecutionContext:
         source_id="s-law",
         source_type=SourceType.STATUTE,
         title="法規",
-        locator="law.example/statute#1",
+        locator="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=SYNTHETIC#1",
         retrieved_at=NOW,
         effective_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
         supports_claims=[claim.claim_id],
+        original_text=claim.text,
+        version="synthetic-v1",
         verification=VerificationStatus.VERIFIED,
         level=EvidenceLevel.VERIFIED,
     )
@@ -114,7 +117,7 @@ def test_support_gate_requires_nonempty_quote_that_supports_claim():
                 citation_id="cite-1",
                 claim_id="c-core",
                 source_id="s-law",
-                locator="law.example/statute#1",
+                locator="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=SYNTHETIC#1",
                 exact_quote="完全不相關的文字",
                 evidence_level=EvidenceLevel.VERIFIED,
                 verified_at=NOW,
@@ -175,3 +178,29 @@ def test_output_gate_checks_optional_outgoing_payload():
     assert result.target_decision.value == "SAFE"
     guaranteed = context().model_copy(update={"output": {**valid, "limitations": "保證一定會勝訴"}})
     assert not OutputGate().evaluate(guaranteed).passed
+
+
+@pytest.mark.parametrize("include_other_citation", [False, True])
+def test_pipeline_stops_when_a_core_claim_lacks_its_own_citation(include_other_citation):
+    base = source_context()
+    claim = base.claims[0]
+    other = claim.model_copy(update={"claim_id": "other"})
+    evidence = base.evidence[0].model_copy(update={"supports_claims": [claim.claim_id, other.claim_id]})
+    citations = [base.citations[0].model_copy(update={"claim_id": other.claim_id})] if include_other_citation else []
+    ctx = context(claims=[claim, other], evidence=[evidence], citations=citations)
+
+    result = GatePipeline().run(ctx)
+    support = next(gate for gate in result.gate_results if gate.gate_id.value == "G-SUPPORT")
+    assert result.decision.value == "STOP"
+    assert not support.passed
+    assert claim.claim_id in support.reason
+
+
+def test_quote_copied_from_claim_cannot_override_available_source_text():
+    base = source_context()
+    source = base.evidence[0].model_copy(update={"original_text": "此處記錄的是另一段文字。"})
+    result = GatePipeline().run(base.model_copy(update={"evidence": [source]}))
+    assert result.decision.value == "STOP"
+
+    matching = source.model_copy(update={"original_text": base.citations[0].exact_quote})
+    assert SupportGate().evaluate(base.model_copy(update={"evidence": [matching]})).passed

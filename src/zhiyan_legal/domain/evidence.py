@@ -43,6 +43,10 @@ class Evidence(BaseModel):
     jurisdiction: Jurisdiction = Jurisdiction.TW
     retrieved_at: datetime
     effective_at: datetime | None = None
+    valid_until: datetime | None = None
+    version: str | None = None
+    withdrawn: bool = False
+    original_text: str | None = Field(default=None, repr=False)
     supports_claims: list[ClaimId] = Field(default_factory=list)
     verification: VerificationStatus = VerificationStatus.UNVERIFIED
     level: EvidenceLevel = EvidenceLevel.NEED_CHECK

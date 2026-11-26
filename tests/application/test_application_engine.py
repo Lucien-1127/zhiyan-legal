@@ -24,7 +24,7 @@ class CountingAdapter(BaseProviderAdapter):
         self.requests.append(request)
         return ProviderResponse(
             task_id=request.task_id,
-            content="已通過閘門的受控回答",
+            content="合成規範要求提供書面資料。",
             model=self.model,
             provider_name=self.provider_name,
         )
@@ -68,16 +68,18 @@ async def test_gate_block_does_not_call_provider() -> None:
 
 
 @pytest.mark.asyncio
-async def test_gate_pass_calls_provider_and_returns_answer_meta() -> None:
+async def test_gate_pass_calls_provider_and_returns_answer_meta(bound_citation_fields) -> None:
     engine, adapter = make_engine()
 
-    evaluated_context, meta, response = await engine.execute(context())
+    evaluated_context, meta, response = await engine.execute(context(**bound_citation_fields))
 
     assert meta.decision.value == "DELIVER"
     assert meta.execution_id == evaluated_context.execution_id
-    assert response == "已通過閘門的受控回答"
+    assert response == evaluated_context.claims[0].text
     assert adapter.calls == 1
     assert adapter.requests[0].task_id == evaluated_context.execution_id
+    assert evaluated_context.claims[0].text in adapter.requests[0].instructions
+    assert evaluated_context.citations[0].locator not in adapter.requests[0].instructions
 
 
 @pytest.mark.asyncio

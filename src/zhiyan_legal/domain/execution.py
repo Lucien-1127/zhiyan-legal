@@ -1,5 +1,6 @@
 """Canonical execution state and execution context aggregate."""
 
+from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -37,6 +38,7 @@ class ExecutionContext(BaseModel):
     procedure_stage: ProcedureStage = ProcedureStage.NONE
     risk_level: RiskLevel = RiskLevel.MEDIUM
     user_goal: str
+    applicable_at: datetime | None = None
     known_facts: list[str] = Field(default_factory=list)
     missing_facts: list[str] = Field(default_factory=list)
     available_tools: list[str] = Field(default_factory=list)
