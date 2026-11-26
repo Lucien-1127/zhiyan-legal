@@ -21,6 +21,7 @@ def make_context(
     quote=CLAIM,
     original=CLAIM,
     source_verification=VerificationStatus.VERIFIED,
+    source_type=SourceType.STATUTE,
     claim_status=ClaimStatus.UNVERIFIED,
     with_citation=True,
     cited_source="official",
@@ -31,9 +32,14 @@ def make_context(
         claim_id="core", text=CLAIM, kind=ClaimKind.LAW,
         materiality=ClaimMateriality.CORE, status=claim_status,
     )
+    locator = (
+        "https://data.judicial.gov.tw/jdg/api/JDoc#synthetic"
+        if source_type is SourceType.JUDGMENT else
+        "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=SYNTHETIC"
+    )
     source = Evidence(
-        source_id="official", source_type=SourceType.STATUTE, title="合成規範",
-        locator="https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=SYNTHETIC",
+        source_id="official", source_type=source_type, title="合成規範",
+        locator=locator,
         retrieved_at=NOW, effective_at=datetime(2024, 1, 1, tzinfo=timezone.utc),
         supports_claims=[claim.claim_id], verification=source_verification,
         level=EvidenceLevel.VERIFIED,
@@ -70,7 +76,7 @@ def make_context(
                      DeliveryDecision.HUMAN_REVIEW, id="CIT-05"),
         pytest.param({"source_verification": VerificationStatus.CONFLICT},
                      DeliveryDecision.HUMAN_REVIEW, id="CIT-06"),
-        pytest.param({"withdrawn": True}, DeliveryDecision.STOP, id="CIT-07"),
+        pytest.param({"withdrawn": True, "source_type": SourceType.JUDGMENT}, DeliveryDecision.STOP, id="CIT-07"),
         pytest.param({"second_claim": True}, DeliveryDecision.STOP, id="CIT-09"),
         pytest.param({}, DeliveryDecision.DELIVER, id="CIT-10"),
         pytest.param({"original": None}, DeliveryDecision.STOP, id="locator-is-not-original"),
@@ -124,3 +130,24 @@ def test_current_inquiry_does_not_use_source_expired_after_retrieval():
     result = GatePipeline().run(context)
     assert result.decision is DeliveryDecision.HUMAN_REVIEW
     assert result.answer_meta.verified_claim_ids == []
+
+
+
+def test_all_core_claims_can_be_delivered_with_independent_verified_sources():
+    context = make_context(second_claim=True)
+    first, second = context.claims
+    evidence = context.evidence[0]
+    second_source = evidence.model_copy(update={
+        "source_id": "official-2", "locator": evidence.locator + "#synthetic-2",
+        "supports_claims": [second.claim_id], "original_text": second.text,
+    })
+    citation = context.citations[0].model_copy(update={
+        "citation_id": "citation-2", "claim_id": second.claim_id, "source_id": second_source.source_id,
+        "locator": second_source.locator, "exact_quote": second.text,
+    })
+    result = GatePipeline().run(context.model_copy(update={
+        "evidence": [evidence, second_source],
+        "citations": [*context.citations, citation],
+    }))
+    assert result.decision is DeliveryDecision.DELIVER
+    assert result.answer_meta.verified_claim_ids == [first.claim_id, second.claim_id]

@@ -25,7 +25,11 @@ async def test_cit_08_retrieval_timeout_returns_controlled_stop(monkeypatch):
         def search(self, *args, **kwargs):
             raise TimeoutError("SYNTHETIC-PRIVATE-TRANSPORT-DIAGNOSTIC")
 
+    async def run_worker(func, *args, **kwargs):
+        return func(*args, **kwargs)
+
     monkeypatch.setattr(backend, "get_judgment_index", lambda: Unavailable())
+    monkeypatch.setattr(backend.asyncio, "to_thread", run_worker)
     monkeypatch.setattr(backend.limiter, "enabled", False)
     transport = httpx.ASGITransport(app=backend.app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
